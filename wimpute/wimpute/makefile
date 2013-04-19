@@ -1,8 +1,8 @@
 all: wimpute
 
-wimpute.o: wimpute.cpp
-	g++ -c wimpute.cpp
+main.o: main.cpp
+	g++ -c main.cpp
 add.o: add.cpp
 	g++ -c add.cpp
-wimpute: wimpute.o add.o add.h
-	g++ -o wimpute wimpute.o add.o add.h
+wimpute: main.o add.o add.h
+	g++ -o wimpute main.o add.o add.h
