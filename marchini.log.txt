@@ -1,0 +1,115 @@
+###########
+# Wed Mar 06 15:33:39 GMT 2013
+# CONVERGE
+# teleconference
+# with collaborators at VCU
+
+QC to do on converge data
+- rsquare for chrom 20
+- rsquare for sequenom across genome
+- PCA plot
+  - color by village of origin
+
+How to share data
+- decide offline
+  - ped might not support doses
+  - probably beagle dose file
+- *bold* talk to Jessie about labels *bold*
+- Phenotypes
+  - Case-Control status
+  - city
+  - latitude
+  - longitude
+  - age
+  - province?
+  - height
+  
+Who's doing what?
+- VCU taking the lead on:
+  - population structure
+  - Common variant analysis
+  - Univariant analysis
+
+Last things
+- don't merge X chrom
+- FTO is on 16, do chrom 16
+
+# Wed 16:27:40
+also convert to SNPtest format to run SNPtest locally
+
+# meeting completed
+
+# Wed 17:30:21
+make sure to change merging script.  THere's something fishy going
+on. here a replacement for gprobs merger.pl
+zcat $(cat filelist) |\
+ awk '$0  ~ /^marker / { if (count++ == 0) print; }
+      $0 !~ /^marker / {                   print; }'
+
+
+###########
+# Thu Mar 07 10:03:36 GMT 2013
+# CONVERGE meeting
+
+
+###########
+# Thu Mar 21 10:29:27 GMT 2013
+Let's do a regression on weight on FTO
+Look for a height snp
+
+Sequenom analysis by end of today. - done
+Rsquare analysis by end of tomorrow. 
+send richard email with location of GLs. - done
+Email jiejin at BGI about xlsx files for sequenom. - Jessie solved this
+
+###########
+# Fri Mar 22 14:49:15 GMT 2013
+compare 500 previously done sequenom with round2 sequenoms
+
+###########
+# Tue Mar 26 12:22:47 GMT 2013
+- start running a chrom at a time on pekin and fenghuang, maybe cluster3
+- look at var(Pr(D|G)) as a quality measure
+- search literature for snps that segregate across China
+
+###########
+# Thu Apr 04 10:12:27 BST 2013
+# CONVERGE meeting
+- do the r-square analysis now!
+- talk to JM about variant callin
+- send round a garbage collection email
+- talk to xiang about which checks he does
+
+###########
+# Thu Apr 11 10:24:25 BST 2013
+- do the r-square analysis now!
+- burden tests
+- talk to JM about variant calling
+- check that current hits are not due to plate effects
+- once 10x data becomes available due rsquare analyses
+
+## what to work on?
+- variant calling
+- imputation
+- testing for multiple phenotypes
+
+###########
+# Fri Apr 12 16:05:17 BST 2013
+# VCU tele conference
+
+excluded samples
+excluded SNPs with r-square < 0.3
+
+VCU does
+GCTA cc + neuroticism
+
+Flint
+- Mitochondria, mice filled fluoxitine
+
+###########
+# Fri Apr 12 17:13:59 BST 2013
+- test snptools 
+- look into indel realignment
+- start working no methods
+
+
