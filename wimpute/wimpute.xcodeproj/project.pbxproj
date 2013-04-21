@@ -6,39 +6,11 @@
 	objectVersion = 46;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		250F3A1B1721E93100A35BC9 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 250F3A1A1721E93100A35BC9 /* main.cpp */; };
-		250F3A1D1721E93100A35BC9 /* wimpute.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = 250F3A1C1721E93100A35BC9 /* wimpute.1 */; };
-/* End PBXBuildFile section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		250F3A151721E93100A35BC9 /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = /usr/share/man/man1/;
-			dstSubfolderSpec = 0;
-			files = (
-				250F3A1D1721E93100A35BC9 /* wimpute.1 in CopyFiles */,
-			);
-			runOnlyForDeploymentPostprocessing = 1;
-		};
-/* End PBXCopyFilesBuildPhase section */
-
 /* Begin PBXFileReference section */
-		250F3A171721E93100A35BC9 /* wimpute */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = wimpute; sourceTree = BUILT_PRODUCTS_DIR; };
-		250F3A1A1721E93100A35BC9 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		250F3A1C1721E93100A35BC9 /* wimpute.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = wimpute.1; sourceTree = "<group>"; };
+		252D9AA31721F5F500D762D2 /* makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = makefile; sourceTree = "<group>"; };
+		6BE522D776991635FA60EC9E /* impute.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = impute.cpp; path = main.cpp/impute.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
-
-/* Begin PBXFrameworksBuildPhase section */
-		250F3A141721E93100A35BC9 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		250F3A0E1721E93100A35BC9 = {
@@ -52,7 +24,6 @@
 		250F3A181721E93100A35BC9 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				250F3A171721E93100A35BC9 /* wimpute */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -60,33 +31,31 @@
 		250F3A191721E93100A35BC9 /* wimpute */ = {
 			isa = PBXGroup;
 			children = (
-				250F3A1A1721E93100A35BC9 /* main.cpp */,
+				252D9AA31721F5F500D762D2 /* makefile */,
 				250F3A1C1721E93100A35BC9 /* wimpute.1 */,
+				6BE522D776991635FA60EC9E /* impute.cpp */,
 			);
 			path = wimpute;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
-/* Begin PBXNativeTarget section */
-		250F3A161721E93100A35BC9 /* wimpute */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 250F3A201721E93100A35BC9 /* Build configuration list for PBXNativeTarget "wimpute" */;
+/* Begin PBXLegacyTarget section */
+		252D9A9F1721F2FC00D762D2 /* wimpute */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = "$(ACTION)";
+			buildConfigurationList = 252D9AA01721F2FC00D762D2 /* Build configuration list for PBXLegacyTarget "wimpute" */;
 			buildPhases = (
-				250F3A131721E93100A35BC9 /* Sources */,
-				250F3A141721E93100A35BC9 /* Frameworks */,
-				250F3A151721E93100A35BC9 /* CopyFiles */,
 			);
-			buildRules = (
-			);
+			buildToolPath = /usr/bin/make;
+			buildWorkingDirectory = "/Volumes/mac-3/home/to_be_backupped_unsensitive/Projects/marchini/wimpute/wimpute";
 			dependencies = (
 			);
 			name = wimpute;
+			passBuildSettingsInEnvironment = 1;
 			productName = wimpute;
-			productReference = 250F3A171721E93100A35BC9 /* wimpute */;
-			productType = "com.apple.product-type.tool";
 		};
-/* End PBXNativeTarget section */
+/* End PBXLegacyTarget section */
 
 /* Begin PBXProject section */
 		250F3A0F1721E93100A35BC9 /* Project object */ = {
@@ -107,21 +76,10 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				250F3A161721E93100A35BC9 /* wimpute */,
+				252D9A9F1721F2FC00D762D2 /* wimpute */,
 			);
 		};
 /* End PBXProject section */
-
-/* Begin PBXSourcesBuildPhase section */
-		250F3A131721E93100A35BC9 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				250F3A1B1721E93100A35BC9 /* main.cpp in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
 		250F3A1E1721E93100A35BC9 /* Debug */ = {
@@ -181,16 +139,23 @@
 			};
 			name = Release;
 		};
-		250F3A211721E93100A35BC9 /* Debug */ = {
+		252D9AA11721F2FC00D762D2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				DEBUGGING_SYMBOLS = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
 		};
-		250F3A221721E93100A35BC9 /* Release */ = {
+		252D9AA21721F2FC00D762D2 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
@@ -207,13 +172,14 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		250F3A201721E93100A35BC9 /* Build configuration list for PBXNativeTarget "wimpute" */ = {
+		252D9AA01721F2FC00D762D2 /* Build configuration list for PBXLegacyTarget "wimpute" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				250F3A211721E93100A35BC9 /* Debug */,
-				250F3A221721E93100A35BC9 /* Release */,
+				252D9AA11721F2FC00D762D2 /* Debug */,
+				252D9AA21721F2FC00D762D2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

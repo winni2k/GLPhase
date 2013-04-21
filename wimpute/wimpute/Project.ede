@@ -1,0 +1,7 @@
+;; Object wimpute
+;; EDE Project Files are auto generated: Do Not Edit
+(ede-proj-project "wimpute"
+  :file "Project.ede"
+  :name "wimpute"
+  :targets 'nil
+  )
