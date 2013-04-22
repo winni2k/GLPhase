@@ -44,7 +44,10 @@ struct Site {
 class Impute {
 private:
     gsl_rng *rng;
-    uint hn, pn, en, wn;
+  uint hn; // 2 * number of individuals = number of haplotypes
+  uint pn; // 3 * number of sites (number of transitions)
+  uint en;
+  uint wn; // this is the number of blocks of size 64 to save haps in
     vector<word> haps, hnew;
     vector<uint> hsum;
     vector<fast> tran, emit;
@@ -115,19 +118,6 @@ public:
 
     void save_pare(const char *F);
 };
-
-
-/*
-uint    Impute::bn;
-uint    Impute::sn;
-uint    Impute::nn;
-real    Impute::density;
-real    Impute::conf;
-vector <string>    Impute::vcf_file;
-set <string>    Impute::male;
-bool    Impute::is_x;
-bool    Impute::is_y;
-*/
 
 #endif /* _IMPUTE_H */
 
