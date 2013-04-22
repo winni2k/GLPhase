@@ -44,10 +44,10 @@ struct Site {
 class Impute {
 private:
     gsl_rng *rng;
-  uint hn; // 2 * number of individuals = number of haplotypes
-  uint pn; // 3 * number of sites (number of transitions)
-  uint en;
-  uint wn; // this is the number of blocks of size 64 to save haps in
+    uint hn; // 2 * number of individuals = number of haplotypes
+    uint pn; // 3 * number of sites (number of transitions)
+    uint en;
+    uint wn; // this is the number of blocks of size 64 to save haps in
     vector<word> haps, hnew;
     vector<uint> hsum;
     vector<fast> tran, emit;
@@ -80,8 +80,8 @@ private:
     void result(void);
 
 public:
-  uint in; // number of samples
-  uint mn; // number of sites
+    uint in; // number of samples
+    uint mn; // number of sites
     static uint bn, sn, nn;
     static real density, conf;
     static vector <string> vcf_file;
