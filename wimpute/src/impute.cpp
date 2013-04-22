@@ -193,9 +193,10 @@ void    Impute::initialize(void) {
     haps.resize(hn * wn);  // space to store all haplotypes
     hnew.resize(hn * wn);  // number of haplotypes = 2 * number of samples  ... haps mn is # of sites,
     hsum.assign(hn * mn, 0); // one uint for every hap's site - what for?
-    pare.assign(in * in, 0);  // inxin matrix, one uint16 for every pair of individuals
+    pare.assign(in * in, 0);  // in x in matrix, one uint16 for every pair of individuals
     pn = 3 * mn;  // set the number of transitions.  three transitions for every site
-    tran.resize(pn);  // tran looks like the transition matrix
+    tran.resize(pn);  // tran looks like the transition matrix,
+                      // i.e. recombination rate
     vector<fast> temp(in * pn);    // transitions between 3 types of genotypes P(RR), P(RA) P(AA)
 
     // initialize emission matrix
@@ -229,6 +230,8 @@ void    Impute::initialize(void) {
     // initialzie the site transition matrix tran
     // posi is recombination between its position and previous
     // r < 1; the larger the number of haplotypes, the smaller r gets
+    // tran is a site's recombination probability matrix
+    // r therefore must be a recombination rate estimate
     for (uint m = mn - 1; m; m--) {
         posi[m] = (posi[m] - posi[m - 1]) * rho;
         fast r = posi[m] / (posi[m] + hn); 
@@ -290,15 +293,30 @@ void    Impute::initialize(void) {
     swap(temp, prob);  // swap the assignments to each vector
 }
 
-// draw haplotypes at random and return a likelihood score
+// return the probability of the model given the input haplotypes P and
+// emission and transition matrices of individual I
 fast    Impute::hmm_like(uint I, uint *P) {
+
+    // pull the four haplotypes into f0, f1, m0 and m1
     word *f0 = &haps[P[0] * wn], *f1 = &haps[P[1] * wn], *m0 = &haps[P[2] * wn], *m1 = &haps[P[3] * wn];
+
+    // pull out phase emission and transition probabilities
     fast *e = &emit[I * en], *t = &tran[0], sum, score = 0;
+
+    //l00 = prob of 0|0 phase, etc.
+    // all set to 1/4 * emission probability
     fast l00 = 0.25f * e[(test(f0, 0) << 1) | test(m0, 0)], l01 = 0.25f * e[(test(f0, 0) << 1) | test(m1, 0)];
     fast l10 = 0.25f * e[(test(f1, 0) << 1) | test(m0, 0)], l11 = 0.25f * e[(test(f1, 0) << 1) | test(m1, 0)];
+
+    // bxx = backward probabilities of being in phase xx
     fast b00, b01, b10, b11;
+
+    // move to next site for e and t
     e += 4;
     t += 3;
+
+    // calculate total probability of model given the four haplotypes
+    // passed in, and return as score
     for (uint m = 1; m < mn; m++, e += 4, t += 3) {
         b00 = l00 * t[0] + (l01 + l10) * t[1] + l11 * t[2];
         b01 = l01 * t[0] + (l00 + l11) * t[1] + l10 * t[2];
@@ -308,9 +326,11 @@ fast    Impute::hmm_like(uint I, uint *P) {
         l01 = b01 * e[(test(f0, m) << 1) | test(m1, m)];
         l10 = b10 * e[(test(f1, m) << 1) | test(m0, m)];
         l11 = b11 * e[(test(f1, m) << 1) | test(m1, m)];  // the test section should return a value between 0 and 3.
+
+        // rescale probabilities if they become too small
         if ((sum = l00 + l01 + l10 + l11) < norm) {
             sum = 1.0f / sum;
-            score -= logf(sum);
+            score -= logf(sum); // add sum to score
             l00 *= sum;
             l01 *= sum;
             l10 *= sum;
@@ -320,15 +340,25 @@ fast    Impute::hmm_like(uint I, uint *P) {
     return score + logf(l00 + l01 + l10 + l11);
 }
 
+// take an individual number I, a set of four haplotypes P, and
+// penalty S and update haplotypes of individual I
 void    Impute::hmm_work(uint I, uint *P, fast S) {
-    word *f0 = &haps[P[0] * wn], *f1 = &haps[P[1] * wn], *m0 = &haps[P[2] * wn], *m1 = &haps[P[3] * wn];      // setup the different haplotypes
+
+    // setup the different haplotypes
+    word *f0 = &haps[P[0] * wn], *f1 = &haps[P[1] * wn], *m0 = &haps[P[2] * wn], *m1 = &haps[P[3] * wn];
+
     //	backward recursion
     vector<fast> beta(mn * 4);
+
+    // create pointers that point to last set of elements of emit, tran and beta
     fast *e = &emit[(I + 1) * en - 4], *t = &tran[(mn - 1) * 3], sum, *b = &beta[(mn - 1) * 4];
     fast l00 = 0, l01 = 0, l10 = 0, l11 = 0;
     fast b00, b01, b10, b11;
 
-    b[0] = b[1] = b[2] = b[3] = 1;  // initial state of backward sampler
+    // initial state of backward sampler
+    b[0] = b[1] = b[2] = b[3] = 1; 
+
+    // fill b with the forward probabilites
     for (uint m = mn - 1; m; m--, e -= 4, t -= 3) {
         b00 = b[0] * e[(test(f0, m) << 1) | test(m0, m)];
         b01 = b[1] * e[(test(f0, m) << 1) | test(m1, m)];
@@ -347,6 +377,7 @@ void    Impute::hmm_work(uint I, uint *P, fast S) {
     }
 
     //	forward sampling
+    // walk through b 
     word *ha = &hnew[I * 2 * wn], *hb = ha + wn;
     fast *p = &prob[I * pn];
     e = &emit[I * en];
@@ -377,11 +408,19 @@ void    Impute::hmm_work(uint I, uint *P, fast S) {
         l01 *= sum;
         l10 *= sum;
         l11 *= sum;
+
+        // p00 is P(phase 0|0 | l, b)
         fast p00 = l00 * b[0], p01 = l01 * b[1], p10 = l10 * b[2], p11 = l11 * b[3];
+
+        // c00 is P(phase 0|0 | emit, l, b, GL) at site m penalized by S
+        // powf effectively inflates the importance of small numbers
+        // while S is < 1 (first bn/2 iterations)
         fast c00 = powf(p[0] * (p00 * pc[s00][0] + p01 * pc[s01][0] + p10 * pc[s10][0] + p11 * pc[s11][0]), S);
         fast c01 = powf(p[1] * (p00 * pc[s00][1] + p01 * pc[s01][1] + p10 * pc[s10][1] + p11 * pc[s11][1]), S);
         fast c10 = powf(p[1] * (p00 * pc[s00][2] + p01 * pc[s01][2] + p10 * pc[s10][2] + p11 * pc[s11][2]), S);
         fast c11 = powf(p[2] * (p00 * pc[s00][3] + p01 * pc[s01][3] + p10 * pc[s10][3] + p11 * pc[s11][3]), S);
+
+        // randomly choose new haplotypes at this site weighted by c
         sum = gsl_rng_uniform(rng) * (c00 + c01 + c10 + c11);
         if (sum < c00) {
             set0(ha, m);
@@ -407,19 +446,32 @@ void    Impute::hmm_work(uint I, uint *P, fast S) {
 // B - running the HMM and udating the individual I's haplotypes
 // A takes much longer than B
 fast    Impute::solve(uint I, uint    &N, fast S, bool P) {  // solve(i,	len,	pen,	n>=bn)
+
+    // pick 4 haplotype indices at random not from individual
     uint p[4];
     for (uint j = 0; j < 4; j++) {
         do p[j] = gsl_rng_get(rng) % hn; while (p[j] / 2 == I);
     }
+
+    // get a probability of the model for individual I given p
     fast curr = hmm_like(I, p);
 
+    // pick a random haplotype to replace with another one from all
+    // haplotypes.  calculate the new probability of the model given
+    // those haplotypes.
+    // accept new set if probability has increased.
+    // otherwise, accept with penalized probability
     for (uint n = 0; n < N; n++) {  // fixed number of iterations
-        uint rp = gsl_rng_get(rng) & 3, oh = p[rp];    // bitwise & operator
+
+        uint rp = gsl_rng_get(rng) & 3, oh = p[rp];    
         do p[rp] = gsl_rng_get(rng) % hn; while (p[rp] / 2 == I);
         fast prop = hmm_like(I, p);
         if (prop > curr || gsl_rng_uniform(rng) < expf((prop - curr) * S)) curr = prop;
         else p[rp] = oh;
     }
+
+    // if we have passed the burnin cycles (n >= bn)
+    // start sampling the haplotypes for output
     if (P) {
         uint16_t *pa = &pare[I * in];
         for (uint i = 0; i < 4; i++) pa[p[i] / 2]++;
@@ -432,9 +484,13 @@ void    Impute::estimate(void) {
     cerr.setf(ios::fixed);
     cerr.precision(3);
     cerr << "iter\tpress\tlike\tfold\n";
-    for (uint n = 0; n < bn + sn; n++) {  // n is number of cycles
+    
+    // n is number of cycles = burnin + sampling cycles
+    // increase penalty from 2/bn to 1 as we go through burnin
+    // iterations.    
+    for (uint n = 0; n < bn + sn; n++) {  
         fast sum = 0, pen = fminf(2 * (n + 1.0f) / bn, 1), iter = 0;
-        pen *= pen;  // pen = 1
+        pen *= pen;  // pen = 1 after bn/2 iterations
         for (uint i = 0; i < in; i++) {
             uint len = nn * in;  // nn is number of folds, in = num individuals
             sum += solve(i, len, pen, n >= bn);  // call solve=> inputs the sample number,

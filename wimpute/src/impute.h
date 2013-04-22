@@ -45,15 +45,20 @@ class Impute {
 private:
     gsl_rng *rng;
     uint hn; // 2 * number of individuals = number of haplotypes
-    uint pn; // 3 * number of sites (number of transitions)
-    uint en;
+    uint pn; // 3 * number of sites = number of transitions
+    uint en; // 4 * number of sites = number of possible emissions
     uint wn; // this is the number of blocks of size 64 to save haps in
     vector<word> haps, hnew;
     vector<uint> hsum;
     vector<fast> tran, emit;
 
     fast pc[4][4];      // mutation matrix
+
+    // *P is pointer to haplotype (in bits, i.e. each word contains 64 sites)
+    // set1() sets the Ith bit in P to 1
     void set1(word *P, uint I) {
+        // I >> WordShift is moving along the array according to which word I is in
+        // e.g. I <= 63 is first word, and so forth in blocks of 64 bits
         P[I >> WordShift] |= static_cast<word>(1) << (I & WordMod);
     }
 
@@ -61,6 +66,7 @@ private:
         P[I >> WordShift] &= ~(static_cast<word>(1) << (I & WordMod));
     }
 
+    // test if bit I is 1
     word test(word *P, uint I) {
         return (P[I >> WordShift] >> (I & WordMod)) & static_cast<word>(1);
     }
@@ -82,6 +88,8 @@ private:
 public:
     uint in; // number of samples
     uint mn; // number of sites
+
+    // number of burnin, sampling iterations and folds
     static uint bn, sn, nn;
     static real density, conf;
     static vector <string> vcf_file;
