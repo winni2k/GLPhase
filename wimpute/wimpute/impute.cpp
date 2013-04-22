@@ -53,13 +53,19 @@ bool    Impute::gender(char *F) {
 }
 
 bool    Impute::load_bin(const char *F) {
+
+    // first clear all the data that will be filled
     name.clear();
     site.clear();
     prob.clear();
     posi.clear();
+
+    // open the gzip file passed in 
     gzFile f = gzopen(F, "rt");
     if (f == Z_NULL) return false;
     char *buffer = new char [1024 * 1024];
+
+    // parse header
     {
         gzgets(f, buffer, 1024 * 1024);
         string s;
@@ -67,6 +73,11 @@ bool    Impute::load_bin(const char *F) {
         for (si >> s >> s >> s >> s; !si.eof(); si >> s) name.push_back(s);  // name stores all the sample names
         in = name.size();  // number of samples
     }
+
+    // parse each line at a time: chr position alleles GL1 GL2 GL3 ...
+    // save positions in posi vector
+    // save site information in site vector
+    // save GLs in prob vector
     Site temp;
     fast rawp;
     while (gzgets(f, buffer, 1024 * 1024) != NULL) {
@@ -79,6 +90,8 @@ bool    Impute::load_bin(const char *F) {
             prob.push_back(rawp);
         }  // store the raw GL , which the prob of het and homo alt
     }
+
+    //clean up
     mn = site.size();  // mn = size of vector
     delete    []    buffer;
     gzclose(f);
@@ -168,14 +181,17 @@ uint    Impute::load_vcf(const char *F) {  // this section loads known genotypes
 }
 
 void    Impute::initialize(void) {
+
+    // all haplotypes are saved in 64 bit unsigned ints (a word), where each bit represents a position
+    // first, figure out how many words we'll need to store a hap and save in wn
     wn = (mn & WordMod) ? (mn >> WordShift) + 1 : (mn >> WordShift); // if total sites overlaps with 00111111  then wn = mn number of sites shifter to right.... we define a minimum block size of 64.
-    hn = in * 2;
-    haps.resize(hn * wn);
+    hn = in * 2; //number of haps
+    haps.resize(hn * wn);  // space to store all haplotypes
     hnew.resize(hn * wn);  // number of haplotypes = 2 * number of samples  ... haps mn is # of sites,
-    hsum.assign(hn * mn, 0);
-    pare.assign(in * in, 0);  // set to zeros
-    pn = 3 * mn;
-    tran.resize(pn);
+    hsum.assign(hn * mn, 0); // one uint for every hap's site - what for?
+    pare.assign(in * in, 0);  // inxin matrix, one uint16 for every pair of individuals
+    pn = 3 * mn;  // set the number of transitions.  three transitions for every site
+    tran.resize(pn);  // tran looks like the transition matrix
     vector<fast> temp(in * pn);    // transitions between 3 types of genotypes P(RR), P(RA) P(AA)
     en = 4 * mn;
     emit.resize(in * en);      // 4 emissions, for each site 4 emissions * number of samples.  (0|0, 1|1 0|1 1|0)
