@@ -9,6 +9,7 @@
 // 
 
 #include "impute.h"
+#include "wimpute.h"
 
 int main(int ac, char **av) {
     Impute::bn = 56;
@@ -21,56 +22,64 @@ int main(int ac, char **av) {
     uint threads = 0;
     vector <string> file;
 
+    string sLogFile;
     int opt;
-    while ((opt = getopt(ac, av, "d:b:l:m:n:t:v:c:x:")) >= 0) {
+    while ((opt = getopt(ac, av, "d:b:l:m:n:t:v:c:x:e:")) >= 0) {
         switch (opt) {
-            case    'd':
-                Impute::density = atof(optarg);
-                break;
-            case    'b':
-                Impute::bn = atoi(optarg);
-                break;
-            case    'm':
-                Impute::sn = atoi(optarg);
-                break;
-            case    'n':
-                Impute::nn = atoi(optarg);
-                break;
-            case    't':
-                threads = atoi(optarg);
-                break;
-            case    'v':
-                Impute::vcf_file.push_back(optarg);
-                break;
-            case    'c':
-                Impute::conf = atof(optarg);
-                break;
-            case    'x':
-                Impute::is_x = true;
-                Impute::gender(optarg);
-                break;
-            case    'l': {
-                char temp[256];
-                FILE *f = fopen(optarg, "rt");
-                while (fscanf(f, "%s", temp) != EOF) file.push_back(temp);
-                fclose(f);
-            }
-                break;
-            default:
-                Impute::document();
+        case    'd':
+            Impute::density = atof(optarg);
+            break;
+        case    'b':
+            Impute::bn = atoi(optarg);
+            break;
+        case    'm':
+            Impute::sn = atoi(optarg);
+            break;
+        case    'n':
+            Impute::nn = atoi(optarg);
+            break;
+        case    't':
+            threads = atoi(optarg);
+            break;
+        case    'v':
+            Impute::vcf_file.push_back(optarg);
+            break;
+        case    'c':
+            Impute::conf = atof(optarg);
+            break;
+        case    'x':
+            Impute::is_x = true;
+            Impute::gender(optarg);
+            break;
+        case    'l': {
+            char temp[256];
+            FILE *f = fopen(optarg, "rt");
+            while (fscanf(f, "%s", temp) != EOF) file.push_back(temp);
+            fclose(f);
+        }
+            break;
+        case 'e':
+            sLogFile = optarg;
+            break;                
+        default:
+            Wimpute::document();
         }
     }
     if (threads) omp_set_num_threads(threads);
     for (int i = optind; i < ac; i++) file.push_back(av[i]);
     sort(file.begin(), file.end());
     uint fn = unique(file.begin(), file.end()) - file.begin();
-    if (!fn) Impute::document();
+    if (!fn) Wimpute::document();
 
 #pragma omp parallel for
     for (uint i = 0; i < fn; i++) {
         timeval sta, end;
         gettimeofday(&sta, NULL);
-        Impute lp;
+        Wimpute lp;
+        lp.SetLog(sLogFile);
+        lp.WriteToLog("hello world\n");
+        exit(0);
+            
         if (!lp.load_bin(file[i].c_str())) {
             cerr << "fail to load " << file[i] << endl;
             continue;
