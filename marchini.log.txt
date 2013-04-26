@@ -112,4 +112,13 @@ Flint
 - look into indel realignment
 - start working no methods
 
+###########
+# Thu Apr 25 10:23:11 BST 2013
+- create whole genome allele freq plot
+- burden tests - investigate SCAT
+- sit together with jessie to do a gwas with lots of covariates
+  - also filter out individuals...
+- sign up for genetics TOC alerst -- done
+- look at convergence of SNPTImpute
+
 
