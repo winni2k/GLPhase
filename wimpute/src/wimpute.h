@@ -18,7 +18,15 @@ class Wimpute : public Impute
     
 private:
     ofstream m_ofsLogFileStream;
+    gzFile m_gzLogFileStream;
+    bool m_bLogIsGz;
     string m_sLogFile;
+    uint m_nIteration;
+
+    // Wimpute redefinition of hmm_like
+    // so far it only adds logging
+    virtual  fast hmm_like(uint I, uint *P);
+
 public:
 
     // print out usage
@@ -31,9 +39,41 @@ public:
     void SetLog( const string &sLogFile);
     
     // function for logging a string
-    void WriteToLog (const string &sInput);
+    template <typename T>
+    void WriteToLog (const T &tInput);
 
+    void estimate(void);
 };
+
+// template definition of public function must go in header
+template <typename T>
+void Wimpute::WriteToLog( const T & tInput )
+{
+
+    stringstream ssTemp;
+    ssTemp << tInput;
+        
+    if(m_bLogIsGz){
+        gzprintf(m_gzLogFileStream, ssTemp.str().c_str());
+    }
+    else{
+    // open logFileStream for append if it's not yet open
+    if( !m_ofsLogFileStream ){
+        m_ofsLogFileStream.open(m_sLogFile);
+    }
+
+    // exit if the file cannot be opened
+    if( !m_ofsLogFileStream.is_open() ){
+        cerr << "could not open log file "<< m_sLogFile <<" for writing" << endl;
+        exit(1);
+    }
+    
+    // write input to log file
+    m_ofsLogFileStream << ssTemp.str();
+    m_ofsLogFileStream.flush();
+    }
+};
+
 
 #endif /* _WIMPUTE_H */
 

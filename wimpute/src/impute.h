@@ -42,7 +42,7 @@ struct Site {
 };
 
 class Impute {
-private:
+protected:
     gsl_rng *rng;
     uint hn; // 2 * number of individuals = number of haplotypes
     uint pn; // 3 * number of sites = number of transitions
@@ -71,9 +71,6 @@ private:
         return (P[I >> WordShift] >> (I & WordMod)) & static_cast<word>(1);
     }
 
-    // for the pointer to an array shift the site number bitwise by 6 (ie divide by 64) then shift again by number of bits overlapping with 000111111, ie. it keeps the unique address of I.
-    // this is particularly designed for 1024 max sites... also converts it back to type word from int
-    fast hmm_like(uint I, uint *P);
 
     fast hmm(uint I, uint *P, fast S);
 
@@ -84,6 +81,10 @@ private:
     void replace(uint I);
 
     void result(void);
+
+    // for the pointer to an array shift the site number bitwise by 6 (ie divide by 64) then shift again by number of bits overlapping with 000111111, ie. it keeps the unique address of I.
+    // this is particularly designed for 1024 max sites... also converts it back to type word from int
+    virtual fast hmm_like(uint I, uint *P);
 
 public:
     uint in; // number of samples

@@ -10,6 +10,7 @@
 
 #include "impute.h"
 #include "wimpute.h"
+#include <chrono>
 
 int main(int ac, char **av) {
     Impute::bn = 56;
@@ -77,16 +78,21 @@ int main(int ac, char **av) {
         gettimeofday(&sta, NULL);
         Wimpute lp;
         lp.SetLog(sLogFile);
-        lp.WriteToLog("hello world\n");
-        exit(0);
-            
+
+        // print date to start of log
+        auto tt = std::chrono::system_clock::to_time_t ( std::chrono::system_clock::now());
+        lp.WriteToLog(ctime(&tt));
+        lp.WriteToLog("\n");
+        
         if (!lp.load_bin(file[i].c_str())) {
             cerr << "fail to load " << file[i] << endl;
             continue;
         }
         for (uint j = 0; j < Impute::vcf_file.size(); j++)
             cerr << Impute::vcf_file[j] << '\t' << lp.load_vcf(Impute::vcf_file[j].c_str()) << endl;
+        cerr << "initializing..\n";
         lp.initialize();
+        cerr << "estimating..\n";
         lp.estimate();
         lp.save_vcf(file[i].c_str());
         lp.save_pare(file[i].c_str());

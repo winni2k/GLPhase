@@ -297,6 +297,7 @@ void    Impute::initialize(void) {
 // emission and transition matrices of individual I
 fast    Impute::hmm_like(uint I, uint *P) {
 
+//    cerr << "running Impute::hmm_like()\n";
     // pull the four haplotypes into f0, f1, m0 and m1
     word *f0 = &haps[P[0] * wn], *f1 = &haps[P[1] * wn], *m0 = &haps[P[2] * wn], *m1 = &haps[P[3] * wn];
 
