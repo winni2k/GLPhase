@@ -9,16 +9,6 @@ pileup->varisite->bamodel->poprob->probin->impute->hapfuse
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 bamodel
-three-component binomial mixture modeling of BAMs on the SAME individual
-author	Yi Wang @ Fuli Yu' Group @ BCM-HGSC
-usage	bamodel [options] <out site.vcf in1.bam> [in2.bam in3.bam...]
-	-a <FLOAT>	P(read=ref|geno=alt/alt) (0.010)
-	-h <FLOAT>	P(read=ref|geno=ref/alt) (0.500)
-	-r <FLOAT>	P(read=ref|geno=ref/ref) (0.995)
-	-p <FLOAT>	precision of beta distribution prior (100)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-bamodel
 three-component binomial mixture modeling of BAMs on one SAME individual
 author	Yi Wang @ Fuli Yu' Group @ BCM-HGSC
 usage	bamodel [options] <out site.vcf in1.bam> [in2.bam in3.bam...]
