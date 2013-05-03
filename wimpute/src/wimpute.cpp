@@ -115,7 +115,7 @@ fast Wimpute::solve(uint I, uint    &N, fast S, bool P) {  // solve(i,	len,	pen,
 
         // log results
         stringstream message;
-        message << m_nIteration << "\t" << I << "\t" <<  curr << "\t" << bAccepted << "\n";
+        message << m_nIteration << "\t" << I << "\t" <<  prop << "\t" << bAccepted << "\n";
         WriteToLog( message );
 
     }
