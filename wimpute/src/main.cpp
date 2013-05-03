@@ -81,8 +81,9 @@ int main(int ac, char **av) {
 
         // print date to start of log
         auto tt = std::chrono::system_clock::to_time_t ( std::chrono::system_clock::now());
-        lp.WriteToLog(ctime(&tt));
-        lp.WriteToLog("\n");
+        stringstream log;
+        log << ctime(&tt) << endl;
+        lp.WriteToLog(log);
         
         if (!lp.load_bin(file[i].c_str())) {
             cerr << "fail to load " << file[i] << endl;

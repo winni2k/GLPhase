@@ -92,7 +92,7 @@ bool    Impute::load_bin(const char *F) {
     }
 
     //clean up
-    mn = site.size();  // mn = size of vector
+    mn = site.size();  // mn = number of sites
     delete    []    buffer;
     gzclose(f);
     cerr << F << endl;

@@ -114,13 +114,34 @@ Flint
 
 ###########
 # Thu Apr 25 10:23:11 BST 2013
-- create whole genome allele freq plot
-- burden tests - investigate SCAT
+- create whole genome allele freq plot -- xiang is clogging up sparse
+- burden tests - investigate SCAT -- started reading
   - look at bayesian model
-- sit together with jessie to do a gwas with lots of covariates
+- sit together with jessie to do a gwas with lots of covariates -- jessie
   - also filter out individuals...
-- look at TGP samples, map mitochondrial variance
+- look at TGP samples, map mitochondrial variance -- not started
 - sign up for genetics TOC alerst -- done
-- look at convergence of SNPTImpute
+- look at convergence of SNPTImpute -- done-partial
+
+###########
+# Thu May 02 10:38:34 BST 2013
+# CONVERGE todo
+- create whole genome allele freq plot -- xiang is clogging up sparse
+- Investigate what the distribution of peakedness of gprobs is
+- take a look at excluded samples
+- look at TGP samples, map mitochondrial variance -- not started
+- look at convergence of SNPTImpute -- done-partial
+- burden tests - investigate SCAT -- started reading
+  - look at bayesian model
+
+###########
+# Thu May 02 10:59:01 BST 2013
+# things to talk about with JM
+- which GMMs could one use?
+Gemma
+fast-LMM
+- convergence
+- 
+
 
 

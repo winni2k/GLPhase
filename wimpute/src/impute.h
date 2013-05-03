@@ -76,7 +76,7 @@ protected:
 
     void hmm_work(uint I, uint *P, fast S);
 
-    fast solve(uint I, uint    &N, fast S, bool P);
+    virtual fast solve(uint I, uint    &N, fast S, bool P);
 
     void replace(uint I);
 

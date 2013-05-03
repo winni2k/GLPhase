@@ -15,11 +15,6 @@ fast    Wimpute::hmm_like(uint I, uint *P) {
 
     // call Impute::hmm_like
     fast curr = Impute::hmm_like( I, P );
-
-    // print result: iteration individual likelihood
-    stringstream message;
-    message << m_nIteration << "\t" << I << "\t" <<  curr << "\n";
-    WriteToLog( message.str() );
     
     return curr;
 }
@@ -54,6 +49,86 @@ void Wimpute::SetLog( const string & sLogFile )
     }
     }
 };
+
+void Wimpute::WriteToLog( const stringstream & tInput )
+{
+
+        
+    if(m_bLogIsGz){
+        gzprintf(m_gzLogFileStream, tInput.str().c_str());
+    }
+    else{
+    // open logFileStream for append if it's not yet open
+    if( !m_ofsLogFileStream ){
+        m_ofsLogFileStream.open(m_sLogFile);
+    }
+
+    // exit if the file cannot be opened
+    if( !m_ofsLogFileStream.is_open() ){
+        cerr << "could not open log file "<< m_sLogFile <<" for writing" << endl;
+        exit(1);
+    }
+    
+    // write input to log file
+    m_ofsLogFileStream << tInput.str();
+    m_ofsLogFileStream.flush();
+    }
+};
+
+
+// this part of the code seems to be responsible for:
+// A - finding a set of four haps that are close to the current individual
+// B - running the HMM and udating the individual I's haplotypes
+// A takes much longer than B
+
+/* CHANGES from impute.cpp:
+   moved logging to solve from hmm_like()
+
+*/
+fast Wimpute::solve(uint I, uint    &N, fast S, bool P) {  // solve(i,	len,	pen,	n>=bn)
+
+    // pick 4 haplotype indices at random not from individual
+    uint p[4];
+    for (uint j = 0; j < 4; j++) {
+        do p[j] = gsl_rng_get(rng) % hn; while (p[j] / 2 == I);
+    }
+
+    // get a probability of the model for individual I given p
+    fast curr = hmm_like(I, p);
+
+    // pick a random haplotype to replace with another one from all
+    // haplotypes.  calculate the new probability of the model given
+    // those haplotypes.
+    // accept new set if probability has increased.
+    // otherwise, accept with penalized probability
+    for (uint n = 0; n < N; n++) {  // fixed number of iterations
+
+        uint rp = gsl_rng_get(rng) & 3, oh = p[rp];    
+        do p[rp] = gsl_rng_get(rng) % hn; while (p[rp] / 2 == I);
+        fast prop = hmm_like(I, p);
+        bool bAccepted = false;
+        if (prop > curr || gsl_rng_uniform(rng) < expf((prop - curr) * S)) {
+            curr = prop;
+            bAccepted = true;
+        }
+        else p[rp] = oh;
+
+        // log results
+        stringstream message;
+        message << m_nIteration << "\t" << I << "\t" <<  curr << "\t" << bAccepted << "\n";
+        WriteToLog( message );
+
+    }
+
+    // if we have passed the burnin cycles (n >= bn)
+    // start sampling the haplotypes for output
+    if (P) {
+        uint16_t *pa = &pare[I * in];
+        for (uint i = 0; i < 4; i++) pa[p[i] / 2]++;
+    }
+    hmm_work(I, p, S);
+    return curr;
+}
 
 void    Wimpute::estimate(void) {
     cerr.setf(ios::fixed);
