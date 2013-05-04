@@ -25,14 +25,15 @@ private:
 
     // Wimpute redefinition of hmm_like
     // so far it only adds logging
-    virtual  fast hmm_like(uint I, uint *P);
+    virtual  fast hmm_like(uint I, uint *P) override;
 
-    virtual fast solve(uint I, uint    &N, fast S, bool P);
+    virtual fast solve(uint I, uint    &N, fast S, bool P) override;
 
 public:
 
     // print out usage
-    static void document(void);
+    static void document(void) override;
+    static int m_iEstimator; // see main.cpp and document for documentation
     
     // are we logging?
     bool LogOn() { return !m_sLogFile.empty(); }
@@ -43,6 +44,8 @@ public:
     void WriteToLog( const stringstream & tInput );
     
     void estimate(void);
+
+    void estimate_EMC(void);
     
 };
 
