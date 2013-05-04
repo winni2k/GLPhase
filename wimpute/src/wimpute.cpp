@@ -14,7 +14,12 @@ fast    Wimpute::hmm_like(uint I, uint *P) {
 //    cerr << "calling Wimpute::hmm_like()\n";
 
     // call Impute::hmm_like
+    // DEBUG:    cerr << I << "\t" << P << endl;
     fast curr = Impute::hmm_like( I, P );
+/* DEBUG:
+   cerr << curr<< endl;
+   exit(1);
+*/
     
     return curr;
 }
@@ -130,7 +135,36 @@ fast Wimpute::solve(uint I, uint    &N, fast S, bool P) {  // solve(i,	len,	pen,
     return curr;
 }
 
+/* CHANGES from impute.cpp
+   added a member variable for n so
+*/
+
 void    Wimpute::estimate(void) {
+    cerr.setf(ios::fixed);
+    cerr.precision(3);
+    cerr << "iter\tpress\tlike\tfold\n";
+    
+    // n is number of cycles = burnin + sampling cycles
+    // increase penalty from 2/bn to 1 as we go through burnin
+    // iterations.    
+    for (uint n = 0; n < bn + sn; n++) {
+        m_nIteration = n;
+        fast sum = 0, pen = fminf(2 * (n + 1.0f) / bn, 1), iter = 0;
+        pen *= pen;  // pen = 1 after bn/2 iterations
+        for (uint i = 0; i < in; i++) {
+            uint len = nn * in;  // nn is number of folds, in = num individuals
+            sum += solve(i, len, pen, n >= bn);  // call solve=> inputs the sample number,
+            iter += len;
+        }
+        swap(hnew, haps);
+        if (n >= bn) for (uint i = 0; i < in; i++) replace(i);  // call replace
+        cerr << n << '\t' << pen << '\t' << sum / in / mn << '\t' << iter / in / in << '\r';
+    }
+    cerr << endl;
+    result();    // call result
+}
+
+void    Wimpute::estimate_EMC(void) {
     cerr.setf(ios::fixed);
     cerr.precision(3);
     cerr << "iter\tpress\tlike\tfold\n";

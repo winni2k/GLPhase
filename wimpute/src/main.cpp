@@ -20,12 +20,13 @@ int main(int ac, char **av) {
     Impute::conf = 0.9998;
     Impute::is_x = false;
     Impute::is_y = false;
+    Wimpute::m_iEstimator = 0; // Metropolis Hastings with Annealing is default
     uint threads = 0;
     vector <string> file;
 
     string sLogFile;
     int opt;
-    while ((opt = getopt(ac, av, "d:b:l:m:n:t:v:c:x:e:")) >= 0) {
+    while ((opt = getopt(ac, av, "d:b:l:m:n:t:v:c:x:e:E:")) >= 0) {
         switch (opt) {
         case    'd':
             Impute::density = atof(optarg);
@@ -61,7 +62,10 @@ int main(int ac, char **av) {
             break;
         case 'e':
             sLogFile = optarg;
-            break;                
+            break;
+        case 'E':
+            Wimpute::m_iEstimator = atoi(optarg);
+            break;
         default:
             Wimpute::document();
         }
@@ -89,18 +93,42 @@ int main(int ac, char **av) {
             cerr << "fail to load " << file[i] << endl;
             continue;
         }
+
+        /* debugging
+        cout << "name\tsite\tprob\tposi"<<endl;
+        for ( auto x: lp.name) cout << x << " ";
+        cout << endl;
+        for ( auto x: lp.site) cout << x.chr << "\t" << x.all << "\t" << x.pos << endl;
+        for ( auto x: lp.prob) cout << x << " ";
+        cout << endl;
+        for ( auto x: lp.posi) cout << x << " ";
+        cout << endl;
+        */
         for (uint j = 0; j < Impute::vcf_file.size(); j++)
             cerr << Impute::vcf_file[j] << '\t' << lp.load_vcf(Impute::vcf_file[j].c_str()) << endl;
         cerr << "initializing..\n";
         lp.initialize();
         cerr << "estimating..\n";
-        lp.estimate();
+
+        // choose which estimation method to use
+        switch (lp.m_iEstimator){
+        case 0: // MH with simulated annealing
+            lp.estimate();
+            break;
+        case 1: // Evolutionary Monte Carlo
+            lp.estimate_EMC();
+            break;
+        default:
+            lp.document();
+        }
+
+        // save results of estimation
         lp.save_vcf(file[i].c_str());
         lp.save_pare(file[i].c_str());
-        char temp[256];
-        sprintf(temp, "mv %s %s.ok", file[i].c_str(), file[i].c_str());
+//        char temp[256];
+//        sprintf(temp, "mv %s %s.ok", file[i].c_str(), file[i].c_str());
+//        cerr << "rename\t" << system(temp) << endl;
         gettimeofday(&end, NULL);
-        cerr << "rename\t" << system(temp) << endl;
         cerr << "time\t" << end.tv_sec - sta.tv_sec + 1e-6 * (end.tv_usec - sta.tv_usec) << endl << endl;
     }
     return 0;
