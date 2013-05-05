@@ -301,7 +301,7 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
 
             uint uFirstChainIndex = gsl_rng_get(rng) % uNumChains;
             auto rcFirstChain = vcChains[ vuChainTempHierarchy[ uFirstChainIndex ] ];
-            cerr << "\t\tfirst chain: " << vuChainTempHierarchy[ uFirstChainIndex ] << endl;
+            cerr << "\t\tfirst chain: " << vuChainTempHierarchy[ uFirstChainIndex ];
             
             // selecting second chain
             uint uSecondChainIndex;
@@ -316,7 +316,7 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
 
             auto rcSecondChain = vcChains[ vuChainTempHierarchy[ uSecondChainIndex ] ];
 
-            cerr << "\t\t\tsecond chain: " << vuChainTempHierarchy[ uSecondChainIndex ] << endl;
+            cerr << "\tsecond chain: " << vuChainTempHierarchy[ uSecondChainIndex ] << endl;
             
             // MH step for exchange
             fast fAcceptProb = fminf( expf( (rcFirstChain.getLike() - rcSecondChain.getLike())
