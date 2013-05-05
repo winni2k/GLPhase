@@ -193,6 +193,7 @@ void    Wimpute::estimate(void) {
 // solve(individual, number of cycles, penalty, burnin?)
 fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool P) {
 
+    cerr << "Entering solve_EMC...\n";
     // for lack of a better place, define free parameters here
     fast fMutationRate = 0.3f; // see p.134 of Liang et al.
     fast fSelectTemp = 1 / S;
@@ -355,6 +356,7 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
         for (uint i = 0; i < 4; i++) pa[icFirstChain->m_auParents[i] / 2]++;
     }
 
+    cerr << "Updating individual " << I << "\n";
     // update haplotypes of I
     hmm_work(I, icFirstChain->m_auParents, S);
     return icFirstChain->getLike();
@@ -372,6 +374,7 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
 void    Wimpute::estimate_EMC(void) {
     cerr.setf(ios::fixed);
     cerr.precision(3);
+    cerr << "Running Evolutionary Monte Carlo\n";
     cerr << "iter\tpress\tlike\tfold\n";
    
     // n is number of cycles = burnin + sampling cycles
@@ -416,5 +419,5 @@ void    Wimpute::document(void) {
     cerr << "\n\t		(at least 2, default 5)";
     cerr << "\n\t-C <integer>	number of cycles to estimate an individual's parents before updating";
     cerr << "\n\n";
-    exit(0);
+    exit(1);
 }
