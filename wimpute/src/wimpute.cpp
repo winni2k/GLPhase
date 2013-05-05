@@ -230,7 +230,8 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
             cerr << "\tMutating..."<< endl;
             // choose chain randomly (uniform)
             EMCChain &rcChain = vcChains[gsl_rng_get(rng) % uNumChains];
-            
+
+            cerr << "\t" << rcChain.m_fTemp;
             fast curr = rcChain.getLike();
 
             // choose parent hap (rp) to mutate
@@ -247,6 +248,8 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
                 bMutCrossAccepted = true;
             }
             else rcChain.m_auParents[rp] = oh;
+
+            cerr << "\tsuccess: " << bMutCrossAccepted << endl;
             
         }
         else{
@@ -266,12 +269,17 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
                 else ++icFirstChain;           
             }
 
-            cerr << "\t\tSelecting second chain" <<endl;
+            cerr << "\t\tSelecting second chain:";
             // 2. select second chain at random (uniform) from remaining chains
             uint uSecondChain;
-            do uSecondChain = gsl_rng_get(rng) % uNumChains; while (vcChains[uSecondChain].m_uChainID != icFirstChain->m_uChainID);
+            do {
+                uSecondChain = gsl_rng_get(rng) % uNumChains;
+                cerr << "\t" << uSecondChain;
+            }
+            while (vcChains[uSecondChain].m_uChainID != icFirstChain->m_uChainID);
             EMCChain &rcSecondChain = vcChains[uSecondChain];
 
+            
             // only crossover with certain probability depending
             // on crossover probabilities of parents           
             if( gsl_rng_uniform(rng) * fTotalProb * (uNumChains -1)
@@ -279,7 +287,7 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
                 break;
 
             bMutCrossAccepted = true;
-            cerr << "\t\tCrossover accepted" << endl;
+            cerr << endl << "\t\tCrossover accepted" << endl;
             
             // uniform crossover: find haps to keep
             word cSelection = static_cast<word>( gsl_rng_get(rng) & 15);
