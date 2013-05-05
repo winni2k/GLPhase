@@ -218,7 +218,8 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
     // accept new set if probability has increased.
     // otherwise, accept with penalized probability
     for (uint n = 0; n < N; n++) {  // fixed number of iterations
-        
+
+        cerr << "\tIteration " << n << "\n";
         //  now choose whether to mutate or crossover
         bool bMutate =  gsl_rng_uniform(rng) > fMutationRate;
         bool bMutCrossAccepted = false;
