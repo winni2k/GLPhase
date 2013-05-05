@@ -264,6 +264,7 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
                 else ++icFirstChain;           
             }
 
+            cerr << "\tStep 2: Exchanging\n";
             // 2. select second chain at random (uniform) from remaining chains
             uint uSecondChain;
             do uSecondChain = gsl_rng_get(rng) % uNumChains; while (vcChains[uSecondChain].m_uChainID != icFirstChain->m_uChainID);
