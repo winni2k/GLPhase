@@ -266,6 +266,7 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
                 else ++icFirstChain;           
             }
 
+            cerr << "\t\tSelecting second chain" <<endl;
             // 2. select second chain at random (uniform) from remaining chains
             uint uSecondChain;
             do uSecondChain = gsl_rng_get(rng) % uNumChains; while (vcChains[uSecondChain].m_uChainID != icFirstChain->m_uChainID);
@@ -278,6 +279,7 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
                 break;
 
             bMutCrossAccepted = true;
+            cerr << "\t\tCrossover accepted" << endl;
             
             // uniform crossover: find haps to keep
             word cSelection = static_cast<word>( gsl_rng_get(rng) & 15);
@@ -297,10 +299,10 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
         uint uNumExchanges = 0;
         for( uint i = 0; i < uNumChains; i++){
 
-            cerr << "\t\ttry " << i << endl;
             uint uFirstChainIndex = gsl_rng_get(rng) % uNumChains;
             auto rcFirstChain = vcChains[ vuChainTempHierarchy[ uFirstChainIndex ] ];
-
+            cerr << "\t\tfirst chain: " << vuChainTempHierarchy[ uFirstChainIndex ] << endl;
+            
             // selecting second chain
             uint uSecondChainIndex;
             if (uFirstChainIndex == 0)
@@ -311,9 +313,11 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
                 uSecondChainIndex = i - 1;
             else
                 uSecondChainIndex = i + 1;
-            
+
             auto rcSecondChain = vcChains[ vuChainTempHierarchy[ uSecondChainIndex ] ];
 
+            cerr << "\t\t\tsecond chain: " << vuChainTempHierarchy[ uSecondChainIndex ] << endl;
+            
             // MH step for exchange
             fast fAcceptProb = fminf( expf( (rcFirstChain.getLike() - rcSecondChain.getLike())
                                             * ( (1/rcFirstChain.m_fTemp) - (1/rcSecondChain.m_fTemp)))
