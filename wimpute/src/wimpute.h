@@ -31,6 +31,8 @@ private:
 
     virtual fast solve(uint I, uint    &N, fast S, bool P) override;
 
+    fast solve_EMC(const uint I, const uint    &N, const fast S, const bool P);    
+    
 public:
 
     // print out usage

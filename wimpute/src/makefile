@@ -19,4 +19,4 @@ main.o: main.cpp impute.h wimpute.h
 	$(CC) $(CFLAGS) $(INCLUDE) -c main.cpp impute.h wimpute.h $(LIBS)
 
 wimpute: main.o impute.o wimpute.o emcchain.o
-	$(CC) $(CFLAGS) $(INCLUDE) -o wimpute main.o impute.o wimpute.o emcchain.o$(LIBS)
+	$(CC) $(CFLAGS) $(INCLUDE) -o wimpute main.o impute.o wimpute.o emcchain.o $(LIBS)

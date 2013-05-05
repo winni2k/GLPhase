@@ -17,15 +17,7 @@ uint Wimpute::s_uCycles;
 // call Impute::hmm_like and print out result
 fast    Wimpute::hmm_like(uint I, uint *P) {
 
-//    cerr << "calling Wimpute::hmm_like()\n";
-
-    // call Impute::hmm_like
-    // DEBUG:    cerr << I << "\t" << P << endl;
     fast curr = Impute::hmm_like( I, P );
-/* DEBUG:
-   cerr << curr<< endl;
-   exit(1);
-*/
     
     return curr;
 }
@@ -189,20 +181,35 @@ void    Wimpute::estimate(void) {
     result();    // call result
 }
 
+/* estimate_EMC -- Evolutionary Monte Carlo
+   Here we try to increase the speed of convergence by
+   running a parallel chain evolutionary monte carlo scheme.
+
+   The reference for this implementation is
+   "Advanced Markov Choin Monte Carlo Methods" by Liang, Liu and Carroll
+   first edition?, 2010, pp. 128-132
+ */
 
 // solve(individual, number of cycles, penalty, burnin?)
 fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool P) {
 
     // for lack of a better place, define free parameters here
-
+    fast fMutationRate = 0.3f; // see p.134 of Liang et al.
+    fast fSelectTemp = 1 / S;
+    
+    // initialize emc chains with increasing temperatures
     vector <EMCChain> vcChains;
-    for (int i = 1; i<=5; i++){
-        cChain = new EMCChain( 1/S, I, in);
-        vcChains.push_back(EMCChain);
+    uint uNumChains = 5;
+    vector <uint> vuChainTempHierarchy; // index of Chains sorted by temperature, ascending
+    for (uint i = 1; i<=uNumChains; i++){
+        EMCChain cChain( i / S, fSelectTemp, I, in);
+
+        // initialize current likelihood
+        cChain.setLike( hmm_like(cChain.m_uI, cChain.m_auParents) );
+        vcChains.push_back(cChain);
+        vuChainTempHierarchy.push_back(i);
     }
 
-    // get a probability of the model for individual I given p
-    fast curr = hmm_like(I, p);
 
     // pick a random haplotype to replace with another one from all
     // haplotypes.  calculate the new probability of the model given
@@ -210,34 +217,148 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
     // accept new set if probability has increased.
     // otherwise, accept with penalized probability
     for (uint n = 0; n < N; n++) {  // fixed number of iterations
+        
+        //  now choose whether to mutate or crossover
+        bool bMutate =  gsl_rng_uniform(rng) > fMutationRate;
+        bool bMutCrossAccepted = false;
+        fast prop;
+        if(bMutate){
+            // mutate
 
-        uint rp = gsl_rng_get(rng) & 3, oh = p[rp];    
-        do p[rp] = gsl_rng_get(rng) % hn; while (p[rp] / 2 == I);
-        fast prop = hmm_like(I, p);
-        bool bAccepted = false;
-        if (prop > curr || gsl_rng_uniform(rng) < expf((prop - curr) * S)) {
-            curr = prop;
-            bAccepted = true;
+            // choose chain randomly (uniform)
+            EMCChain &rcChain = vcChains[gsl_rng_get(rng) % uNumChains];
+            
+            fast curr = rcChain.getLike();
+
+            // choose parent hap (rp) to mutate
+            // replaced hap is stored in oh (Original Hap)
+            uint rp = gsl_rng_get(rng) & 3, oh = rcChain.m_auParents[rp];
+
+            // mutate parent hap
+            do rcChain.m_auParents[rp] = gsl_rng_get(rng) % hn; while (rcChain.m_auParents[rp] / 2 == I);
+
+            // calculate acceptance probability
+            prop = hmm_like(rcChain.m_uI, rcChain.m_auParents);
+            if (prop > curr || gsl_rng_uniform(rng) < expf((prop - curr) / rcChain.m_fTemp)) {
+                rcChain.setLike(prop);
+                bMutCrossAccepted = true;
+            }
+            else rcChain.m_auParents[rp] = oh;
+            
         }
-        else p[rp] = oh;
+        else{
+            //crossover
 
+            // 1. choose random chain to work on by roulette wheel selection
+            fast fTotalProb = 0; // always positive
+            for( auto icChain: vcChains){
+                fTotalProb += icChain.getCrossProb();
+            }
+            fast fStopPoint = gsl_rng_uniform(rng) * fTotalProb;
+            auto icFirstChain = vcChains.begin();
+            while(icFirstChain != vcChains.end()){
+                fStopPoint += icFirstChain->getCrossProb();
+                if(fStopPoint < 0) break;
+                else ++icFirstChain;           
+            }
+
+            // 2. select second chain at random (uniform) from remaining chains
+            uint uSecondChain;
+            do uSecondChain = gsl_rng_get(rng) % uNumChains; while (vcChains[uSecondChain].m_uChainID != icFirstChain->m_uChainID);
+            EMCChain &rcSecondChain = vcChains[uSecondChain];
+
+            // only crossover with certain probability depending
+            // on crossover probabilities of parents           
+            if( gsl_rng_uniform(rng) * fTotalProb * (uNumChains -1)
+                > icFirstChain->getCrossProb() + rcSecondChain.getCrossProb() )
+                break;
+
+            bMutCrossAccepted = true;
+            
+            // uniform crossover: find haps to keep
+            word cSelection = static_cast<word>( gsl_rng_get(rng) & 15);
+            for(uint i = 0; i < 4; i++){
+                
+                // if bit at location i is 1, exchange haps
+                if( test( &cSelection, i) ) {
+                    uint oh = icFirstChain->m_auParents[i];
+                    icFirstChain->m_auParents[i] = rcSecondChain.m_auParents[i];
+                    rcSecondChain.m_auParents[i] = oh;
+                }
+            }
+        }
+
+        // now try uNumChains exchanges
+        uint uNumExchanges = 0;
+        for( uint i = 0; i < uNumChains; i++){
+            uint uFirstChainIndex = gsl_rng_get(rng) % uNumChains;
+            auto rcFirstChain = vcChains[ vuChainTempHierarchy[ uFirstChainIndex ] ];
+
+            // selecting second chain
+            uint uSecondChainIndex;
+            if (uFirstChainIndex == 0)
+                uSecondChainIndex = uFirstChainIndex + 1;
+            else if ( uFirstChainIndex == uNumChains - 1)
+                uSecondChainIndex = uFirstChainIndex - 1;
+            else if( gsl_rng_get(rng) & 1 )
+                uSecondChainIndex = i - 1;
+            else
+                uSecondChainIndex = i + 1;
+            
+            auto rcSecondChain = vcChains[ vuChainTempHierarchy[ uSecondChainIndex ] ];
+
+            // MH step for exchange
+            fast fAcceptProb = fminf( expf( (rcFirstChain.getLike() - rcSecondChain.getLike())
+                                            * ( (1/rcFirstChain.m_fTemp) - (1/rcSecondChain.m_fTemp)))
+                                      , 1);
+
+            // exchange with acceptance probability
+            if( gsl_rng_uniform(rng) < fAcceptProb){
+
+                // exchange temperatures
+                fast fTemp = rcFirstChain.m_fTemp;
+                rcFirstChain.setTemp(rcSecondChain.m_fTemp);
+                rcSecondChain.setTemp(fTemp);
+
+                // exchange location in vcChains
+                std::swap(vuChainTempHierarchy[uFirstChainIndex], vuChainTempHierarchy[uSecondChainIndex]);
+                ++ uNumExchanges;
+            }
+                
+        }
+        
         // log results
         stringstream message;
-        message << m_nIteration << "\t" << I << "\t" <<  prop << "\t" << bAccepted << "\n";
+        message << m_nIteration << "\t" << I << "\t" <<  prop << "\t"
+                << bMutCrossAccepted << "\t" << bMutate << "\t" << uNumExchanges << "\n";
         WriteToLog( message );
 
     }
 
+    // now select a chain for sampling according to roulette wheel selection
+    fast fTotalProb = 0; // always positive
+    for( auto icChain: vcChains){
+        fTotalProb += icChain.getCrossProb();
+    }
+    fast fStopPoint = gsl_rng_uniform(rng) * fTotalProb;
+    auto icFirstChain = vcChains.begin();
+    while(icFirstChain != vcChains.end()){
+        fStopPoint += icFirstChain->getCrossProb();
+        if(fStopPoint < 0) break;
+        else ++icFirstChain;           
+    }
+    
     // if we have passed the burnin cycles (n >= bn)
     // start sampling the haplotypes for output
     if (P) {
         uint16_t *pa = &pare[I * in];
-        for (uint i = 0; i < 4; i++) pa[p[i] / 2]++;
+        for (uint i = 0; i < 4; i++) pa[icFirstChain->m_auParents[i] / 2]++;
     }
-    hmm_work(I, p, S);
-    return curr;
-}
 
+    // update haplotypes of I
+    hmm_work(I, icFirstChain->m_auParents, S);
+    return icFirstChain->getLike();
+}
 
 /* estimate_EMC -- Evolutionary Monte Carlo
    Here we try to increase the speed of convergence by
@@ -245,6 +366,7 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
 
    The reference for this implementation is
    "Advanced Markov Choin Monte Carlo Methods" by Liang, Liu and Carroll
+   first edition?, 2010, pp. 128-132
  */
 
 void    Wimpute::estimate_EMC(void) {
@@ -290,8 +412,9 @@ void    Wimpute::document(void) {
     cerr << "\n	-E <integer>	choice of estimation algorithm (0)";
     cerr << "\n			0 - Metropolis Hastings with simulated annealing";
     cerr << "\n			1 - Evolutionary Monte Carlo with -p parallel chains";
-    cerr << "\n -p <integer>	number of parallel chains to use in parallel estimation algorithms";
-    cerr << "\n -C <integer>	number of cycles to estimate an individual's parents before updating";
+    cerr << "\n\t-p <integer>	number of parallel chains to use in parallel estimation algorithms";
+    cerr << "\n\t		(at least 2, default 5)";
+    cerr << "\n\t-C <integer>	number of cycles to estimate an individual's parents before updating";
     cerr << "\n\n";
     exit(0);
 }

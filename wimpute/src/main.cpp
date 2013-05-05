@@ -21,7 +21,7 @@ int main(int ac, char **av) {
     Impute::is_x = false;
     Impute::is_y = false;
     Wimpute::s_iEstimator = 0; // Metropolis Hastings with Annealing is default
-    Wimpute::s_uParallelChains = 1; // number of parallel chains to use for parallel estimators
+    Wimpute::s_uParallelChains = 5; // number of parallel chains to use for parallel estimators
     Wimpute::s_uCycles = 0; // alternate way of specifying number of sampling steps
 
     uint threads = 0;
@@ -69,9 +69,13 @@ int main(int ac, char **av) {
         case 'E':
             Wimpute::s_iEstimator = atoi(optarg);
             break;
-        case 'p':
-            Wimpute::s_uParallelChains = atoi(optarg);
+        case 'p':{           
+            uint uP = atoi(optarg);
+            if(uP < 2)
+                Wimpute::document();
+            Wimpute::s_uParallelChains = uP;
             break;
+        }
         case 'C':
             Wimpute::s_uCycles = atoi(optarg);
             break;
