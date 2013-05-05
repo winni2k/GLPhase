@@ -227,6 +227,7 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
         if(bMutate){
             // mutate
 
+            cerr << "\tMutating...\n";
             // choose chain randomly (uniform)
             EMCChain &rcChain = vcChains[gsl_rng_get(rng) % uNumChains];
             
@@ -251,6 +252,7 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
         else{
             //crossover
 
+            cerr << "\tCrossing Over...\n";
             // 1. choose random chain to work on by roulette wheel selection
             fast fTotalProb = 0; // always positive
             for( auto icChain: vcChains){
@@ -264,7 +266,6 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
                 else ++icFirstChain;           
             }
 
-            cerr << "\tStep 2: Exchanging\n";
             // 2. select second chain at random (uniform) from remaining chains
             uint uSecondChain;
             do uSecondChain = gsl_rng_get(rng) % uNumChains; while (vcChains[uSecondChain].m_uChainID != icFirstChain->m_uChainID);
@@ -292,6 +293,7 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
         }
 
         // now try uNumChains exchanges
+        cerr << "\tExchanging...\n";
         uint uNumExchanges = 0;
         for( uint i = 0; i < uNumChains; i++){
             uint uFirstChainIndex = gsl_rng_get(rng) % uNumChains;
