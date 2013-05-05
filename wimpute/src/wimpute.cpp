@@ -193,7 +193,7 @@ void    Wimpute::estimate(void) {
 // solve(individual, number of cycles, penalty, burnin?)
 fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool P) {
 
-    cerr << "Entering solve_EMC...\n";
+    cerr << "Entering solve_EMC..."<<endl;
     // for lack of a better place, define free parameters here
     fast fMutationRate = 0.3f; // see p.134 of Liang et al.
     fast fSelectTemp = 1 / S;
@@ -219,7 +219,7 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
     // otherwise, accept with penalized probability
     for (uint n = 0; n < N; n++) {  // fixed number of iterations
 
-        cerr << "\tIteration " << n << "\n";
+        cerr << "\tIteration " << n << endl;
         //  now choose whether to mutate or crossover
         bool bMutate =  gsl_rng_uniform(rng) > fMutationRate;
         bool bMutCrossAccepted = false;
@@ -227,7 +227,7 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
         if(bMutate){
             // mutate
 
-            cerr << "\tMutating...\n";
+            cerr << "\tMutating..."<< endl;
             // choose chain randomly (uniform)
             EMCChain &rcChain = vcChains[gsl_rng_get(rng) % uNumChains];
             
@@ -252,7 +252,7 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
         else{
             //crossover
 
-            cerr << "\tCrossing Over...\n";
+            cerr << "\tCrossing Over..." <<endl;
             // 1. choose random chain to work on by roulette wheel selection
             fast fTotalProb = 0; // always positive
             for( auto icChain: vcChains){
@@ -293,9 +293,11 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
         }
 
         // now try uNumChains exchanges
-        cerr << "\tExchanging...\n";
+        cerr << "\tExchanging..."<<endl;;
         uint uNumExchanges = 0;
         for( uint i = 0; i < uNumChains; i++){
+
+            cerr << "\t\ttry " << i << endl;
             uint uFirstChainIndex = gsl_rng_get(rng) % uNumChains;
             auto rcFirstChain = vcChains[ vuChainTempHierarchy[ uFirstChainIndex ] ];
 
