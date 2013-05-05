@@ -5,8 +5,9 @@
 #define _EMCCHAIN_H 1
 
 #include	<gsl/gsl_rng.h>
-#include	<sys/time.h>
-#include <cassert> // for assert()
+#include	<sys/time.h> // time()
+#include	<ctime> // time() ?
+#include        <cassert> // assert()
 #include	<stdint.h>
 #include	<cmath>
 
