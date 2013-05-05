@@ -12,8 +12,11 @@ impute.o: impute.cpp impute.h
 wimpute.o: wimpute.cpp wimpute.h
 	$(CC) $(CFLAGS) $(INCLUDE) -c wimpute.cpp wimpute.h $(LIBS)
 
+emcchain.o: emcchain.cpp emcchain.h
+	$(CC) $(CFLAGS) $(INCLUDE) -c emcchain.cpp emcchain.h $(LIBS)
+
 main.o: main.cpp impute.h wimpute.h
 	$(CC) $(CFLAGS) $(INCLUDE) -c main.cpp impute.h wimpute.h $(LIBS)
 
-wimpute: main.o impute.o wimpute.o
-	$(CC) $(CFLAGS) $(INCLUDE) -o wimpute main.o impute.o wimpute.o $(LIBS)
+wimpute: main.o impute.o wimpute.o emcchain.o
+	$(CC) $(CFLAGS) $(INCLUDE) -o wimpute main.o impute.o wimpute.o emcchain.o$(LIBS)

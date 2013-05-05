@@ -20,13 +20,16 @@ int main(int ac, char **av) {
     Impute::conf = 0.9998;
     Impute::is_x = false;
     Impute::is_y = false;
-    Wimpute::m_iEstimator = 0; // Metropolis Hastings with Annealing is default
+    Wimpute::s_iEstimator = 0; // Metropolis Hastings with Annealing is default
+    Wimpute::s_uParallelChains = 1; // number of parallel chains to use for parallel estimators
+    Wimpute::s_uCycles = 0; // alternate way of specifying number of sampling steps
+
     uint threads = 0;
     vector <string> file;
 
     string sLogFile;
     int opt;
-    while ((opt = getopt(ac, av, "d:b:l:m:n:t:v:c:x:e:E:")) >= 0) {
+    while ((opt = getopt(ac, av, "d:b:l:m:n:t:v:c:x:e:E:p:C:")) >= 0) {
         switch (opt) {
         case    'd':
             Impute::density = atof(optarg);
@@ -64,7 +67,13 @@ int main(int ac, char **av) {
             sLogFile = optarg;
             break;
         case 'E':
-            Wimpute::m_iEstimator = atoi(optarg);
+            Wimpute::s_iEstimator = atoi(optarg);
+            break;
+        case 'p':
+            Wimpute::s_uParallelChains = atoi(optarg);
+            break;
+        case 'C':
+            Wimpute::s_uCycles = atoi(optarg);
             break;
         default:
             Wimpute::document();
@@ -78,8 +87,12 @@ int main(int ac, char **av) {
 
 #pragma omp parallel for
     for (uint i = 0; i < fn; i++) {
+
+        // keep track of time - these things are important!
         timeval sta, end;
         gettimeofday(&sta, NULL);
+
+        // create a Wimpute instance!
         Wimpute lp;
         lp.SetLog(sLogFile);
 
@@ -111,7 +124,7 @@ int main(int ac, char **av) {
         cerr << "estimating..\n";
 
         // choose which estimation method to use
-        switch (lp.m_iEstimator){
+        switch (lp.s_iEstimator){
         case 0: // MH with simulated annealing
             lp.estimate();
             break;

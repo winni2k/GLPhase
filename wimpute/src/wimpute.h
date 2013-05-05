@@ -9,6 +9,7 @@
 #include <iostream>
 */
 #include "impute.h"
+#include "emcchain.h"
 
 //require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
@@ -22,7 +23,8 @@ private:
     bool m_bLogIsGz;
     string m_sLogFile;
     uint m_nIteration;
-
+    uint m_uCycles;
+    
     // Wimpute redefinition of hmm_like
     // so far it only adds logging
     virtual  fast hmm_like(uint I, uint *P) override;
@@ -32,8 +34,10 @@ private:
 public:
 
     // print out usage
-    static void document(void) override;
-    static int m_iEstimator; // see main.cpp and document for documentation
+    static void document(void);
+    static int s_iEstimator; // see main.cpp and document for documentation
+    static uint s_uParallelChains; // see main.cpp and document for documentation
+    static uint s_uCycles; // see main.cpp and document for documentation
     
     // are we logging?
     bool LogOn() { return !m_sLogFile.empty(); }
@@ -42,9 +46,12 @@ public:
     void SetLog( const string &sLogFile);
 
     void WriteToLog( const stringstream & tInput );
+
+    bool load_bin(const char *F);
     
     void estimate(void);
 
+    // EMC version of estimate()
     void estimate_EMC(void);
     
 };

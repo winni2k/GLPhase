@@ -6,6 +6,12 @@ static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
 using namespace std;
 
+
+//initializyng static member variables
+int Wimpute::s_iEstimator;
+uint Wimpute::s_uParallelChains;
+uint Wimpute::s_uCycles;
+
 // return the probability of the model given the input haplotypes P and
 // emission and transition matrices of individual I
 // call Impute::hmm_like and print out result
@@ -81,6 +87,24 @@ void Wimpute::WriteToLog( const stringstream & tInput )
 };
 
 
+bool    Wimpute::load_bin(const char *F) {
+
+    bool retval = Impute::load_bin(F);
+    if(retval == false){ return false; }
+    
+    // setting number of cycles to use
+    // here is best place to do it because in is defined in load_bin()
+
+    if( s_uCycles > 0){
+        m_uCycles = s_uCycles;
+    }
+    else{
+        m_uCycles = nn * in;  // this was how snptools does it
+    }
+
+    return true;
+}
+
 // this part of the code seems to be responsible for:
 // A - finding a set of four haps that are close to the current individual
 // B - running the HMM and udating the individual I's haplotypes
@@ -88,9 +112,11 @@ void Wimpute::WriteToLog( const stringstream & tInput )
 
 /* CHANGES from impute.cpp:
    moved logging to solve from hmm_like()
-
+   cycles is now stored in a private member variable and defined after load_bin() time
 */
-fast Wimpute::solve(uint I, uint    &N, fast S, bool P) {  // solve(i,	len,	pen,	n>=bn)
+
+// solve(individual, number of cycles, penalty, burnin?)
+fast Wimpute::solve(uint I, uint    &N, fast S, bool P) {
 
     // pick 4 haplotype indices at random not from individual
     uint p[4];
@@ -146,15 +172,14 @@ void    Wimpute::estimate(void) {
     
     // n is number of cycles = burnin + sampling cycles
     // increase penalty from 2/bn to 1 as we go through burnin
-    // iterations.    
+    // iterations.
     for (uint n = 0; n < bn + sn; n++) {
         m_nIteration = n;
         fast sum = 0, pen = fminf(2 * (n + 1.0f) / bn, 1), iter = 0;
         pen *= pen;  // pen = 1 after bn/2 iterations
         for (uint i = 0; i < in; i++) {
-            uint len = nn * in;  // nn is number of folds, in = num individuals
-            sum += solve(i, len, pen, n >= bn);  // call solve=> inputs the sample number,
-            iter += len;
+            sum += solve(i, m_uCycles, pen, n >= bn);  // call solve=> inputs the sample number,
+            iter += m_uCycles;
         }
         swap(hnew, haps);
         if (n >= bn) for (uint i = 0; i < in; i++) replace(i);  // call replace
@@ -164,11 +189,69 @@ void    Wimpute::estimate(void) {
     result();    // call result
 }
 
+
+// solve(individual, number of cycles, penalty, burnin?)
+fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool P) {
+
+    // for lack of a better place, define free parameters here
+
+    vector <EMCChain> vcChains;
+    for (int i = 1; i<=5; i++){
+        cChain = new EMCChain( 1/S, I, in);
+        vcChains.push_back(EMCChain);
+    }
+
+    // get a probability of the model for individual I given p
+    fast curr = hmm_like(I, p);
+
+    // pick a random haplotype to replace with another one from all
+    // haplotypes.  calculate the new probability of the model given
+    // those haplotypes.
+    // accept new set if probability has increased.
+    // otherwise, accept with penalized probability
+    for (uint n = 0; n < N; n++) {  // fixed number of iterations
+
+        uint rp = gsl_rng_get(rng) & 3, oh = p[rp];    
+        do p[rp] = gsl_rng_get(rng) % hn; while (p[rp] / 2 == I);
+        fast prop = hmm_like(I, p);
+        bool bAccepted = false;
+        if (prop > curr || gsl_rng_uniform(rng) < expf((prop - curr) * S)) {
+            curr = prop;
+            bAccepted = true;
+        }
+        else p[rp] = oh;
+
+        // log results
+        stringstream message;
+        message << m_nIteration << "\t" << I << "\t" <<  prop << "\t" << bAccepted << "\n";
+        WriteToLog( message );
+
+    }
+
+    // if we have passed the burnin cycles (n >= bn)
+    // start sampling the haplotypes for output
+    if (P) {
+        uint16_t *pa = &pare[I * in];
+        for (uint i = 0; i < 4; i++) pa[p[i] / 2]++;
+    }
+    hmm_work(I, p, S);
+    return curr;
+}
+
+
+/* estimate_EMC -- Evolutionary Monte Carlo
+   Here we try to increase the speed of convergence by
+   running a parallel chain evolutionary monte carlo scheme.
+
+   The reference for this implementation is
+   "Advanced Markov Choin Monte Carlo Methods" by Liang, Liu and Carroll
+ */
+
 void    Wimpute::estimate_EMC(void) {
     cerr.setf(ios::fixed);
     cerr.precision(3);
     cerr << "iter\tpress\tlike\tfold\n";
-    
+   
     // n is number of cycles = burnin + sampling cycles
     // increase penalty from 2/bn to 1 as we go through burnin
     // iterations.    
@@ -176,10 +259,9 @@ void    Wimpute::estimate_EMC(void) {
         m_nIteration = n;
         fast sum = 0, pen = fminf(2 * (n + 1.0f) / bn, 1), iter = 0;
         pen *= pen;  // pen = 1 after bn/2 iterations
-        for (uint i = 0; i < in; i++) {
-            uint len = nn * in;  // nn is number of folds, in = num individuals
-            sum += solve(i, len, pen, n >= bn);  // call solve=> inputs the sample number,
-            iter += len;
+        for (uint i = 0; i < in; i++) {           
+            sum += solve_EMC(i, m_uCycles, pen, n >= bn);  // call solve=> inputs the sample number,
+            iter += m_uCycles;
         }
         swap(hnew, haps);
         if (n >= bn) for (uint i = 0; i < in; i++) replace(i);  // call replace
@@ -205,6 +287,11 @@ void    Wimpute::document(void) {
     cerr << "\n	-c <conf>	confidence of known genotype (0.9998)";
     cerr << "\n	-x <gender>	impute x chromosome data";
     cerr << "\n	-e <file>	write log to file";
+    cerr << "\n	-E <integer>	choice of estimation algorithm (0)";
+    cerr << "\n			0 - Metropolis Hastings with simulated annealing";
+    cerr << "\n			1 - Evolutionary Monte Carlo with -p parallel chains";
+    cerr << "\n -p <integer>	number of parallel chains to use in parallel estimation algorithms";
+    cerr << "\n -C <integer>	number of cycles to estimate an individual's parents before updating";
     cerr << "\n\n";
     exit(0);
 }
