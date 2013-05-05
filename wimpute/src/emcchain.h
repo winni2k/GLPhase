@@ -10,6 +10,8 @@
 #include        <cassert> // assert()
 #include	<stdint.h>
 #include	<cmath>
+#include	<cstdio>
+#include	<iostream>
 
 typedef float fast;
 typedef unsigned uint;
