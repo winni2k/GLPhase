@@ -268,7 +268,7 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
                 if(fStopPoint < 0) break;
                 else ++icFirstChain;           
             }
-
+            cerr << "\t\tFirst Chain:\t" << icFirstChain->m_uChainID << endl;
             cerr << "\t\tSelecting second chain:";
             // 2. select second chain at random (uniform) from remaining chains
             uint uSecondChain;
