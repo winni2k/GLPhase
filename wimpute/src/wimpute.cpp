@@ -309,8 +309,9 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
         for( uint i = 0; i < uNumChains; i++){
 
             uint uFirstChainIndex = gsl_rng_get(rng) % uNumChains;
+            cerr << "\t\tfirstChainIndex " << uFirstChainIndex;
             auto rcFirstChain = vcChains[ vuChainTempHierarchy[ uFirstChainIndex ] ];
-            cerr << "\t\tfirst chain: " << vuChainTempHierarchy[ uFirstChainIndex ];
+            cerr << "\tfirst chain: " << vuChainTempHierarchy[ uFirstChainIndex ];
             
             // selecting second chain
             uint uSecondChainIndex;
