@@ -9,7 +9,6 @@ using namespace std;
 EMCChain::EMCChain(const fast fTemp, const fast fSelectTemp, const uint uI, const uint individualNum, const uint uID ){
 
     m_uChainID = uID;
-    std::cerr << "Chain\t" << m_uChainID << endl;
     // set the random number generator
     m_rng = gsl_rng_alloc(gsl_rng_default);
     gsl_rng_set(m_rng, time(NULL));
