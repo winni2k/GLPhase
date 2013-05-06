@@ -27,7 +27,7 @@ private:
     
 public:
     gsl_rng *m_rng; //random number generator object
-    const uint m_uChainID; // chain ID, set at cunstruction
+    uint m_uChainID; // chain ID, set at cunstruction
     static uint s_uChainCounter; // counts number of chains in existence
     fast m_fTemp; // temperature of chain
     uint m_auParents[4]; // integer of Parents (not current individual)
