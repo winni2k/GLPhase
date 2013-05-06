@@ -8,6 +8,8 @@
 #include <fstream>
 #include <iostream>
 */
+#include <memory>
+#include <boost/ptr_container/ptr_vector.hpp>
 #include "impute.h"
 #include "emcchain.h"
 

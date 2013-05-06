@@ -199,15 +199,15 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
     fast fSelectTemp = 1 / S;
     
     // initialize emc chains with increasing temperatures
-    vector <EMCChain> vcChains;
+    boost::ptr_vector <EMCChain> vcChains;
     uint uNumChains = 5;
     vector <uint> vuChainTempHierarchy; // index of Chains sorted by temperature, ascending
     for (uint i = 1; i<=uNumChains; i++){
-        EMCChain cChain( i / S, fSelectTemp, I, in);
+        vcChains.push_back( new EMCChain( i / S, fSelectTemp, I, in) );
 
         // initialize current likelihood
-        cChain.setLike( hmm_like(cChain.m_uI, cChain.m_auParents) );
-        vcChains.push_back(cChain);
+        auto pcChain = vcChains[i-1];
+        vcChains[i-1].setLike( hmm_like(pcChain.m_uI, pcChain.m_auParents) );
         vuChainTempHierarchy.push_back(i);
     }
     exit(0);
@@ -229,25 +229,25 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
 
             cerr << "\tMutating..."<< endl;
             // choose chain randomly (uniform)
-            EMCChain &rcChain = vcChains[gsl_rng_get(rng) % uNumChains];
+            auto pcChain = vcChains[gsl_rng_get(rng) % uNumChains];
 
-            cerr << "\t" << rcChain.m_fTemp;
-            fast curr = rcChain.getLike();
+            cerr << "\t" << pcChain.m_fTemp;
+            fast curr = pcChain.getLike();
 
             // choose parent hap (rp) to mutate
             // replaced hap is stored in oh (Original Hap)
-            uint rp = gsl_rng_get(rng) & 3, oh = rcChain.m_auParents[rp];
+            uint rp = gsl_rng_get(rng) & 3, oh = pcChain.m_auParents[rp];
 
             // mutate parent hap
-            do rcChain.m_auParents[rp] = gsl_rng_get(rng) % hn; while (rcChain.m_auParents[rp] / 2 == I);
+            do pcChain.m_auParents[rp] = gsl_rng_get(rng) % hn; while (pcChain.m_auParents[rp] / 2 == I);
 
             // calculate acceptance probability
-            prop = hmm_like(rcChain.m_uI, rcChain.m_auParents);
-            if (prop > curr || gsl_rng_uniform(rng) < expf((prop - curr) / rcChain.m_fTemp)) {
-                rcChain.setLike(prop);
+            prop = hmm_like(pcChain.m_uI, pcChain.m_auParents);
+            if (prop > curr || gsl_rng_uniform(rng) < expf((prop - curr) / pcChain.m_fTemp)) {
+                pcChain.setLike(prop);
                 bMutCrossAccepted = true;
             }
-            else rcChain.m_auParents[rp] = oh;
+            else pcChain.m_auParents[rp] = oh;
 
             cerr << "\tsuccess: " << bMutCrossAccepted << endl;
             
