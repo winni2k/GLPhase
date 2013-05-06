@@ -202,14 +202,14 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
     boost::ptr_vector <EMCChain> vcChains;
     uint uNumChains = 5;
     vector <uint> vuChainTempHierarchy; // index of Chains sorted by temperature, ascending
-    for (uint i = 1; i<=uNumChains; i++){
-        vcChains.push_back( new EMCChain( i / S, fSelectTemp, I, in, i) );
+    for (uint i = 0; i < uNumChains; i++){
+        vcChains.push_back( new EMCChain( (i+1) / S, fSelectTemp, I, in, i) );
 
         cerr << "length of vcChains\t" << vcChains.size() << endl;
         // initialize current likelihood
-        auto pcChain = vcChains[i-1];
-        vcChains[i-1].setLike( hmm_like(pcChain.m_uI, pcChain.m_auParents) );
-        vuChainTempHierarchy.push_back(i-1);
+        auto pcChain = vcChains[i];
+        vcChains[i].setLike( hmm_like(pcChain.m_uI, pcChain.m_auParents) );
+        vuChainTempHierarchy.push_back(i);
     }
 
     // pick a random haplotype to replace with another one from all
