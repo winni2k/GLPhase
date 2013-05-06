@@ -274,8 +274,9 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
             uint uSecondChain;
             do {
                 uSecondChain = gsl_rng_get(rng) % uNumChains;
-                cerr << "\t" << uSecondChain << "\t" << vcChains[uSecondChain].m_uChainID
-                     << "\t" << icFirstChain->m_uChainID << endl;
+                cerr << "\t" << uSecondChain;
+                cerr << "\t" << vcChains[uSecondChain].m_uChainID;
+                cerr << "\t" << icFirstChain->m_uChainID << endl;
             }
             while (vcChains[uSecondChain].m_uChainID != icFirstChain->m_uChainID);
             EMCChain &rcSecondChain = vcChains[uSecondChain];
