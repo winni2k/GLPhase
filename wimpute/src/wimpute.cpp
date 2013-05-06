@@ -227,11 +227,11 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
         if(bMutate){
             // mutate
 
-            cerr << "\tMutating..."<< endl;
+            cerr << "\tMutating...";
             // choose chain randomly (uniform)
             auto pcChain = vcChains[gsl_rng_get(rng) % uNumChains];
 
-            cerr << "\t" << pcChain.m_fTemp;
+            cerr << "\t" << "Temp: " << pcChain.m_fTemp;
             fast curr = pcChain.getLike();
 
             // choose parent hap (rp) to mutate
@@ -325,13 +325,14 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
 
             auto rcSecondChain = vcChains[ vuChainTempHierarchy[ uSecondChainIndex ] ];
 
-            cerr << "\tsecond chain: " << vuChainTempHierarchy[ uSecondChainIndex ] << endl;
+            cerr << "\tsecond chain: " << vuChainTempHierarchy[ uSecondChainIndex ];
             
             // MH step for exchange
             fast fAcceptProb = fminf( expf( (rcFirstChain.getLike() - rcSecondChain.getLike())
                                             * ( (1/rcFirstChain.m_fTemp) - (1/rcSecondChain.m_fTemp)))
                                       , 1);
 
+            cerr << "\taccept prob: " << fAcceptProb;
             // exchange with acceptance probability
             if( gsl_rng_uniform(rng) < fAcceptProb){
 
@@ -344,6 +345,7 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
                 std::swap(vuChainTempHierarchy[uFirstChainIndex], vuChainTempHierarchy[uSecondChainIndex]);
                 ++ uNumExchanges;
             }
+            cerr << "\tnumExchanges: " << uNumExchanges << endl;
                 
         }
         
