@@ -205,6 +205,7 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
     for (uint i = 1; i<=uNumChains; i++){
         vcChains.push_back( new EMCChain( i / S, fSelectTemp, I, in) );
 
+        cerr << "length of vcChains\t" << vcChains.size() << endl;
         // initialize current likelihood
         auto pcChain = vcChains[i-1];
         vcChains[i-1].setLike( hmm_like(pcChain.m_uI, pcChain.m_auParents) );
