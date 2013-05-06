@@ -5,14 +5,11 @@ static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
 using namespace std;
 
-// initialize chain counter to 0
-uint EMCChain::s_uChainCounter = 0;
-
 //default constructor
-EMCChain::EMCChain(const fast fTemp, const fast fSelectTemp, const uint uI, const uint individualNum ){
+EMCChain::EMCChain(const fast fTemp, const fast fSelectTemp, const uint uI, const uint individualNum, const uint uID ){
 
-    m_uChainID = ++ EMCChain::s_uChainCounter;
-    std::cerr << "Chain\t" << m_uChainID << "\tstatic ID:\t" << s_uChainCounter << std::endl;
+    m_uChainID = uID;
+    std::cerr << "Chain\t" << m_uChainID << endl;
     // set the random number generator
     m_rng = gsl_rng_alloc(gsl_rng_default);
     gsl_rng_set(m_rng, time(NULL));

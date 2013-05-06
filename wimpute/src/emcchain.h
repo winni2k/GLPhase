@@ -28,7 +28,6 @@ private:
 public:
     gsl_rng *m_rng; //random number generator object
     uint m_uChainID; // chain ID, set at cunstruction
-    static uint s_uChainCounter; // counts number of chains in existence
     fast m_fTemp; // temperature of chain
     uint m_auParents[4]; // integer of Parents (not current individual)
     uint m_uI;  // current individual; 0-based
@@ -45,8 +44,7 @@ public:
     fast getCrossProb() const { return m_fCrossoverProb; };
     
     // default constructor
-    EMCChain(const fast fTemp, const fast fSelectTemp, const uint uI, const uint numIndividuals );
-//    ~EMCChain() { --s_uChainCounter; };
+    EMCChain(const fast fTemp, const fast fSelectTemp, const uint uI, const uint numIndividuals, const uint uID );
 
     void RandomizeParents();
 

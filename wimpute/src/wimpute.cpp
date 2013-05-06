@@ -203,7 +203,7 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
     uint uNumChains = 5;
     vector <uint> vuChainTempHierarchy; // index of Chains sorted by temperature, ascending
     for (uint i = 1; i<=uNumChains; i++){
-        vcChains.push_back( new EMCChain( i / S, fSelectTemp, I, in) );
+        vcChains.push_back( new EMCChain( i / S, fSelectTemp, I, in, i) );
 
         cerr << "length of vcChains\t" << vcChains.size() << endl;
         // initialize current likelihood

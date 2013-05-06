@@ -9,7 +9,7 @@ all: wimpute
 impute.o: impute.cpp impute.h
 	$(CC) $(CFLAGS) $(INCLUDE) -c impute.cpp impute.h $(LIBS)
 
-wimpute.o: wimpute.cpp wimpute.h
+wimpute.o: wimpute.cpp wimpute.h impute.h emcchain.h
 	$(CC) $(CFLAGS) $(INCLUDE) -c wimpute.cpp wimpute.h $(LIBS)
 
 emcchain.o: emcchain.cpp emcchain.h
