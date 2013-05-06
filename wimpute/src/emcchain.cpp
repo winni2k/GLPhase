@@ -11,7 +11,7 @@ uint EMCChain::s_uChainCounter = 0;
 //default constructor
 EMCChain::EMCChain(const fast fTemp, const fast fSelectTemp, const uint uI, const uint individualNum ){
 
-    m_uChainID = ++ s_uChainCounter;
+    m_uChainID = ++ EMCChain::s_uChainCounter;
     std::cerr << "Chain\t" << m_uChainID << "\tstatic ID:\t" << s_uChainCounter << std::endl;
     // set the random number generator
     m_rng = gsl_rng_alloc(gsl_rng_default);
