@@ -9,9 +9,11 @@ using namespace std;
 EMCChain::EMCChain(const fast fTemp, const fast fSelectTemp, const uint uI, const uint individualNum, const uint uID ){
 
     m_uChainID = uID;
+//    std::cerr << "EMCCchain " << m_uChainID << " allocated!" << std::endl;
+
     // set the random number generator
-    m_rng = gsl_rng_alloc(gsl_rng_default);
-    gsl_rng_set(m_rng, time(NULL));
+    //   m_rng = gsl_rng_alloc(gsl_rng_default);
+    //    gsl_rng_set(m_rng, time(NULL));
 
     // set temperature and selection temperature
     setTemp(fTemp);
@@ -25,19 +27,7 @@ EMCChain::EMCChain(const fast fTemp, const fast fSelectTemp, const uint uI, cons
     // set current individual
     assert(uI < individualNum);
     m_uI = uI;
-
-    // initialize parent haplotypes
-    RandomizeParents();
 }    
-
-void EMCChain::RandomizeParents () {
-
-    for (uint j = 0; j < 4; j++) {
-        do m_auParents[j] = gsl_rng_get(m_rng) % m_uHapNum;
-        while (m_auParents[j] / 2 == m_uI);
-    }
-
-}
 
 void EMCChain::setLike ( const fast fLike ){
     m_fCurr = fLike;

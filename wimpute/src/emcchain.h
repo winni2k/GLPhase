@@ -45,7 +45,8 @@ public:
     
     // default constructor
     EMCChain(const fast fTemp, const fast fSelectTemp, const uint uI, const uint numIndividuals, const uint uID );
-
+//    ~EMCChain(){ std::cerr << "EMCCchain " << m_uChainID << " deallocated!" << std::endl;}
+    
     void RandomizeParents();
 
 };

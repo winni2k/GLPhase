@@ -11,19 +11,19 @@ using namespace std;
 //#define DEBUG3 1
 
 #ifdef DEBUG
-#define DEBUG_MSG(str) do { std::clog << str; } while( false )
+#define DEBUG_MSG(str) do { std::cerr << str; } while( false )
 #else
 #define DEBUG_MSG(str) do { } while ( false )
 #endif
 
 #ifdef DEBUG2
-#define DEBUG_MSG2(str) do { std::clog << str; } while( false )
+#define DEBUG_MSG2(str) do { std::cerr << str; } while( false )
 #else
 #define DEBUG_MSG2(str) do { } while ( false )
 #endif
 
 #ifdef DEBUG3
-#define DEBUG_MSG3(str) do { std::clog << str; } while( false )
+#define DEBUG_MSG3(str) do { std::cerr << str; } while( false )
 #else
 #define DEBUG_MSG3(str) do { } while ( false )
 #endif
@@ -217,7 +217,7 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
     DEBUG_MSG( "Entering solve_EMC..." << endl);
     // for lack of a better place, define free parameters here
     fast fMutationRate = 0.3f; // see p.134 of Liang et al.
-    fast fSelectTemp = 1 / S;
+    fast fSelectTemp = 10000;
     
     // initialize emc chains with increasing temperatures
     boost::ptr_vector <EMCChain> vcChains;
@@ -276,7 +276,7 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
         else{
             //crossover
 
-            DEBUG_MSG2( "\tCrossing Over..." <<endl);
+            DEBUG_MSG2( "\tCrossing Over...");
             // 1. choose random chain to work on by roulette wheel selection
             fast fTotalProb = 0; // always positive
             for( auto icChain: vcChains){
@@ -284,16 +284,19 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
             }
             fast fStopPoint = gsl_rng_uniform(rng) * fTotalProb;
 
+            DEBUG_MSG2( "\t..." << endl);
+            DEBUG_MSG2( "\ttotalProb:\t" << fTotalProb << endl );
             assert( fStopPoint >= 0 );
             int iFirstChainIndex = -1;
             while( fStopPoint >= 0 ){
                 iFirstChainIndex ++;
+                DEBUG_MSG2( "\t\tstopPoint:\t" << fStopPoint << endl );
                 fStopPoint -= vcChains[iFirstChainIndex].getCrossProb();
             }
             auto pcFirstChain = vcChains[iFirstChainIndex];
 
-            DEBUG_MSG3( "\t\tFirst Chain:\t" << pcFirstChain.m_uChainID << endl);
-            DEBUG_MSG3( "\t\tSelecting second chain:");
+            DEBUG_MSG2( "\t\tFirst Chain:\t" << pcFirstChain.m_uChainID << endl);
+            DEBUG_MSG2( "\t\tSelecting second chain:");
             // 2. select second chain at random (uniform) from remaining chains
             uint uSecondChain;
             do {
