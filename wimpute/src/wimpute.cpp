@@ -209,7 +209,7 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
         // initialize current likelihood
         auto pcChain = vcChains[i-1];
         vcChains[i-1].setLike( hmm_like(pcChain.m_uI, pcChain.m_auParents) );
-        vuChainTempHierarchy.push_back(i);
+        vuChainTempHierarchy.push_back(i-1);
     }
 
     // pick a random haplotype to replace with another one from all
