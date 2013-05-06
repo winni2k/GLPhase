@@ -264,6 +264,7 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
             fast fStopPoint = gsl_rng_uniform(rng) * fTotalProb;
             auto icFirstChain = vcChains.begin();
             while(icFirstChain != vcChains.end()){
+                cerr << "chainID: "<<icFirstChain.m_uChainID;
                 fStopPoint += icFirstChain->getCrossProb();
                 if(fStopPoint < 0) break;
                 else ++icFirstChain;           
