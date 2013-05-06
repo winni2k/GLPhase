@@ -46,7 +46,7 @@ public:
     
     // default constructor
     EMCChain(const fast fTemp, const fast fSelectTemp, const uint uI, const uint numIndividuals );
-    ~EMCChain() { --s_uChainCounter; };
+//    ~EMCChain() { --s_uChainCounter; };
 
     void RandomizeParents();
 
