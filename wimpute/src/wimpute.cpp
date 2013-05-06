@@ -211,7 +211,6 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
         vcChains[i-1].setLike( hmm_like(pcChain.m_uI, pcChain.m_auParents) );
         vuChainTempHierarchy.push_back(i);
     }
-    exit(0);
 
     // pick a random haplotype to replace with another one from all
     // haplotypes.  calculate the new probability of the model given
