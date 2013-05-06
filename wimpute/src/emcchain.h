@@ -26,7 +26,6 @@ private:
     fast m_fSelectTemp; // selection temperature
     
 public:
-    gsl_rng *m_rng; //random number generator object
     uint m_uChainID; // chain ID, set at cunstruction
     fast m_fTemp; // temperature of chain
     uint m_auParents[4]; // integer of Parents (not current individual)
@@ -45,9 +44,6 @@ public:
     
     // default constructor
     EMCChain(const fast fTemp, const fast fSelectTemp, const uint uI, const uint numIndividuals, const uint uID );
-//    ~EMCChain(){ std::cerr << "EMCCchain " << m_uChainID << " deallocated!" << std::endl;}
-    
-    void RandomizeParents();
 
 };
 

@@ -82,20 +82,20 @@ void Wimpute::WriteToLog( const stringstream & tInput )
         gzprintf(m_gzLogFileStream, tInput.str().c_str());
     }
     else{
-    // open logFileStream for append if it's not yet open
-    if( !m_ofsLogFileStream ){
-        m_ofsLogFileStream.open(m_sLogFile);
-    }
+        // open logFileStream for append if it's not yet open
+        if( !m_ofsLogFileStream ){
+            m_ofsLogFileStream.open(m_sLogFile);
+        }
 
-    // exit if the file cannot be opened
-    if( !m_ofsLogFileStream.is_open() ){
-        cerr << "could not open log file "<< m_sLogFile <<" for writing" << endl;
-        exit(1);
-    }
+        // exit if the file cannot be opened
+        if( !m_ofsLogFileStream.is_open() ){
+            cerr << "could not open log file "<< m_sLogFile <<" for writing" << endl;
+            exit(1);
+        }
     
-    // write input to log file
-    m_ofsLogFileStream << tInput.str();
-    m_ofsLogFileStream.flush();
+        // write input to log file
+        m_ofsLogFileStream << tInput.str();
+        m_ofsLogFileStream.flush();
     }
 };
 
@@ -228,7 +228,16 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
 
         DEBUG_MSG2( "\tlength of vcChains\t" << vcChains.size() << endl);
         // initialize current likelihood
+
         auto pcChain = vcChains[i];
+
+        // randomize parent haps
+        for (uint j = 0; j < 4; j++) {
+            do pcChain.m_auParents[j] = gsl_rng_get(rng) % m_uHapNum;
+            while (pcChain.m_auParents[j] / 2 == m_uI);
+        }
+
+        // set likelihood
         vcChains[i].setLike( hmm_like(pcChain.m_uI, pcChain.m_auParents) );
         vuChainTempHierarchy.push_back(i);
     }
