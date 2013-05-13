@@ -20,3 +20,6 @@ main.o: main.cpp impute.h wimpute.h
 
 wimpute: main.o impute.o wimpute.o emcchain.o
 	$(CC) $(CFLAGS) $(INCLUDE) -o wimpute main.o impute.o wimpute.o emcchain.o $(LIBS)
+
+clean:
+	rm *.o *.h.gch wimpute

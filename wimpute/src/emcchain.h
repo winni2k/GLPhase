@@ -13,7 +13,7 @@
 #include	<cstdio>
 #include	<iostream>
 
-typedef float fast;
+typedef double fast;
 typedef unsigned uint;
 
 // used in estimate_EMC() for now
@@ -22,13 +22,13 @@ typedef unsigned uint;
 class EMCChain {
 private:
     fast m_fCurr; // current likelihood
-    fast m_fCrossoverProb; //current crossover probability
+    fast m_fSelection; //current crossover probability
     fast m_fSelectTemp; // selection temperature
+    uint m_auParents[4]; // integer of Parents (not current individual)
     
 public:
-    uint m_uChainID; // chain ID, set at cunstruction
+    uint m_uChainID; // chain ID, set at construction
     fast m_fTemp; // temperature of chain
-    uint m_auParents[4]; // integer of Parents (not current individual)
     uint m_uI;  // current individual; 0-based
     uint m_uLastIndividualIndex; // 0-based number of individuals
     uint m_uHapNum; // no. of haps;
@@ -40,7 +40,11 @@ public:
 
     void setLike (const fast fLike);
     fast getLike() const { return m_fCurr; };
-    fast getCrossProb() const { return m_fCrossoverProb; };
+    fast getSelection() const { return m_fSelection; };
+
+    void setParent( const uint uParentIndex, const uint uParentNum);
+    uint *getParents(){ return m_auParents; };
+    uint getParent(const uint uParentIndex){ assert(uParentIndex < 5); return m_auParents[uParentIndex]; };
     
     // default constructor
     EMCChain(const fast fTemp, const fast fSelectTemp, const uint uI, const uint numIndividuals, const uint uID );

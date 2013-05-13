@@ -31,5 +31,13 @@ EMCChain::EMCChain(const fast fTemp, const fast fSelectTemp, const uint uI, cons
 
 void EMCChain::setLike ( const fast fLike ){
     m_fCurr = fLike;
-    m_fCrossoverProb = expf( -m_fCurr / m_fSelectTemp );
+    m_fSelection = expf( m_fCurr / m_fSelectTemp );
+    assert(m_fSelection > 0);
+    assert(m_fSelection <= 1);
+}
+
+void EMCChain::setParent( const uint uParentIndex, const uint uParentNum ){
+    assert(uParentNum < m_uHapNum);
+    assert(uParentIndex < 5);
+    m_auParents[uParentIndex] = uParentIndex;
 }
