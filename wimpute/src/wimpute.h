@@ -9,9 +9,9 @@
 #include <iostream>
 */
 #include <memory>
-#include <boost/ptr_container/ptr_vector.hpp>
 #include "impute.h"
 #include "emcchain.h"
+#include <limits>
 
 //require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");

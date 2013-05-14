@@ -39,5 +39,5 @@ void EMCChain::setLike ( const fast fLike ){
 void EMCChain::setParent( const uint uParentIndex, const uint uParentNum ){
     assert(uParentNum < m_uHapNum);
     assert(uParentIndex < 5);
-    m_auParents[uParentIndex] = uParentIndex;
+    m_auParents[uParentIndex] = uParentNum;
 }

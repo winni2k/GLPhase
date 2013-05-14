@@ -1,15 +1,16 @@
 
 #include "wimpute.h"
-#include <limits>
 
 //require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
 using namespace std;
 
-//#define DEBUG 1
-//#define DEBUG2 1
-//#define DEBUG3 1
+/*
+#define DEBUG
+#define DEBUG2
+#define DEBUG3
+*/
 
 #ifdef DEBUG
 #define DEBUG_MSG(str) do { std::cerr << str; } while( false )
@@ -75,6 +76,9 @@ void Wimpute::SetLog( const string & sLogFile )
             exit(1);
         }
     }
+
+    cerr << "Logging to:\t" << m_sLogFile << endl;
+
 };
 
 void Wimpute::WriteToLog( const string & tInput )
@@ -82,7 +86,7 @@ void Wimpute::WriteToLog( const string & tInput )
 
     if(! s_bIsLogging)
         return;
-    
+
     if(m_bLogIsGz){
         gzprintf(m_gzLogFileStream, tInput.c_str());
     }
@@ -102,6 +106,8 @@ void Wimpute::WriteToLog( const string & tInput )
         m_ofsLogFileStream << tInput;
         m_ofsLogFileStream.flush();
     }
+    DEBUG_MSG( "wrote something" <<endl);
+
 };
 
 // what to log when given an EMCChain
@@ -117,13 +123,14 @@ void Wimpute::WriteToLog( const EMCChain& rcChain, const bool bMutate){
 // Roulette Wheel Selection, returns index of chain selected
 int Wimpute::RWSelection( const vector <EMCChain> &rvcChains){
 
-    double dTotalProb = 0; // always positive
+    double dTotalProb = 0; // always positive, could  be larger than 1
     for( const auto& icChain: rvcChains){
         dTotalProb += icChain.getSelection();
+        DEBUG_MSG2("\ttotal prob:\t" << dTotalProb <<endl);
     }
 
     assert(dTotalProb > 0);
-    assert(dTotalProb <= 1);
+    assert(dTotalProb < std::numeric_limits<double>::max());
     double dStopPoint = gsl_rng_uniform(rng) * dTotalProb;
     assert( dStopPoint > 0 );
 
@@ -278,13 +285,15 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
         // randomize parent haps
         for (uint j = 0; j < 4; j++) {
             do {
-
-                vcChains[i].setParent(j, gsl_rng_get(rng) % vcChains[i].m_uHapNum);
+                uint uChosenHap = gsl_rng_get(rng) % vcChains[i].m_uHapNum;
+                vcChains[i].setParent(j, uChosenHap );
+                DEBUG_MSG3("\t\tchosen hap:\t" << uChosenHap << endl << "\t\tchosen parent:\t" << vcChains[i].getParent(j) << endl);
 
             }
             while (vcChains[i].getParent(j) / 2 == vcChains[i].m_uI);
         }
 
+        DEBUG_MSG2("\tsetting likelihood"<<endl;);
         // set likelihood
         vcChains[i].setLike( hmm_like(vcChains[i].m_uI, vcChains[i].getParents() ));
         vuChainTempHierarchy.push_back(i);
