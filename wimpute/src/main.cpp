@@ -64,6 +64,7 @@ int main(int ac, char **av) {
         }
             break;
         case 'e':
+            Wimpute::s_bIsLogging = true;
             sLogFile = optarg;
             break;
         case 'E':
@@ -98,13 +99,15 @@ int main(int ac, char **av) {
 
         // create a Wimpute instance!
         Wimpute lp;
-        lp.SetLog(sLogFile);
+
+        if( Wimpute::s_bIsLogging )
+            lp.SetLog(sLogFile);
 
         // print date to start of log
         auto tt = std::chrono::system_clock::to_time_t ( std::chrono::system_clock::now());
         stringstream log;
         log << ctime(&tt) << endl;
-        lp.WriteToLog(log);
+        lp.WriteToLog(log.str());
         
         if (!lp.load_bin(file[i].c_str())) {
             cerr << "fail to load " << file[i] << endl;

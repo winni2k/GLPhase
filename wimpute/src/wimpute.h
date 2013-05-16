@@ -9,9 +9,9 @@
 #include <iostream>
 */
 #include <memory>
-#include <boost/ptr_container/ptr_vector.hpp>
 #include "impute.h"
 #include "emcchain.h"
+#include <limits>
 
 //require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
@@ -42,14 +42,16 @@ public:
     static int s_iEstimator; // see main.cpp and document for documentation
     static uint s_uParallelChains; // see main.cpp and document for documentation
     static uint s_uCycles; // see main.cpp and document for documentation
+    static bool s_bIsLogging; // true if logging
     
     // are we logging?
-    bool LogOn() { return !m_sLogFile.empty(); }
+    bool LogOn(void) { return s_bIsLogging; }
 
     // set and open log file
     void SetLog( const string &sLogFile);
 
-    void WriteToLog( const stringstream & tInput );
+    void WriteToLog( const string & tInput );
+    void WriteToLog( const EMCChain & rcChain, const bool bMutate );
 
     bool load_bin(const char *F);
     
@@ -57,6 +59,9 @@ public:
 
     // EMC version of estimate()
     void estimate_EMC(void);
+
+    // Roulette Wheel Selection, returns index of chain selected
+    int RWSelection( const vector <EMCChain> & rvcChains);
     
 };
 
