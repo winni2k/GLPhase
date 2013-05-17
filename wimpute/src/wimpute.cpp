@@ -7,9 +7,9 @@ static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 using namespace std;
 
 /*
-#define DEBUG
-#define DEBUG2
-#define DEBUG3
+  #define DEBUG
+  #define DEBUG2
+  #define DEBUG3
 */
 
 #ifdef DEBUG
@@ -39,11 +39,9 @@ bool Wimpute::s_bIsLogging = false;
 // return the probability of the model given the input haplotypes P and
 // emission and transition matrices of individual I
 // call Impute::hmm_like and print out result
-fast    Wimpute::hmm_like(uint I, uint *P) {
+fast    Wimpute::hmm_like(uint I, uint* P) {
 
-    fast curr = Impute::hmm_like( I, P );
-
-    return curr;
+    return Impute::hmm_like( I, P );
 }
 
 void Wimpute::SetLog( const string & sLogFile )
@@ -142,8 +140,8 @@ int Wimpute::RWSelection( const vector <EMCChain> &rvcChains){
     while( dStopPoint > 0 && ++iChainIndex);
     assert(iChainIndex >= 0);
     assert(iChainIndex < static_cast<int>( rvcChains.size() ) );
-    
-    return iChainIndex;    
+
+    return iChainIndex;
 }
 
 
@@ -178,6 +176,11 @@ bool    Wimpute::load_bin(const char *F) {
 // solve(individual, number of cycles, penalty, burnin?)
 fast Wimpute::solve(uint I, uint    &N, fast S, bool P) {
 
+    // write log header
+    stringstream message;
+    message << "##iteration\tindividual\tproposal" << endl;
+    WriteToLog( message.str() );
+    
     // pick 4 haplotype indices at random not from individual
     uint p[4];
     for (uint j = 0; j < 4; j++) {
@@ -204,11 +207,12 @@ fast Wimpute::solve(uint I, uint    &N, fast S, bool P) {
         }
         else p[rp] = oh;
 
-        // log results
-        stringstream message;
-        message << m_nIteration << "\t" << I << "\t" <<  prop << "\t" << bAccepted << endl;
-        WriteToLog( message.str() );
-
+        // log accepted proposals
+        if(bAccepted){
+            stringstream message;
+            message << m_nIteration << "\t" << I << "\t" <<  prop << endl;
+            WriteToLog( message.str() );
+        }
     }
 
     // if we have passed the burnin cycles (n >= bn)
@@ -225,7 +229,7 @@ fast Wimpute::solve(uint I, uint    &N, fast S, bool P) {
    added a member variable for n so
 */
 
-void    Wimpute::estimate(void) {
+void    Wimpute::estimate() {
     cerr.setf(ios::fixed);
     cerr.precision(3);
     cerr << "iter\tpress\tlike\tfold\n";
@@ -259,7 +263,7 @@ void    Wimpute::estimate(void) {
 */
 
 // solve(individual, number of cycles, penalty, burnin?)
-fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool P) {
+fast Wimpute::solve_EMC(uint I, uint  N, fast S, bool P) {
 
     DEBUG_MSG( "Entering solve_EMC..." << endl);
     // for lack of a better place, define free parameters here
@@ -503,7 +507,7 @@ fast Wimpute::solve_EMC(const uint I, const uint    &N, const fast S, const bool
    first edition?, 2010, pp. 128-132
 */
 
-void    Wimpute::estimate_EMC(void) {
+void    Wimpute::estimate_EMC() {
     cerr.setf(ios::fixed);
     cerr.precision(3);
     cerr << "Running Evolutionary Monte Carlo\n";
@@ -518,6 +522,141 @@ void    Wimpute::estimate_EMC(void) {
         pen *= pen;  // pen = 1 after bn/2 iterations
         for (uint i = 0; i < in; i++) {
             sum += solve_EMC(i, m_uCycles, pen, n >= bn);  // call solve=> inputs the sample number,
+            iter += m_uCycles;
+        }
+        swap(hnew, haps);
+        if (n >= bn) for (uint i = 0; i < in; i++) replace(i);  // call replace
+        cerr << n << '\t' << pen << '\t' << sum / in / mn << '\t' << iter / in / in << '\r';
+    }
+    cerr << endl;
+    result();    // call result
+}
+
+unsigned Wimpute::RJSelection( const vector<unsigned> & vuRetMatNum, const vector<unsigned> & vuRetMatDen, unsigned I, unsigned hn, gsl_rng * rng){
+    unsigned uPropInd = 0;
+    while(1){
+        unsigned uPropHap = gsl_rng_get(rng) % hn;
+        uPropInd = uPropHap / 2;
+
+        // resample if individual chosen is the same as
+        // current individual I
+        if(uPropInd == I)
+            continue;
+
+        // resample if individual does not pass rejection sample
+        if( gsl_rng_uniform(rng) <= vuRetMatNum[uPropInd] / vuRetMatDen[uPropInd] )
+            break;
+    }
+    return uPropInd;
+}
+
+
+/* solve_AMH -- Adaptive Metropolis Hastings
+   see estimate_AMH() for more details
+
+   modified from Impute::solve() of SNPTools
+*/
+
+// solve(individual, number of cycles, penalty, burnin?)
+fast Wimpute::solve_AMH(uint I, uint  N, fast S, bool P) {
+
+    // write log header
+    stringstream message;
+    message << "##iteration\tindividual\tproposal" << endl;
+    WriteToLog( message.str() );
+
+    // pick 4 haplotype indices at random not from individual
+    // also use relationship matrix for rejection sampling
+    uint p[4];
+    for (uint j = 0; j < 4; j++) {
+        p[j] = RJSelection(m_2dRelationshipMatNum[I], m_2dRelationshipMatDen[I], I, hn, rng);
+    }
+
+    // get a probability of the model for individual I given p
+    fast curr = hmm_like(I, p);
+
+    // pick a random haplotype to replace with another one from all
+    // haplotypes.  calculate the new probability of the model given
+    // those haplotypes.
+    // accept new set if probability has increased.
+    // otherwise, accept with penalized probability
+    for (uint n = 0; n < N; n++) {  // fixed number of iterations
+
+        // choose haplotype to update
+        // evaluate proposal
+        uint rp = gsl_rng_get(rng) & 3, oh = p[rp];
+        p[rp] = RJSelection(m_2dRelationshipMatNum[I], m_2dRelationshipMatDen[I], I, hn, rng);
+        fast prop = hmm_like(I, p);
+        bool bAccepted = false;
+        if (prop > curr || gsl_rng_uniform(rng) < expf((prop - curr) * S)) {
+            curr = prop;
+            bAccepted = true;
+        }
+        else p[rp] = oh;
+
+        // update relationship matrix
+        for( unsigned i = 0; i<4; i++){
+            unsigned uPropHap = p[i];
+            unsigned uPropInd = uPropHap / 2;
+            m_2dRelationshipMatDen[I][uPropInd] ++;
+            m_2dRelationshipMatDen[uPropInd][I] ++;
+            if(bAccepted){
+                m_2dRelationshipMatNum[I][uPropInd] ++;
+                m_2dRelationshipMatNum[uPropInd][I] ++;
+            }
+        }
+
+        // log accepted proposals
+        if(bAccepted){
+            stringstream message;
+            message << m_nIteration << "\t" << I << "\t" <<  prop << endl;
+            WriteToLog( message.str() );
+        }
+
+    }
+
+    // if we have passed the burnin cycles (n >= bn)
+    // start sampling the haplotypes for output
+    if (P) {
+        uint16_t *pa = &pare[I * in];
+        for (uint i = 0; i < 4; i++) pa[p[i] / 2]++;
+    }
+    hmm_work(I, p, S);
+    return curr;
+}
+
+/* estimate_AMH -- Adaptive Metropolis Hastings
+   Here we try to increase the speed of convergence by
+   keeping track of which individuals tend to copy from each other
+
+   The reference for parts of this implementation is
+   "Advanced Markov Choin Monte Carlo Methods" by Liang, Liu and Carroll
+   first edition?, 2010, pp. 309
+*/
+void    Wimpute::estimate_AMH() {
+    cerr.setf(ios::fixed);
+    cerr.precision(3);
+    cerr << "Running Adaptive Metropolis Hastings\n";
+    cerr << "iter\tpress\tlike\tfold\n";
+
+    // initialize relationship matrix
+    assert(m_2dRelationshipMatNum.size() == 0);
+    assert(m_2dRelationshipMatDen.size() == 0);
+    for(unsigned i = 0; i < in; i++){
+        m_2dRelationshipMatNum[i].resize(in,1);
+        m_2dRelationshipMatDen[i].resize(in,1);
+    }
+
+    // n is number of cycles = burnin + sampling cycles
+    // increase penalty from 2/bn to 1 as we go through burnin
+    // iterations.
+
+    for (uint n = 0; n < bn + sn; n++) {
+        m_nIteration = n;
+        fast sum = 0, pen = fminf(2 * (n + 1.0f) / bn, 1), iter = 0;
+        pen *= pen;  // pen = 1 after bn/2 iterations
+        for (uint i = 0; i < in; i++) {
+            sum += solve_AMH(i, m_uCycles, pen, n >= bn);  // call solve=> inputs the sample number,
             iter += m_uCycles;
         }
         swap(hnew, haps);
@@ -547,6 +686,7 @@ void    Wimpute::document(void) {
     cerr << "\n\t-E <integer>    choice of estimation algorithm (0)";
     cerr << "\n\t                0 - Metropolis Hastings with simulated annealing";
     cerr << "\n\t                1 - Evolutionary Monte Carlo with -p parallel chains";
+    cerr << "\n\t                2 - Adaptive Metropolis Hastings";
     cerr << "\n\t-p <integer>    number of parallel chains to use in parallel estimation algorithms";
     cerr << "\n\t                (at least 2, default 5)";
     cerr << "\n\t-C <integer>    number of cycles to estimate an individual's parents before updating";

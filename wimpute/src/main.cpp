@@ -69,6 +69,10 @@ int main(int ac, char **av) {
             break;
         case 'E':
             Wimpute::s_iEstimator = atoi(optarg);
+            if(Wimpute::s_iEstimator > 2){
+                cerr << "-E needs to be between 0 and 2" << endl;
+                Wimpute::document();
+            }
             break;
         case 'p':{           
             uint uP = atoi(optarg);
@@ -137,6 +141,9 @@ int main(int ac, char **av) {
             break;
         case 1: // Evolutionary Monte Carlo
             lp.estimate_EMC();
+            break;
+        case 2:
+            lp.estimate_AMH();
             break;
         default:
             lp.document();
