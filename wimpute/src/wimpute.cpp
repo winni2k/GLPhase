@@ -642,6 +642,8 @@ void    Wimpute::estimate_AMH() {
     // initialize relationship matrix
     assert(m_2dRelationshipMatNum.size() == 0);
     assert(m_2dRelationshipMatDen.size() == 0);
+    m_2dRelationshipMatNum.resize(in);
+    m_2dRelationshipMatDen.resize(in);
     for(unsigned i = 0; i < in; i++){
         m_2dRelationshipMatNum[i].resize(in,1);
         m_2dRelationshipMatDen[i].resize(in,1);
