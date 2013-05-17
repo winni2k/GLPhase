@@ -143,5 +143,60 @@ fast-LMM
 - convergence
 - 
 
+###########
+# Thu May 09 10:09:52 BST 2013
+# CONVERGE
+- burden tests
+- we're going to start having meetings with Shenjen
+- Goncalo paper on error rates
+- power analysis
+- add standard deviation estimates to wgs
+
+###########
+# Fri May 10 17:34:04 BST 2013
+# VCU meeting
+- re-read pasaniuc paper for cost comparison
+
+PAPER todo:
+
+-> Value of doing imputation at all
+- power to detect effect sizes
+- imputation methods + marchini
+- cost comparison
+
+-> Nice Quality data
+
+-> Biology section
+
+Experiment
+
+impute one high coverage sample from TGP
+- call any chip's sites from 10x
+- impute the rest of the sites from thousand genomes
+- compare 1x and chip imputed to 10x data
+
+
+###########
+# Mon May 13 18:12:33 BST 2013
+What to discuss with Jonathan tomorrow
+- paper sections
+- how to impute on high coverage samples (above)
+- MCMC algorithms
+
+###########
+# Wed May 15 18:29:03 BST 2013
+-pasaniuc paper
+-> sequencing methods came out on top, but check sample prep cost etc.
+
+
+700 - 750 for platinum
+shadow band
+100 less for palladium
+los angeles store
+700 south hill street
+25,27
+LA california 90014
+
+7-9 working days
 
 
