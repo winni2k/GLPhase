@@ -3,8 +3,14 @@
 %% Author: wkretzsch@gmail.com
 %% Version: $Id: converge_paper.tex,v 0.0 2013/05/20 09:54:17 winni Exp$
 
-\documentclass[a4paper]{tufte-handout}
+\documentclass[nobib,a4paper]{tufte-handout}
+
+\usepackage[backend=biber]{biblatex}
+\addbibresource{converge_paper.bib}
+
+%\renewcommand{\cite}[2][0pt]{\sidenote[][#1]{\fullcite{#2}}}
 %%\usepackage[debugshow,final]{graphics}
+
 
 \usepackage{color}
 
@@ -18,7 +24,7 @@
 
 \usepackage{graphicx}
 \usepackage{booktabs}
-\usepackage{hyperref}
+
 %%\revision$Header: /Users/winni/marchini/converge/paper/converge_paper.tex,v 0.0 2013/05/20 09:54:17 winni Exp$
 \morefloats
 
@@ -26,8 +32,6 @@
 
 % bibliography
 \usepackage{csquotes}
-\usepackage[style=biblatex-nature,backend=biber]{biblatex}
-\addbibresource{converge_paper.bib}
 
 \begin{document}
 
