@@ -5,12 +5,8 @@
 
 \documentclass[nobib,a4paper]{tufte-handout}
 
-\usepackage[backend=biber]{biblatex}
-\addbibresource{converge_paper.bib}
-
 %\renewcommand{\cite}[2][0pt]{\sidenote[][#1]{\fullcite{#2}}}
 %%\usepackage[debugshow,final]{graphics}
-
 
 \usepackage{color}
 
@@ -26,20 +22,24 @@
 \usepackage{booktabs}
 
 %%\revision$Header: /Users/winni/marchini/converge/paper/converge_paper.tex,v 0.0 2013/05/20 09:54:17 winni Exp$
-\morefloats
+%%\morefloats
 
 \newcommand{\rsq}{$\mbox{r}^2$}
 
 % bibliography
 \usepackage{csquotes}
+\usepackage[backend=biber,style=authoryear-ibid, url=false,doi=false,isbn=false]{biblatex}
+%\usepackage[backend=biber,style=nature]{biblatex}
+\addbibresource{converge_paper.bib}
 
 \begin{document}
 
 %%%%##########################################################################
 
 
+\section{Genotype Likelihoods}
 
-\newthought{Sequencing Reads} for each of the 9300 samples were aligned to the
+Sequencing Reads for each of the 9300 samples were aligned to the
 human reference genome GRCh37.p5 and stored in BAM format. 
 The aligner used was Stampy (v1.0.17)~\autocite{Lunter2011} with
 BWA (v0.5.9)~\autocite{Li2009}. 
@@ -58,6 +58,8 @@ in the 1000 Genomes Phase 1 samples~\autocite{Project2012}. \red{might want to
   address upfront why we didn't do site detection}. This resulted in
 GLs at 13,837,179 SNPs. 
 
+\section{Imputation and Phasing}
+
 It is well established that imputation methods can substantially
 improve genotype calls from low-coverage sequence data
 \autocite{Project2012, Li2010, Wang2013}.
@@ -70,7 +72,7 @@ estimates.
 Using this strategy on 9300 samples requires a large amount of
 computational resources so we investigated more efficient methods.  
 
-\section{Description of BEAGLE experiments that reduced iterations}
+\subsection{BEAGLE experiments to reduced iterations}
 
 \begin{margintable}[1.5in]
   \begin{tabular}{rrrr}
@@ -198,14 +200,13 @@ Accordingly, a chunk size of 700kb with 50kb overlap with neighboring
 chunks, and 6 BEAGLE iterations were chosen for whole genome
 imputation. 
 
-
-\section{Imputation round 2}
+\subsection{Imputation round 2}
 
 BEAGLE (v3.3.2) was run on chunks containing roughly 2800 sites such
 that neighboring chunks shared 400 sites. This corresponds to
-approximately 700kb chunks after filtering out all sites monomorphic
-in 1000 Genomes Project Phase 1~\autocite{Project2012} Asians.
-At each chunk, BEAGLE was run for six
+approximately 700kb chunks with 50kb overlap after filtering out all
+sites monomorphic in 1000 Genomes Project Phase
+1~\autocite{Project2012} Asians. At each chunk, BEAGLE was run for six
 iterations on the genotype likelihoods and using all 572 TGP phase 1
 Asian haplotypes as a reference panel to generate genotype
 probabilities.  
