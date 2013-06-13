@@ -163,6 +163,119 @@ bool    Wimpute::load_bin(const char *F) {
     return true;
 }
 
+
+// this is where I load the legend and haps files
+bool Wimpute::load_refPanel(string legendFile, string hapsFile){
+
+    // make sure both files are defined
+    if(legendFile.size() == 0){
+        cerr << "Need to define a legend file if defining a reference haplotypes file";
+        exit(1);
+    }
+    if(hapsFile.size() == 0){
+        cerr << "Need to define a reference haplotypes file if defining a legend file";
+        exit(1);
+    }
+
+    m_bUsingRefHaps = true;
+    
+    // read in legend file
+    ifile legendFD(legendFile);
+    string buffer;
+
+    // discard header
+    unsigned uLineNum = 0;
+    while(getline(legendFD, buffer, '\n')){
+        uLineNum++;
+        vector<string> tokens;
+        sutils::tokenize(buffer, tokens);
+
+        // make sure header start is correct
+        if(uLineNum == 1){
+            vector<string> headerTokenized;
+            string header = "rsid position a0 a1";
+            sutils::tokenize(header, headerTokenized);
+            for(int i = 0; i != 4; i++){
+                assert(tokens[i] == headerTokenized[i]);
+            }
+            continue;
+        }
+
+        // now make sure legend file matches sites
+        assert(tokens[1] == sutils::uint2str(site[uLineNum - 2].pos) && "Positions in legend file need to match current data");
+        assert(tokens[2]+tokens[3] == site[uLineNum - 2].all && "Alleles in legend file need to match current data");
+        
+    }
+
+    assert(site.size() == uLineNum -1 && "Number of Positions in legend file needs to match current data");
+    
+    // given that the legend looks good, read in the haps file
+    ifile hapsFD(hapsFile);
+    uLineNum = 0;
+
+    while(getline(hapsFD, buffer, '\n')){
+        uLineNum++;
+        vector<string> tokens;
+        sutils::tokenize(buffer, tokens);
+
+        // make sure header start is correct
+        if(uLineNum == 1){
+
+            // count number of haps
+            m_uNumRefHaps = tokens.size();
+
+            // resize the vector for holding ref haps
+            m_vRefHaps.resize(m_uNumRefHaps * wn);
+
+        }
+
+        assert(tokens.size() == m_uNumRefHaps && "Every row of haplotypes file must have the same number of columns");
+
+        // store ref haplotypes
+        for( unsigned i = 0; i != tokens.size(); i++){
+
+            int val = atoi(tokens[i].c_str());
+            if(val == 0){
+                set0(&m_vRefHaps[i * wn], uLineNum -1);
+            }
+            else if(val == 1){
+                set1(&m_vRefHaps[i * wn], uLineNum -1);
+            }
+            else{
+                cerr << "All alleles are not 0 or 1 In haplotypes file "<< hapsFile <<" at line number " << uLineNum << endl;
+                throw 1;
+            }
+                
+        }        
+    }
+
+    if(m_uNumRefHaps == 0){
+        cerr << "num ref haps is 0.  Haps file empty?";
+        throw 2;
+    }
+    
+
+    return true;
+    
+}
+
+/* CHANGES from impute.cpp
+   support for reference haplotypes
+*/
+
+void Wimpute::initialize(){
+
+    Impute::initialize();
+
+    // add ref haplotypes to sample haps
+    haps.insert(haps.end(), m_vRefHaps.begin(), m_vRefHaps.end());
+
+    // enlarge hnew so haps and hnew can be swapped
+    // the ref haps are never updated, so they'll stick around forever
+    hnew.insert(haps.end(), m_vRefHaps.begin(), m_vRefHaps.end());
+    
+}
+
 // this part of the code seems to be responsible for:
 // A - finding a set of four haps that are close to the current individual
 // B - running the HMM and udating the individual I's haplotypes

@@ -138,6 +138,9 @@ uint    Impute::load_vcf(const char *F) {  // this section loads known genotypes
                 }
         }
     }
+
+    // find the site, sample, and allele that matches the genotype given in VCF file
+    // once found, update the prob vector
     iter = ti_query(t, site[0].chr.c_str(), site[0].pos, site[mn - 1].pos);
     while ((s = ti_read(t, iter, &len)) != 0) {
         istringstream si(s);
@@ -192,7 +195,7 @@ void    Impute::initialize(void) {
     hn = in * 2; //number of haps
     haps.resize(hn * wn);  // space to store all haplotypes
     hnew.resize(hn * wn);  // number of haplotypes = 2 * number of samples  ... haps mn is # of sites,
-    hsum.assign(hn * mn, 0); // one uint for every hap's site - what for?
+    hsum.assign(hn * mn, 0); // one uint for every hap's site - what for?  To estimate allele probs
     pare.assign(in * in, 0);  // in x in matrix, one uint16 for every pair of individuals
     pn = 3 * mn;  // set the number of transitions.  three transitions for every site
     tran.resize(pn);  // tran looks like the transition matrix,

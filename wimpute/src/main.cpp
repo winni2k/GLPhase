@@ -23,13 +23,15 @@ int main(int ac, char **av) {
     Wimpute::s_iEstimator = 0; // Metropolis Hastings with Annealing is default
     Wimpute::s_uParallelChains = 5; // number of parallel chains to use for parallel estimators
     Wimpute::s_uCycles = 0; // alternate way of specifying number of sampling steps
-
+    
     uint threads = 0;
     vector <string> file;
-
+    string sLegendFile;
+    string sRefHapsFile;
+    
     string sLogFile;
     int opt;
-    while ((opt = getopt(ac, av, "d:b:l:m:n:t:v:c:x:e:E:p:C:")) >= 0) {
+    while ((opt = getopt(ac, av, "d:b:l:m:n:t:v:c:x:e:E:p:C:L:H:")) >= 0) {
         switch (opt) {
         case    'd':
             Impute::density = atof(optarg);
@@ -84,6 +86,12 @@ int main(int ac, char **av) {
         case 'C':
             Wimpute::s_uCycles = atoi(optarg);
             break;
+        case 'L':
+            sLegendFile = optarg;
+            break;
+        case 'H':
+            sRefHapsFile = optarg;
+            break;            
         default:
             Wimpute::document();
         }
@@ -112,10 +120,16 @@ int main(int ac, char **av) {
         stringstream log;
         log << ctime(&tt) << endl;
         lp.WriteToLog(log.str());
-        
+
+        // load gls
         if (!lp.load_bin(file[i].c_str())) {
             cerr << "fail to load " << file[i] << endl;
             continue;
+        }
+
+        // load ref haps
+        if(sLegendFile.size() > 0 || sRefHapsFile.size() > 0){
+            lp.load_refPanel( sLegendFile, sRefHapsFile);
         }
 
         /* debugging

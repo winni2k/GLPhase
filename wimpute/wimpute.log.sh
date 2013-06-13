@@ -27,7 +27,17 @@ cd ~/fenghuang/marchini/wimpute/results/
 # jfsag: running at 0.5 fold
 ./2013-05-04/analyze.fold0.5.pl -r -j 5 # quarter as many cycles (4500)
 
+###########
+# Tue Jun 11 14:45:17 BST 2013
+## implementing reference panel for wimpute
+# create test data for gls
+perl -ane '$o = q//; $o .= join("\t", (@F[0..2]));if(++$i==1){$o .= "\t".join("\t", qw/samp1 samp2 samp3/)} else{$o .= "\t". join("\t",( join(" ",(0,1)), join(" ", (1,0)), join(" ",(0,0))))} print $o ."\n"'< 20_011976121_012173018.bin.onlyThree.gls | bgzip -c > 20_011976121_012173018.bin.onlyThree.bin
 
+# now create test data for legend
+perl -ane 'if(++$i==1){print "rsid position a0 a1\n"}else{print join(" ",("$F[0]:$F[1]",$F[1], split("",$F[2]))). "\n"}' 20_011976121_012173018.bin.onlyThree.gls > 20_011976121_012173018.bin.onlyThree.legend
+
+# create haplotypes file
+perl -e 'for (0..600){print join(" ",qw/0 1 0 1/)."\n"}; for (601..1023){ print join(" ", qw/1 0 0 1/)."\n"}' > 20_011976121_012173018.bin.onlyThree.haps
 
 
 

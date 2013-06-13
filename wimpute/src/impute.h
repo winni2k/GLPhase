@@ -71,7 +71,6 @@ protected:
         return (P[I >> WordShift] >> (I & WordMod)) & static_cast<word>(1);
     }
 
-
     fast hmm(uint I, uint *P, fast S);
 
     void hmm_work(uint I, uint *P, fast S);
