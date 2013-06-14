@@ -32,25 +32,24 @@
 typedef double fast;
 typedef double real;
 typedef unsigned uint;
-typedef uint64_t word;
-
-using    namespace    std;
+typedef std::uint64_t word;
 
 struct Site {
-    string chr, all;
+    std::string chr, all;
     uint pos;
 };
 
 class Impute {
+
 protected:
     gsl_rng *rng;
     uint hn; // 2 * number of individuals = number of haplotypes
     uint pn; // 3 * number of sites = number of transitions
     uint en; // 4 * number of sites = number of possible emissions
     uint wn; // this is the number of blocks of size 64 to save haps in
-    vector<word> haps, hnew;
-    vector<uint> hsum;
-    vector<fast> tran, emit;
+    std::vector<word> haps, hnew;
+    std::vector<uint> hsum;
+    std::vector<fast> tran, emit;
 
     fast pc[4][4];      // mutation matrix
 
@@ -92,19 +91,19 @@ public:
     // number of burnin, sampling iterations and folds
     static uint bn, sn, nn;
     static real density, conf;
-    static vector <string> vcf_file;
-    static set <string> male;
+    static std::vector <std::string> vcf_file;
+    static std::set <std::string> male;
     static bool is_x, is_y;
 
     static bool gender(char *F);
 
     static void document(void);
 
-    vector<Site> site;
-    vector <string> name;
-    vector<real> posi;
-    vector<fast> prob;
-    vector <uint16_t> pare;
+    std::vector<Site> site;
+    std::vector <std::string> name;
+    std::vector<real> posi;
+    std::vector<fast> prob;
+    std::vector <std::uint16_t> pare;
 
     Impute() {
         rng = gsl_rng_alloc(gsl_rng_default);

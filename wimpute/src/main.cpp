@@ -71,8 +71,8 @@ int main(int ac, char **av) {
             break;
         case 'E':
             Wimpute::s_iEstimator = atoi(optarg);
-            if(Wimpute::s_iEstimator > 2){
-                cerr << "-E needs to be between 0 and 2" << endl;
+            if(Wimpute::s_iEstimator > 3){
+                cerr << "-E needs to be between 0 and 3" << endl;
                 Wimpute::document();
             }
             break;
@@ -157,7 +157,10 @@ int main(int ac, char **av) {
             lp.estimate_EMC();
             break;
         case 2:
-            lp.estimate_AMH();
+            lp.estimate_AMH(0);
+            break;
+        case 3:
+            lp.estimate_AMH(1);
             break;
         default:
             lp.document();

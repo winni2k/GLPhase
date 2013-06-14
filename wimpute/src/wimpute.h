@@ -12,7 +12,9 @@
 #include "impute.h"
 #include "emcchain.h"
 #include "utils.h"
+#include "relationshipGraph.h"
 #include <limits>
+#include <cassert>
 
 //require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
@@ -32,26 +34,21 @@ private:
     // reference haplotypes
     vector<uint64_t> m_vRefHaps;
     unsigned m_uNumRefHaps = 0;
-
-    // numerator and denominator of relationship matrix
-    // numerator = number of accepted proposals
-    // denominator = number of total proposals
-    // first index is individual for which proposal was made
-    // second index is individual from which was copied
-    vector<vector< unsigned >> m_2dRelationshipMatNum;
-    vector<vector< unsigned >> m_2dRelationshipMatDen;
-
     
     // Wimpute redefinition of hmm_like
     // so far it only adds logging
     virtual  fast hmm_like(unsigned I, unsigned *P) override;
 
-    virtual fast solve(unsigned I, unsigned    &N, fast S, bool P) override;
+    fast solve(unsigned I, unsigned    &N, fast S, bool P, RelationshipGraph  &oRelGraph);
+    virtual fast solve(unsigned I, unsigned    &N, fast S, bool P) override { cerr << I << N << S << P; exit(1); }
 
     fast solve_EMC(unsigned I, unsigned    N, fast S, bool P);
 
-    fast solve_AMH(unsigned I, unsigned    N, fast S, bool P);
+    fast solve_AMH(unsigned I, unsigned    N, fast S, bool P, RelationshipGraph  &oRelGraph);
 
+    // returns the number of a hap that is not owned by individual I
+    unsigned SampleHap( unsigned I, bool bUseRefPanel, gsl_rng * rng, unsigned hn, unsigned m_uNumRefHaps);
+    
 public:
 
     bool load_refPanel( string legendFile, string hapsFile );
@@ -87,7 +84,7 @@ public:
     void estimate_EMC();
 
     // AMH version of estimate()
-    void estimate_AMH();
+    void estimate_AMH(unsigned uRelMatType);
 
     // Roulette Wheel Selection, returns index of chain selected
     int RWSelection( const vector <EMCChain> & rvcChains);
