@@ -1,3 +1,5 @@
+### log of work I've done on wimpute
+
 #### copied over from rare_snps.log.sh
 
 ###########
@@ -28,6 +30,17 @@ cd ~/fenghuang/marchini/wimpute/results/
 ./2013-05-04/analyze.fold0.5.pl -r -j 5 # quarter as many cycles (4500)
 
 ###########
+# Sat Jun 01 16:52:48 BST 2013
+# created a dir in which to summarize all the previous runs into one
+mkdir results/2013-06-01_create-int-plot
+
+# started work on integrated plot
+touch results/2013-06-01_create-int-plot/create-int-plot.pl
+
+# renamed some dirs in results to easier understand what the experiments were
+
+
+###########
 # Tue Jun 11 14:45:17 BST 2013
 ## implementing reference panel for wimpute
 # create test data for gls
@@ -38,7 +51,4 @@ perl -ane 'if(++$i==1){print "rsid position a0 a1\n"}else{print join(" ",("$F[0]
 
 # create haplotypes file
 perl -e 'for (0..600){print join(" ",qw/0 1 0 1/)."\n"}; for (601..1023){ print join(" ", qw/1 0 0 1/)."\n"}' > 20_011976121_012173018.bin.onlyThree.haps
-
-
-
 
