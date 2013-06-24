@@ -23,13 +23,16 @@ int main(int ac, char **av) {
     Wimpute::s_iEstimator = 0; // Metropolis Hastings with Annealing is default
     Wimpute::s_uParallelChains = 5; // number of parallel chains to use for parallel estimators
     Wimpute::s_uCycles = 0; // alternate way of specifying number of sampling steps
-
+    Wimpute::s_bKickStartFromRef = false;
+    
     uint threads = 0;
     vector <string> file;
-
+    string sLegendFile;
+    string sRefHapsFile;
+    
     string sLogFile;
     int opt;
-    while ((opt = getopt(ac, av, "d:b:l:m:n:t:v:c:x:e:E:p:C:")) >= 0) {
+    while ((opt = getopt(ac, av, "d:b:l:m:n:t:v:c:x:e:E:p:C:L:H:k")) >= 0) {
         switch (opt) {
         case    'd':
             Impute::density = atof(optarg);
@@ -69,8 +72,8 @@ int main(int ac, char **av) {
             break;
         case 'E':
             Wimpute::s_iEstimator = atoi(optarg);
-            if(Wimpute::s_iEstimator > 2){
-                cerr << "-E needs to be between 0 and 2" << endl;
+            if(Wimpute::s_iEstimator > 3){
+                cerr << "-E needs to be between 0 and 3" << endl;
                 Wimpute::document();
             }
             break;
@@ -84,10 +87,27 @@ int main(int ac, char **av) {
         case 'C':
             Wimpute::s_uCycles = atoi(optarg);
             break;
+        case 'L':
+            sLegendFile = optarg;
+            break;
+        case 'H':
+            sRefHapsFile = optarg;
+            break;
+        case 'k':
+            Wimpute::s_bKickStartFromRef = true;
+            break;
         default:
             Wimpute::document();
         }
     }
+    // need to specify ref panel if kickstarting
+    if(Wimpute::s_bKickStartFromRef){
+        if( sLegendFile.size() == 0){
+            cerr << endl << "error: Need to specify ref panel if kickstarting." << endl;
+            Wimpute::document();
+        }
+    }
+    
     if (threads) omp_set_num_threads(threads);
     for (int i = optind; i < ac; i++) file.push_back(av[i]);
     sort(file.begin(), file.end());
@@ -112,10 +132,16 @@ int main(int ac, char **av) {
         stringstream log;
         log << ctime(&tt) << endl;
         lp.WriteToLog(log.str());
-        
+
+        // load gls
         if (!lp.load_bin(file[i].c_str())) {
             cerr << "fail to load " << file[i] << endl;
             continue;
+        }
+
+        // load ref haps
+        if(sLegendFile.size() > 0 || sRefHapsFile.size() > 0){
+            lp.load_refPanel( sLegendFile, sRefHapsFile);
         }
 
         /* debugging
@@ -143,7 +169,10 @@ int main(int ac, char **av) {
             lp.estimate_EMC();
             break;
         case 2:
-            lp.estimate_AMH();
+            lp.estimate_AMH(0);
+            break;
+        case 3:
+            lp.estimate_AMH(1);
             break;
         default:
             lp.document();

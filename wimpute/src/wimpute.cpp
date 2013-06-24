@@ -163,6 +163,124 @@ bool    Wimpute::load_bin(const char *F) {
     return true;
 }
 
+
+// this is where I load the legend and haps files
+bool Wimpute::load_refPanel(string legendFile, string hapsFile){
+
+    // make sure both files are defined
+    if(legendFile.size() == 0){
+        cerr << "Need to define a legend file if defining a reference haplotypes file";
+        exit(1);
+    }
+    if(hapsFile.size() == 0){
+        cerr << "Need to define a reference haplotypes file if defining a legend file";
+        exit(1);
+    }
+
+    m_bUsingRefHaps = true;
+
+    // read in legend file
+    ifile legendFD(legendFile);
+    string buffer;
+
+    // discard header
+    unsigned uLineNum = 0;
+    while(getline(legendFD, buffer, '\n')){
+        uLineNum++;
+        vector<string> tokens;
+        sutils::tokenize(buffer, tokens);
+
+        // make sure header start is correct
+        if(uLineNum == 1){
+            vector<string> headerTokenized;
+            string header = "rsid position a0 a1";
+            sutils::tokenize(header, headerTokenized);
+            for(int i = 0; i != 4; i++){
+                assert(tokens[i] == headerTokenized[i]);
+            }
+            continue;
+        }
+
+        // now make sure legend file matches sites
+        assert(tokens[1] == sutils::uint2str(site[uLineNum - 2].pos) && "Positions in legend file need to match current data");
+        assert(tokens[2]+tokens[3] == site[uLineNum - 2].all && "Alleles in legend file need to match current data");
+
+    }
+
+    assert(site.size() == uLineNum -1 && "Number of Positions in legend file needs to match current data");
+
+    // given that the legend looks good, read in the haps file
+    ifile hapsFD(hapsFile);
+    uLineNum = 0;
+
+    while(getline(hapsFD, buffer, '\n')){
+        uLineNum++;
+        vector<string> tokens;
+        sutils::tokenize(buffer, tokens);
+
+        // make sure header start is correct
+        if(uLineNum == 1){
+
+            // count number of haps
+            m_uNumRefHaps = tokens.size();
+
+            // resize the vector for holding ref haps
+            m_vRefHaps.resize(m_uNumRefHaps * wn);
+
+        }
+
+        assert(tokens.size() == m_uNumRefHaps && "Every row of haplotypes file must have the same number of columns");
+
+        // store ref haplotypes
+        for( unsigned i = 0; i != tokens.size(); i++){
+
+            int val = atoi(tokens[i].c_str());
+            if(val == 0){
+                set0(&m_vRefHaps[i * wn], uLineNum -1);
+            }
+            else if(val == 1){
+                set1(&m_vRefHaps[i * wn], uLineNum -1);
+            }
+            else{
+                cerr << "All alleles are not 0 or 1 In haplotypes file "<< hapsFile <<" at line number " << uLineNum << endl;
+                throw 1;
+            }
+
+        }
+    }
+
+    if(m_uNumRefHaps == 0){
+        cerr << "num ref haps is 0.  Haps file empty?";
+        throw 2;
+    }
+
+
+    return true;
+
+}
+
+/* CHANGES from impute.cpp
+   support for reference haplotypes
+*/
+
+void Wimpute::initialize(){
+
+    Impute::initialize();
+
+    if(m_bUsingRefHaps){
+        // add ref haplotypes to sample haps
+        haps.insert(haps.end(), m_vRefHaps.begin(), m_vRefHaps.end());
+
+        // enlarge hnew so haps and hnew can be swapped
+        // the ref haps are never updated, so they'll stick around forever
+        hnew.insert(haps.end(), m_vRefHaps.begin(), m_vRefHaps.end());
+
+        // re-assign pare in light of the haplotypes
+        pare.assign(in * (in + m_uNumRefHaps/2), 0);
+    }
+
+}
+
 // this part of the code seems to be responsible for:
 // A - finding a set of four haps that are close to the current individual
 // B - running the HMM and udating the individual I's haplotypes
@@ -174,17 +292,17 @@ bool    Wimpute::load_bin(const char *F) {
 */
 
 // solve(individual, number of cycles, penalty, burnin?)
-fast Wimpute::solve(uint I, uint    &N, fast S, bool P) {
+fast Wimpute::solve(uint I, uint    &N, fast S, bool P, RelationshipGraph &oRelGraph) {
 
     // write log header
     stringstream message;
     message << "##iteration\tindividual\tproposal" << endl;
     WriteToLog( message.str() );
-    
+
     // pick 4 haplotype indices at random not from individual
     uint p[4];
     for (uint j = 0; j < 4; j++) {
-        do p[j] = gsl_rng_get(rng) % hn; while (p[j] / 2 == I);
+        p[j] = oRelGraph.SampleHap(I, rng);
     }
 
     // get a probability of the model for individual I given p
@@ -196,17 +314,32 @@ fast Wimpute::solve(uint I, uint    &N, fast S, bool P) {
     // accept new set if probability has increased.
     // otherwise, accept with penalized probability
     for (uint n = 0; n < N; n++) {  // fixed number of iterations
-
+        
         uint rp = gsl_rng_get(rng) & 3, oh = p[rp];
-        do p[rp] = gsl_rng_get(rng) % hn; while (p[rp] / 2 == I);
+
+        // kickstart phasing and imputation by only sampling haps
+        // from ref panel in first round
+        if(s_bKickStartFromRef && n == 0){
+            p[rp] = oRelGraph.SampleHap(I, rng, true);
+        }
+        else{
+            p[rp] = oRelGraph.SampleHap(I, rng);
+        }
+        
         fast prop = hmm_like(I, p);
         bool bAccepted = false;
-        if (prop > curr || gsl_rng_uniform(rng) < expf((prop - curr) * S)) {
+        if (prop > curr || gsl_rng_uniform(rng) < exp((prop - curr) * S)) {
             curr = prop;
             bAccepted = true;
         }
         else p[rp] = oh;
 
+        // update relationship graph with probability exp((prop - curr) * S)
+        if(prop >curr)
+            oRelGraph.UpdateGraph(p, bAccepted, I);
+        else
+            oRelGraph.UpdateGraph(p, bAccepted, I, exp((prop - curr) * S), rng);
+        
         // log accepted proposals
         if(bAccepted){
             stringstream message;
@@ -234,6 +367,8 @@ void    Wimpute::estimate() {
     cerr.precision(3);
     cerr << "iter\tpress\tlike\tfold\n";
 
+    RelationshipGraph oRelGraph(2, in, hn + m_uNumRefHaps);
+    
     // n is number of cycles = burnin + sampling cycles
     // increase penalty from 2/bn to 1 as we go through burnin
     // iterations.
@@ -242,7 +377,7 @@ void    Wimpute::estimate() {
         fast sum = 0, pen = fminf(2 * (n + 1.0f) / bn, 1), iter = 0;
         pen *= pen;  // pen = 1 after bn/2 iterations
         for (uint i = 0; i < in; i++) {
-            sum += solve(i, m_uCycles, pen, n >= bn);  // call solve=> inputs the sample number,
+            sum += solve(i, m_uCycles, pen, n >= bn, oRelGraph);  // call solve=> inputs the sample number,
             iter += m_uCycles;
         }
         swap(hnew, haps);
@@ -333,7 +468,7 @@ fast Wimpute::solve_EMC(uint I, uint  N, fast S, bool P) {
 
             // calculate acceptance probability
             prop = hmm_like(vcChains[j].m_uI, vcChains[j].getParents());
-            if (prop > curr || gsl_rng_uniform(rng) < expf( ( curr - prop ) / vcChains[j].m_fTemp)) {
+            if (prop > curr || gsl_rng_uniform(rng) < exp( ( curr - prop ) / vcChains[j].m_fTemp)) {
                 vcChains[j].setLike(prop);
 
                 WriteToLog( vcChains[j], bMutate );
@@ -391,14 +526,14 @@ fast Wimpute::solve_EMC(uint I, uint  N, fast S, bool P) {
             // the order of likelihoods is not the same
             if( bFirstOrigChainHigherLike ^ bFirstChainHigherLike){
                 bCrossAccepted = gsl_rng_uniform(rng)
-                    <= expf((( cSecondOrigChain.getLike() - rcFirstChain.getLike() ) / cSecondOrigChain.m_fTemp )
+                    <= exp((( cSecondOrigChain.getLike() - rcFirstChain.getLike() ) / cSecondOrigChain.m_fTemp )
                             + ( cFirstOrigChain.getLike() - rcSecondChain.getLike() ) / cFirstOrigChain.m_fTemp );
             }
 
             // the order of the likelihoods matches
             else{
                 bCrossAccepted = gsl_rng_uniform(rng)
-                    <= expf((( cSecondOrigChain.getLike() - rcSecondChain.getLike() ) / cSecondOrigChain.m_fTemp )
+                    <= exp((( cSecondOrigChain.getLike() - rcSecondChain.getLike() ) / cSecondOrigChain.m_fTemp )
                             + ( cFirstOrigChain.getLike() - rcFirstChain.getLike() ) / cFirstOrigChain.m_fTemp );
             }
 
@@ -447,7 +582,7 @@ fast Wimpute::solve_EMC(uint I, uint  N, fast S, bool P) {
             DEBUG_MSG3( "\tsecond chain: " << vuChainTempHierarchy[ uSecondChainIndex ]);
 
             // MH step for exchange
-            fast fAcceptProb = fminf( expf( (vcChains[uFirstChainHierarchyIndex].getLike() - vcChains[uSecondCHI].getLike())
+            fast fAcceptProb = fminf( exp( (vcChains[uFirstChainHierarchyIndex].getLike() - vcChains[uSecondCHI].getLike())
                                             * ( (1/vcChains[uFirstChainHierarchyIndex].m_fTemp) - (1/vcChains[uSecondCHI].m_fTemp)))
                                       , 1);
 
@@ -532,24 +667,6 @@ void    Wimpute::estimate_EMC() {
     result();    // call result
 }
 
-unsigned Wimpute::RJSelection( const vector<unsigned> & vuRetMatNum, const vector<unsigned> & vuRetMatDen, unsigned I, unsigned hn, gsl_rng * rng){
-    unsigned uPropInd = 0;
-    while(1){
-        unsigned uPropHap = gsl_rng_get(rng) % hn;
-        uPropInd = uPropHap / 2;
-
-        // resample if individual chosen is the same as
-        // current individual I
-        if(uPropInd == I)
-            continue;
-
-        // resample if individual does not pass rejection sample
-        if( gsl_rng_uniform(rng) <= vuRetMatNum[uPropInd] / vuRetMatDen[uPropInd] )
-            break;
-    }
-    return uPropInd;
-}
-
 
 /* solve_AMH -- Adaptive Metropolis Hastings
    see estimate_AMH() for more details
@@ -558,7 +675,7 @@ unsigned Wimpute::RJSelection( const vector<unsigned> & vuRetMatNum, const vecto
 */
 
 // solve(individual, number of cycles, penalty, burnin?)
-fast Wimpute::solve_AMH(uint I, uint  N, fast S, bool P) {
+fast Wimpute::solve_AMH(uint I, uint  N, fast S, bool P, RelationshipGraph &oRelGraph) {
 
     // write log header
     stringstream message;
@@ -569,7 +686,7 @@ fast Wimpute::solve_AMH(uint I, uint  N, fast S, bool P) {
     // also use relationship matrix for rejection sampling
     uint p[4];
     for (uint j = 0; j < 4; j++) {
-        p[j] = RJSelection(m_2dRelationshipMatNum[I], m_2dRelationshipMatDen[I], I, hn, rng);
+        p[j] = oRelGraph.SampleHap(I, rng);
     }
 
     // get a probability of the model for individual I given p
@@ -585,26 +702,17 @@ fast Wimpute::solve_AMH(uint I, uint  N, fast S, bool P) {
         // choose haplotype to update
         // evaluate proposal
         uint rp = gsl_rng_get(rng) & 3, oh = p[rp];
-        p[rp] = RJSelection(m_2dRelationshipMatNum[I], m_2dRelationshipMatDen[I], I, hn, rng);
+        p[rp] = oRelGraph.SampleHap(I, rng);
         fast prop = hmm_like(I, p);
         bool bAccepted = false;
-        if (prop > curr || gsl_rng_uniform(rng) < expf((prop - curr) * S)) {
+        if (prop > curr || gsl_rng_uniform(rng) < exp((prop - curr) * S)) {
             curr = prop;
             bAccepted = true;
         }
         else p[rp] = oh;
 
-        // update relationship matrix
-        for( unsigned i = 0; i<4; i++){
-            unsigned uPropHap = p[i];
-            unsigned uPropInd = uPropHap / 2;
-            m_2dRelationshipMatDen[I][uPropInd] ++;
-            m_2dRelationshipMatDen[uPropInd][I] ++;
-            if(bAccepted){
-                m_2dRelationshipMatNum[I][uPropInd] ++;
-                m_2dRelationshipMatNum[uPropInd][I] ++;
-            }
-        }
+        // update relationship graph
+        oRelGraph.UpdateGraph(p, bAccepted, I);
 
         // log accepted proposals
         if(bAccepted){
@@ -633,22 +741,17 @@ fast Wimpute::solve_AMH(uint I, uint  N, fast S, bool P) {
    "Advanced Markov Choin Monte Carlo Methods" by Liang, Liu and Carroll
    first edition?, 2010, pp. 309
 */
-void    Wimpute::estimate_AMH() {
+void    Wimpute::estimate_AMH(unsigned uRelMatType) {
     cerr.setf(ios::fixed);
     cerr.precision(3);
     cerr << "Running Adaptive Metropolis Hastings\n";
     cerr << "iter\tpress\tlike\tfold\n";
 
+    // create a relationshipGraph object
     // initialize relationship matrix
-    assert(m_2dRelationshipMatNum.size() == 0);
-    assert(m_2dRelationshipMatDen.size() == 0);
-    m_2dRelationshipMatNum.resize(in);
-    m_2dRelationshipMatDen.resize(in);
-    for(unsigned i = 0; i < in; i++){
-        m_2dRelationshipMatNum[i].resize(in,1);
-        m_2dRelationshipMatDen[i].resize(in,1);
-    }
-
+    // create an in x uSamplingInds matrix
+    RelationshipGraph oRelGraph(uRelMatType, in, hn + m_uNumRefHaps);
+    
     // n is number of cycles = burnin + sampling cycles
     // increase penalty from 2/bn to 1 as we go through burnin
     // iterations.
@@ -657,8 +760,10 @@ void    Wimpute::estimate_AMH() {
         m_nIteration = n;
         fast sum = 0, pen = fminf(2 * (n + 1.0f) / bn, 1), iter = 0;
         pen *= pen;  // pen = 1 after bn/2 iterations
+
+        // update all individuals once
         for (uint i = 0; i < in; i++) {
-            sum += solve_AMH(i, m_uCycles, pen, n >= bn);  // call solve=> inputs the sample number,
+            sum += solve(i, m_uCycles, pen, n >= bn, oRelGraph);
             iter += m_uCycles;
         }
         swap(hnew, haps);
@@ -688,10 +793,12 @@ void    Wimpute::document(void) {
     cerr << "\n\t-E <integer>    choice of estimation algorithm (0)";
     cerr << "\n\t                0 - Metropolis Hastings with simulated annealing";
     cerr << "\n\t                1 - Evolutionary Monte Carlo with -p parallel chains";
-    cerr << "\n\t                2 - Adaptive Metropolis Hastings";
+    cerr << "\n\t                2 - Adaptive Metropolis Hastings - sample/sample matrix";
+    cerr << "\n\t                3 - Adaptive Metropolis Hastings - sample/haplotype matrix";
     cerr << "\n\t-p <integer>    number of parallel chains to use in parallel estimation algorithms";
     cerr << "\n\t                (at least 2, default 5)";
     cerr << "\n\t-C <integer>    number of cycles to estimate an individual's parents before updating";
+    cerr << "\n\t-k              Kickstart phasing by using only ref panel in first iteration";
     cerr << "\n\n";
     exit(1);
 }

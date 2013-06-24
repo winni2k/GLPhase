@@ -188,5 +188,22 @@ What to discuss with Jonathan tomorrow
 -pasaniuc paper
 -> sequencing methods came out on top, but check sample prep cost etc.
 
+###########
+# Mon Jun 10 15:31:08 BST 2013
+New todo list:
 
+Wimpute
+- Run Beagle on test regions with TGP samples (with and without ref
+panel)
+- Implement AMH with correction for temp
 
+- Implement reference panel for wimpute
+-- Run aggressive imputation on chr10 and chr3 regions from Tim
+
+- Implement SNPTools multithreaded updates
+
+###########
+# Thu Jun 13 10:04:27 BST 2013
+CONVERGE meeting
+
+- talk to jieqin to get 4 samples sequenced to 10x
