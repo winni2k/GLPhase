@@ -103,6 +103,9 @@ public:
     // returns a haplotype sampled using the relationship graph
     unsigned SampleHap(unsigned uInd, gsl_rng *rng);
 
+    // returns a haplotype sampled using the relationship graph, but only from the reference haplotypes
+    unsigned SampleHap(unsigned uInd, gsl_rng *rng, bool bOnlyFromRef);
+
     // update graph with proposal
     void UpdateGraph( unsigned * p, bool bAccepted, unsigned uInd);
 

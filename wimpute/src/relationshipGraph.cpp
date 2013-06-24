@@ -103,6 +103,19 @@ void RelationshipGraph::UpdateGraph( unsigned *p, bool bAccepted, unsigned uInd)
 }
 
 // sample a haplotype based on the relationship graph that does not come from individual uInd
+unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng, bool bOnlyFromRef){
+
+    unsigned uRetHap;
+    while(1){
+        uRetHap = RelationshipGraph::SampleHap( uInd, rng);
+        if(uRetHap >= m_uRows * 2)
+            break;
+    }
+    return(uRetHap);
+}
+
+
+// sample a haplotype based on the relationship graph that does not come from individual uInd
 unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng){
 
     assert(uInd <= m_uRows - 1);
@@ -111,7 +124,8 @@ unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng){
     // sample uniformly if no graph has been created
     if(m_iGraphType == 2){
         while(1){
-            uPropHap = gsl_rng_get(rng) % Col2Hap( m_uCols - 1);
+            // m_uCols is 1 based, but % makes choice 0 based
+            uPropHap = gsl_rng_get(rng) % Col2Hap( m_uCols );
             if ( Hap2Col(uPropHap) != uInd) break;
         }
     }
@@ -124,7 +138,9 @@ unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng){
         unsigned uPropInd = 0;
         unsigned uProp = 0;
         while(1){
-            uPropHap = gsl_rng_get(rng) % Col2Hap( m_uCols - 1 );
+            
+            // m_uCols is 1 based, but % makes choice 0 based
+            uPropHap = gsl_rng_get(rng) % Col2Hap( m_uCols );
             uPropInd = uPropHap / 2;
             uProp = Hap2Col(uPropHap);
 

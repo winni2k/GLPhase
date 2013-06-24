@@ -277,7 +277,6 @@ void Wimpute::initialize(){
 
         // re-assign pare in light of the haplotypes
         pare.assign(in * (in + m_uNumRefHaps/2), 0);
-
     }
 
 }
@@ -315,9 +314,18 @@ fast Wimpute::solve(uint I, uint    &N, fast S, bool P, RelationshipGraph &oRelG
     // accept new set if probability has increased.
     // otherwise, accept with penalized probability
     for (uint n = 0; n < N; n++) {  // fixed number of iterations
-
+        
         uint rp = gsl_rng_get(rng) & 3, oh = p[rp];
-        p[rp] = oRelGraph.SampleHap(I, rng);
+
+        // kickstart phasing and imputation by only sampling haps
+        // from ref panel in first round
+        if(s_bKickStartFromRef && n == 0){
+            p[rp] = oRelGraph.SampleHap(I, rng, true);
+        }
+        else{
+            p[rp] = oRelGraph.SampleHap(I, rng);
+        }
+        
         fast prop = hmm_like(I, p);
         bool bAccepted = false;
         if (prop > curr || gsl_rng_uniform(rng) < exp((prop - curr) * S)) {
@@ -790,6 +798,7 @@ void    Wimpute::document(void) {
     cerr << "\n\t-p <integer>    number of parallel chains to use in parallel estimation algorithms";
     cerr << "\n\t                (at least 2, default 5)";
     cerr << "\n\t-C <integer>    number of cycles to estimate an individual's parents before updating";
+    cerr << "\n\t-k              Kickstart phasing by using only ref panel in first iteration";
     cerr << "\n\n";
     exit(1);
 }
