@@ -35,6 +35,7 @@ int Wimpute::s_iEstimator;
 uint Wimpute::s_uParallelChains;
 uint Wimpute::s_uCycles;
 bool Wimpute::s_bIsLogging = false;
+bool Wimpute::s_bKickStartFromRef = false;
 
 // return the probability of the model given the input haplotypes P and
 // emission and transition matrices of individual I

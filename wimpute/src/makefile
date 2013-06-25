@@ -1,8 +1,9 @@
 export CC= g++-4.7+
 export CFLAGS= -g -Wall -Wextra -O0 -fopenmp -std=c++11 -std=gnu++11 -g
 export LIBS += -lgomp -lpthread -lgsl -lgslcblas -lz -lbam -ltabix -lbz2 -lboost_iostreams-mt
-CPLUS_INCLUDE_PATH := $(GTEST_DIR)/include:snptools.cpp/samtools-0.1.16:snptools.cpp/tabix-0.2.5:olivier
+CPATH := $(GTEST_DIR)/include:snptools.cpp/samtools-0.1.16:snptools.cpp/tabix-0.2.5:olivier
 LIBRARY_PATH := snptools.cpp/samtools-0.1.16:snptools.cpp/tabix-0.2.5
+LD_LIBRARY_PATH := snptools.cpp/samtools-0.1.16:snptools.cpp/tabix-0.2.5
 
 all: wimpute
 

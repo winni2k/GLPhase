@@ -61,7 +61,7 @@ public:
     static bool s_bIsLogging; // true if logging
 
     // bool flag to keep track if we want to phase samples from ref haps only in first round
-    bool s_bKickStartFromRef;
+    static bool s_bKickStartFromRef;
 
     unsigned GetNumWords() { return wn; }
 
