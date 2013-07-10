@@ -1,4 +1,13 @@
 ###########
+# Wed Jul 10 11:40:49 BST 2013
+# changed dataset
+
+Tasks
+- take a look at test data
+- create test data set
+
+
+###########
 # Mon Jul 08 16:51:30 BST 2013
 
 Ideas
@@ -54,3 +63,5 @@ selection.datavisualization.ch
 # Tue 16:49:55
 # domains of interest
 
+
+√√
