@@ -18,6 +18,8 @@ clean:
 
 .PHONY: clean
 
+.DELETE_ON_ERROR:
+
 ### normal compilation
 impute.o: impute.cpp impute.h
 	$(CC) $(CXXFLAGS) -c impute.cpp impute.h $(LIBS)
