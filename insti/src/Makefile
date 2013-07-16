@@ -5,16 +5,16 @@ export CPATH := snptools.cpp/samtools-0.1.16:snptools.cpp/tabix-0.2.5:olivier
 export LIBRARY_PATH := snptools.cpp/samtools-0.1.16:snptools.cpp/tabix-0.2.5
 export LD_LIBRARY_PATH := snptools.cpp/samtools-0.1.16:snptools.cpp/tabix-0.2.5
 
-all: wimpute
+all: insti
 
 debug:
 	echo $(CPATH)
 
-test : wimpute.o impute.o emcchain.o utils.o
+test : insti.o impute.o emcchain.o utils.o
 	cd testing && make
 
 clean:
-	rm -f *.o *.h.gch wimpute
+	rm -f *.o *.h.gch insti
 
 .PHONY: clean
 
@@ -22,7 +22,7 @@ clean:
 impute.o: impute.cpp impute.h
 	$(CC) $(CXXFLAGS) -c impute.cpp impute.h $(LIBS)
 
-wimpute.o: wimpute.cpp wimpute.h impute.h emcchain.h relationshipGraph.h olivier/utils.h
+insti.o: insti.cpp insti.h impute.h emcchain.h relationshipGraph.h olivier/utils.h
 	$(CC) $(CXXFLAGS) -c $^ $(LIBS)
 
 relationshipGraph.o: relationshipGraph.cpp relationshipGraph.h
@@ -31,13 +31,13 @@ relationshipGraph.o: relationshipGraph.cpp relationshipGraph.h
 emcchain.o: emcchain.cpp emcchain.h
 	$(CC) $(CXXFLAGS) -c $^ $(LIBS)
 
-main.o: main.cpp impute.h wimpute.h
+main.o: main.cpp impute.h insti.h
 	$(CC) $(CXXFLAGS) -c $^ $(LIBS)
 
 utils.o: olivier/utils.cpp olivier/utils.h 
 	$(CC) -Wno-sign-compare $(CXXFLAGS) -c $^ $(LIBS)
 
-wimpute: main.o impute.o wimpute.o emcchain.o utils.o relationshipGraph.o
-	$(CC) $(CXXFLAGS) -o wimpute $^ $(LIBS)
+insti: main.o impute.o insti.o emcchain.o utils.o relationshipGraph.o
+	$(CC) $(CXXFLAGS) -o insti $^ $(LIBS)
 
 

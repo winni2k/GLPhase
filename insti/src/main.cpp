@@ -1,6 +1,6 @@
 //
 //  main.cpp
-//  wimpute
+//  insti
 //
 //  Created by warren kretzschmar on 19/04/2013.
 //  Copyright (c) 2013 warren kretzschmar. All rights reserved.
@@ -9,7 +9,7 @@
 // 
 
 #include "impute.h"
-#include "wimpute.h"
+#include "insti.h"
 #include <chrono>
 
 int main(int ac, char **av) {
@@ -20,10 +20,10 @@ int main(int ac, char **av) {
     Impute::conf = 0.9998;
     Impute::is_x = false;
     Impute::is_y = false;
-    Wimpute::s_iEstimator = 0; // Metropolis Hastings with Annealing is default
-    Wimpute::s_uParallelChains = 5; // number of parallel chains to use for parallel estimators
-    Wimpute::s_uCycles = 0; // alternate way of specifying number of sampling steps
-    Wimpute::s_bKickStartFromRef = false;
+    Insti::s_iEstimator = 0; // Metropolis Hastings with Annealing is default
+    Insti::s_uParallelChains = 5; // number of parallel chains to use for parallel estimators
+    Insti::s_uCycles = 0; // alternate way of specifying number of sampling steps
+    Insti::s_bKickStartFromRef = false;
     
     uint threads = 0;
     vector <string> file;
@@ -67,25 +67,25 @@ int main(int ac, char **av) {
         }
             break;
         case 'e':
-            Wimpute::s_bIsLogging = true;
+            Insti::s_bIsLogging = true;
             sLogFile = optarg;
             break;
         case 'E':
-            Wimpute::s_iEstimator = atoi(optarg);
-            if(Wimpute::s_iEstimator > 3){
+            Insti::s_iEstimator = atoi(optarg);
+            if(Insti::s_iEstimator > 3){
                 cerr << "-E needs to be between 0 and 3" << endl;
-                Wimpute::document();
+                Insti::document();
             }
             break;
         case 'p':{           
             uint uP = atoi(optarg);
             if(uP < 2)
-                Wimpute::document();
-            Wimpute::s_uParallelChains = uP;
+                Insti::document();
+            Insti::s_uParallelChains = uP;
             break;
         }
         case 'C':
-            Wimpute::s_uCycles = atoi(optarg);
+            Insti::s_uCycles = atoi(optarg);
             break;
         case 'L':
             sLegendFile = optarg;
@@ -94,17 +94,17 @@ int main(int ac, char **av) {
             sRefHapsFile = optarg;
             break;
         case 'k':
-            Wimpute::s_bKickStartFromRef = true;
+            Insti::s_bKickStartFromRef = true;
             break;
         default:
-            Wimpute::document();
+            Insti::document();
         }
     }
     // need to specify ref panel if kickstarting
-    if(Wimpute::s_bKickStartFromRef){
+    if(Insti::s_bKickStartFromRef){
         if( sLegendFile.size() == 0){
             cerr << endl << "error: Need to specify ref panel if kickstarting." << endl;
-            Wimpute::document();
+            Insti::document();
         }
     }
     
@@ -112,7 +112,7 @@ int main(int ac, char **av) {
     for (int i = optind; i < ac; i++) file.push_back(av[i]);
     sort(file.begin(), file.end());
     uint fn = unique(file.begin(), file.end()) - file.begin();
-    if (!fn) Wimpute::document();
+    if (!fn) Insti::document();
 
 #pragma omp parallel for
     for (uint i = 0; i < fn; i++) {
@@ -121,10 +121,10 @@ int main(int ac, char **av) {
         timeval sta, end;
         gettimeofday(&sta, NULL);
 
-        // create a Wimpute instance!
-        Wimpute lp;
+        // create a Insti instance!
+        Insti lp;
 
-        if( Wimpute::s_bIsLogging )
+        if( Insti::s_bIsLogging )
             lp.SetLog(sLogFile);
 
         // print date to start of log
