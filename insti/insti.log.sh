@@ -1,4 +1,4 @@
-### log of work I've done on wimpute
+### log of work I've done on insti
 
 #### copied over from rare_snps.log.sh
 
@@ -14,13 +14,13 @@ ls probin/ |grep "^16" |shuf | head -n 5 > ../lists/asian_ref_panel.probin.rand5
 # Wed May 01 13:00:39 BST 2013
 # grab sample 0 and sample 4500 from log files
 ssh fenghuang
-cd ~/fenghuang/marchini/wimpute/results/2013-04-29
+cd ~/fenghuang/marchini/insti/results/2013-04-29
 zcat 16_034437067_034765685.bin.log.gz | grep -P '^\d+\t(0|4500|9299)\t' | gzip -c > 16_034437067_034765685.bin.log.samples0_4500_9299.tsv.gz
 
 ###########
 # Sat May 04 21:19:17 BST 2013
 # here a list of things I ran yesterday and today
-cd ~/fenghuang/marchini/wimpute/results/
+cd ~/fenghuang/marchini/insti/results/
 ./2013-05-02/analyze.pl -r -j 5 -i # this is the long reference run
 ./2013-05-04/analyze.fold1.pl -r -j 5 # half as many cycles (9303 == sample size)
 
@@ -42,7 +42,7 @@ touch results/2013-06-01_create-int-plot/create-int-plot.pl
 
 ###########
 # Tue Jun 11 14:45:17 BST 2013
-## implementing reference panel for wimpute
+## implementing reference panel for insti
 # create test data for gls
 perl -ane '$o = q//; $o .= join("\t", (@F[0..2]));if(++$i==1){$o .= "\t".join("\t", qw/samp1 samp2 samp3/)} else{$o .= "\t". join("\t",( join(" ",(0,1)), join(" ", (1,0)), join(" ",(0,0))))} print $o ."\n"'< 20_011976121_012173018.bin.onlyThree.gls | bgzip -c > 20_011976121_012173018.bin.onlyThree.bin
 
