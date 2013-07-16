@@ -1,11 +1,11 @@
 
 #include "gtest/gtest.h"
-#include "wimpute.h"
+#include "insti.h"
 
 string sampleDir = "../../samples";
 
-TEST(Wimpute, loadBin){
-    Wimpute lp;
+TEST(Insti, loadBin){
+    Insti lp;
     string sampleBin = sampleDir + "/20_011976121_012173018.bin.onlyThree.bin";
     lp.load_bin( sampleBin.c_str());
     
@@ -44,9 +44,9 @@ TEST(Wimpute, loadBin){
 
 }
 
-TEST(Wimpute, loadHaps){
+TEST(Insti, loadHaps){
 
-    Wimpute lp;
+    Insti lp;
     string sampleLegend = sampleDir + "/20_011976121_012173018.bin.onlyThree.legend";
     string sampleHaps = sampleDir + "/20_011976121_012173018.bin.onlyThree.haps";
     string sampleBin = sampleDir + "/20_011976121_012173018.bin.onlyThree.bin";

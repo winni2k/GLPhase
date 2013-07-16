@@ -18,12 +18,12 @@ AR= ar
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
-TESTS = wimpute_unittest1
+TESTS = insti_unittest1
 
 test: $(TESTS)
 
 clean:
-	rm -f $(TESTS) gtest.a gtest_main.a *.o *.h.gch wimpute
+	rm -f $(TESTS) gtest.a gtest_main.a *.o *.h.gch insti
 
 .PHONY: clean $(TESTS)
 
@@ -60,10 +60,10 @@ gtest_main.a : gtest-all.o gtest_main.o
 # gtest_main.a, depending on whether it defines its own main()
 # function.
 
-wimpute_unittest1.o : wimpute_unittest1.cpp $(SRC_DIR)/wimpute.h $(GTEST_HEADERS)
-	$(CC) $(CXXFLAGS) -c wimpute_unittest1.cpp
+insti_unittest1.o : insti_unittest1.cpp $(SRC_DIR)/insti.h $(GTEST_HEADERS)
+	$(CC) $(CXXFLAGS) -c insti_unittest1.cpp
 
-wimpute_unittest1 : $(SRC_DIR)/wimpute.o $(SRC_DIR)/impute.o $(SRC_DIR)/emcchain.o wimpute_unittest1.o gtest_main.a $(SRC_DIR)/olivier/utils.o
+insti_unittest1 : $(SRC_DIR)/insti.o $(SRC_DIR)/impute.o $(SRC_DIR)/emcchain.o insti_unittest1.o gtest_main.a $(SRC_DIR)/olivier/utils.o
 	$(CC) $(CXXFLAGS) -lpthread $^ -o $@ $(LIBS) && ./$@
 
 
