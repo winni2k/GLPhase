@@ -1,8 +1,8 @@
-/* @(#)wimpute.h
+/* @(#)insti.h
  */
 
-#ifndef _WIMPUTE_H
-#define _WIMPUTE_H 1
+#ifndef _INSTI_H
+#define _INSTI_H 1
 /*
   #include <string>
   #include <fstream>
@@ -19,7 +19,7 @@
 //require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
-class Wimpute : public Impute
+class Insti : public Impute
 {
 
 private:
@@ -35,7 +35,7 @@ private:
     vector<uint64_t> m_vRefHaps;
     unsigned m_uNumRefHaps = 0;
     
-    // Wimpute redefinition of hmm_like
+    // Insti redefinition of hmm_like
     // so far it only adds logging
     virtual  fast hmm_like(unsigned I, unsigned *P) override;
 
@@ -96,5 +96,5 @@ public:
 
 };
 
-#endif /* _WIMPUTE_H */
+#endif /* _INSTI_H */
 

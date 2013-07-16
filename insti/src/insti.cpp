@@ -1,5 +1,5 @@
 
-#include "wimpute.h"
+#include "insti.h"
 
 //require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
@@ -31,21 +31,21 @@ using namespace std;
 #endif
 
 //initializyng static member variables
-int Wimpute::s_iEstimator;
-uint Wimpute::s_uParallelChains;
-uint Wimpute::s_uCycles;
-bool Wimpute::s_bIsLogging = false;
-bool Wimpute::s_bKickStartFromRef = false;
+int Insti::s_iEstimator;
+uint Insti::s_uParallelChains;
+uint Insti::s_uCycles;
+bool Insti::s_bIsLogging = false;
+bool Insti::s_bKickStartFromRef = false;
 
 // return the probability of the model given the input haplotypes P and
 // emission and transition matrices of individual I
 // call Impute::hmm_like and print out result
-fast    Wimpute::hmm_like(uint I, uint* P) {
+fast    Insti::hmm_like(uint I, uint* P) {
 
     return Impute::hmm_like( I, P );
 }
 
-void Wimpute::SetLog( const string & sLogFile )
+void Insti::SetLog( const string & sLogFile )
 {
     s_bIsLogging = true;
     m_sLogFile = sLogFile;
@@ -80,7 +80,7 @@ void Wimpute::SetLog( const string & sLogFile )
 
 };
 
-void Wimpute::WriteToLog( const string & tInput )
+void Insti::WriteToLog( const string & tInput )
 {
 
     if(! s_bIsLogging)
@@ -110,7 +110,7 @@ void Wimpute::WriteToLog( const string & tInput )
 };
 
 // what to log when given an EMCChain
-void Wimpute::WriteToLog( const EMCChain& rcChain, const bool bMutate){
+void Insti::WriteToLog( const EMCChain& rcChain, const bool bMutate){
 
     stringstream message;
     message << m_nIteration << "\t" << rcChain.m_uI << "\t" <<  rcChain.getLike() << "\t"
@@ -120,7 +120,7 @@ void Wimpute::WriteToLog( const EMCChain& rcChain, const bool bMutate){
 }
 
 // Roulette Wheel Selection, returns index of chain selected
-int Wimpute::RWSelection( const vector <EMCChain> &rvcChains){
+int Insti::RWSelection( const vector <EMCChain> &rvcChains){
 
     double dTotalProb = 0; // always positive, could  be larger than 1
     for( const auto& icChain: rvcChains){
@@ -146,7 +146,7 @@ int Wimpute::RWSelection( const vector <EMCChain> &rvcChains){
 }
 
 
-bool    Wimpute::load_bin(const char *F) {
+bool    Insti::load_bin(const char *F) {
 
     bool retval = Impute::load_bin(F);
     if(retval == false){ return false; }
@@ -166,7 +166,7 @@ bool    Wimpute::load_bin(const char *F) {
 
 
 // this is where I load the legend and haps files
-bool Wimpute::load_refPanel(string legendFile, string hapsFile){
+bool Insti::load_refPanel(string legendFile, string hapsFile){
 
     // make sure both files are defined
     if(legendFile.size() == 0){
@@ -264,7 +264,7 @@ bool Wimpute::load_refPanel(string legendFile, string hapsFile){
    support for reference haplotypes
 */
 
-void Wimpute::initialize(){
+void Insti::initialize(){
 
     Impute::initialize();
 
@@ -293,7 +293,7 @@ void Wimpute::initialize(){
 */
 
 // solve(individual, number of cycles, penalty, burnin?)
-fast Wimpute::solve(uint I, uint    &N, fast S, bool P, RelationshipGraph &oRelGraph) {
+fast Insti::solve(uint I, uint    &N, fast S, bool P, RelationshipGraph &oRelGraph) {
 
     // write log header
     stringstream message;
@@ -363,7 +363,7 @@ fast Wimpute::solve(uint I, uint    &N, fast S, bool P, RelationshipGraph &oRelG
    added a member variable for n so
 */
 
-void    Wimpute::estimate() {
+void    Insti::estimate() {
     cerr.setf(ios::fixed);
     cerr.precision(3);
     cerr << "iter\tpress\tlike\tfold\n";
@@ -399,13 +399,13 @@ void    Wimpute::estimate() {
 */
 
 // solve(individual, number of cycles, penalty, burnin?)
-fast Wimpute::solve_EMC(uint I, uint  N, fast S, bool P) {
+fast Insti::solve_EMC(uint I, uint  N, fast S, bool P) {
 
     DEBUG_MSG( "Entering solve_EMC..." << endl);
     // for lack of a better place, define free parameters here
     fast fMutationRate = 0.3f; // see p.134 of Liang et al.
     fast fSelectTemp = 10000;
-    fast fMaxTemp = Wimpute::s_uParallelChains;
+    fast fMaxTemp = Insti::s_uParallelChains;
 
     // write log header
     stringstream message;
@@ -416,8 +416,8 @@ fast Wimpute::solve_EMC(uint I, uint  N, fast S, bool P) {
     // initialize emc chains with increasing temperatures
     vector <EMCChain> vcChains;
     vector <uint> vuChainTempHierarchy; // index of Chains sorted by temperature, ascending
-    for (uint i = 0; i < Wimpute::s_uParallelChains; i++){
-        vcChains.push_back( EMCChain( (i+1) * fMaxTemp / Wimpute::s_uParallelChains, fSelectTemp, I, in, i) );
+    for (uint i = 0; i < Insti::s_uParallelChains; i++){
+        vcChains.push_back( EMCChain( (i+1) * fMaxTemp / Insti::s_uParallelChains, fSelectTemp, I, in, i) );
 
         DEBUG_MSG2( "\tlength of vcChains\t" << vcChains.size() << endl);
         // initialize current likelihood
@@ -455,7 +455,7 @@ fast Wimpute::solve_EMC(uint I, uint  N, fast S, bool P) {
 
             DEBUG_MSG2("\tMutating...");
             // choose chain randomly (uniform)
-            uint j = gsl_rng_get(rng) % Wimpute::s_uParallelChains;
+            uint j = gsl_rng_get(rng) % Insti::s_uParallelChains;
 
             DEBUG_MSG2( "\t" << "Temp: " << vcChains[j].m_fTemp);
             fast curr = vcChains[j].getLike();
@@ -489,7 +489,7 @@ fast Wimpute::solve_EMC(uint I, uint  N, fast S, bool P) {
             // 2. select second chain at random (uniform) from remaining chains
             int iSecondChain;
             do {
-                iSecondChain = gsl_rng_get(rng) % Wimpute::s_uParallelChains;
+                iSecondChain = gsl_rng_get(rng) % Insti::s_uParallelChains;
             }
             while (iSecondChain == iFirstChainIndex);
 
@@ -556,12 +556,12 @@ fast Wimpute::solve_EMC(uint I, uint  N, fast S, bool P) {
 
         }
 
-        // now try Wimpute::s_uParallelChains exchanges
+        // now try Insti::s_uParallelChains exchanges
         DEBUG_MSG2( "\tExchanging..."<<endl);
         uint uNumExchanges = 0;
-        for( uint i = 0; i < Wimpute::s_uParallelChains; i++){
+        for( uint i = 0; i < Insti::s_uParallelChains; i++){
 
-            uint uFirstChainIndex = gsl_rng_get(rng) % Wimpute::s_uParallelChains;
+            uint uFirstChainIndex = gsl_rng_get(rng) % Insti::s_uParallelChains;
             DEBUG_MSG3( "\t\tfirstChainIndex " << uFirstChainIndex);
 
             uint uFirstChainHierarchyIndex = vuChainTempHierarchy[ uFirstChainIndex ];
@@ -571,8 +571,8 @@ fast Wimpute::solve_EMC(uint I, uint  N, fast S, bool P) {
             uint uSecondChainIndex;
             if (uFirstChainIndex == 0)
                 uSecondChainIndex = uFirstChainIndex + 1;
-            else if ( uFirstChainIndex == Wimpute::s_uParallelChains - 1)
-                uSecondChainIndex = Wimpute::s_uParallelChains - 2;
+            else if ( uFirstChainIndex == Insti::s_uParallelChains - 1)
+                uSecondChainIndex = Insti::s_uParallelChains - 2;
             else if( gsl_rng_get(rng) & 1 )
                 uSecondChainIndex = uFirstChainIndex - 1;
             else
@@ -607,7 +607,7 @@ fast Wimpute::solve_EMC(uint I, uint  N, fast S, bool P) {
         // keep track of number of exchanges
         stringstream message;
         message << "# Number of Exchanges out of total:\t" << uNumExchanges <<
-            "\t" << Wimpute::s_uParallelChains << endl;
+            "\t" << Insti::s_uParallelChains << endl;
         WriteToLog( message.str() );
     }
 
@@ -643,7 +643,7 @@ fast Wimpute::solve_EMC(uint I, uint  N, fast S, bool P) {
    first edition?, 2010, pp. 128-132
 */
 
-void    Wimpute::estimate_EMC() {
+void    Insti::estimate_EMC() {
     cerr.setf(ios::fixed);
     cerr.precision(3);
     cerr << "Running Evolutionary Monte Carlo\n";
@@ -676,7 +676,7 @@ void    Wimpute::estimate_EMC() {
 */
 
 // solve(individual, number of cycles, penalty, burnin?)
-fast Wimpute::solve_AMH(uint I, uint  N, fast S, bool P, RelationshipGraph &oRelGraph) {
+fast Insti::solve_AMH(uint I, uint  N, fast S, bool P, RelationshipGraph &oRelGraph) {
 
     // write log header
     stringstream message;
@@ -742,7 +742,7 @@ fast Wimpute::solve_AMH(uint I, uint  N, fast S, bool P, RelationshipGraph &oRel
    "Advanced Markov Choin Monte Carlo Methods" by Liang, Liu and Carroll
    first edition?, 2010, pp. 309
 */
-void    Wimpute::estimate_AMH(unsigned uRelMatType) {
+void    Insti::estimate_AMH(unsigned uRelMatType) {
     cerr.setf(ios::fixed);
     cerr.precision(3);
     cerr << "Running Adaptive Metropolis Hastings\n";
@@ -776,7 +776,7 @@ void    Wimpute::estimate_AMH(unsigned uRelMatType) {
 }
 
 
-void    Wimpute::document(void) {
+void    Insti::document(void) {
     cerr << "\nimpute";
     cerr << "\nhaplotype imputation by cFDSL distribution";
     cerr << "\nauthor   Yi Wang @ Fuli Yu' Group @ BCM-HGSC";
