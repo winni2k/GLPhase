@@ -22,7 +22,7 @@ private:
     unsigned m_uRows;
     unsigned m_uCols;
 
-    unsigned m_bUsingRefPanel;
+//    unsigned m_bUsingRefPanel;
     bool m_bUsingRelMat = true;
 
     std::vector< std::vector< unsigned > > m_2dRelationshipMatNum;
@@ -59,8 +59,9 @@ public:
 // 1 = sample/haplotype graph
 // 2 = no graph - all samples are equally related
 
+    // m_bUsingRefPanel(uSamples * 2 < uHaplotypes)
     RelationshipGraph(int iGraphType, unsigned uSamples, unsigned uHaplotypes)
-        : m_bUsingRefPanel(uSamples * 2 < uHaplotypes), m_bUsingRelMat(iGraphType != 2), m_iGraphType(iGraphType) {
+        : m_bUsingRelMat(iGraphType != 2), m_iGraphType(iGraphType) {
 
         // make sure we have at least as many haplotypes as samples
         assert(uSamples * 2  <= uHaplotypes);

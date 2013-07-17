@@ -15,6 +15,7 @@
 #include "relationshipGraph.h"
 #include <limits>
 #include <cassert>
+#include <cstdint>
 
 //require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
