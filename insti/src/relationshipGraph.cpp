@@ -105,6 +105,7 @@ void RelationshipGraph::UpdateGraph( unsigned *p, bool bAccepted, unsigned uInd)
 // sample a haplotype based on the relationship graph that does not come from individual uInd
 unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng, bool bOnlyFromRef){
 
+    if(bOnlyFromRef){
     unsigned uRetHap;
     while(1){
         uRetHap = RelationshipGraph::SampleHap( uInd, rng);
@@ -112,6 +113,11 @@ unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng, bool bOnlyFro
             break;
     }
     return(uRetHap);
+    }
+    else{
+        cerr << "programming error";
+        exit(1);
+    }
 }
 
 
