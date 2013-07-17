@@ -5,6 +5,7 @@
 string sampleDir = "../../samples";
 
 TEST(Insti, loadBin){
+
     Insti lp;
     string sampleBin = sampleDir + "/20_011976121_012173018.bin.onlyThree.bin";
     lp.load_bin( sampleBin.c_str());
@@ -52,18 +53,29 @@ TEST(Insti, loadHaps){
     string sampleBin = sampleDir + "/20_011976121_012173018.bin.onlyThree.bin";
     lp.load_bin( sampleBin.c_str());
 
+    cerr << "BLOINC1\n";
     ASSERT_EXIT(lp.load_refPanel( "", sampleHaps), ::testing::ExitedWithCode(1),"Need to define a legend file if defining a reference haplotypes file");
     ASSERT_EXIT(lp.load_refPanel( sampleLegend, ""), ::testing::ExitedWithCode(1),"Need to define a reference haplotypes file if defining a legend file");
     
     lp.load_refPanel( sampleLegend, sampleHaps);
 
+    cerr << "BLOINC2\n";
     for(unsigned i = 0; i != 601; i++){
+//        cerr << "\tbloincing0\t" << i << endl;
         EXPECT_EQ(0,lp.TestRefHap(0,i));
-        EXPECT_EQ(1,lp.TestRefHap(1,i));
+//        cerr << "\tbloincing0.5\t" << i << endl;
+//        cerr << "refhap: 1\tsite: "<< i << "\t" << lp.TestRefHap(1,i) << endl;
+        cerr << lp.TestRefHap(1,i);
+        EXPECT_EQ(0, lp.TestRefHap(1,i));
+//        cerr << "\tbloincing1\t" << i << endl;
+//        EXPECT_EQ(1,lp.TestRefHap(1,i));
+//      cerr << "\tbloincing2\t" << i << endl;
         EXPECT_EQ(0,lp.TestRefHap(2,i));
+//        cerr << "\tbloincing3\t" << i << endl;
         EXPECT_EQ(1,lp.TestRefHap(3,i));
     }
 
+    cerr << "BLOINC3\n";
     for(unsigned i = 601; i != 1024; i++){
         EXPECT_EQ(1,lp.TestRefHap(0,i));
         EXPECT_EQ(0,lp.TestRefHap(1,i));

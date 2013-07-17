@@ -63,8 +63,9 @@ gtest_main.a : gtest-all.o gtest_main.o
 insti_unittest1.o : insti_unittest1.cpp $(SRC_DIR)/insti.h $(GTEST_HEADERS)
 	$(CC) $(CXXFLAGS) -c insti_unittest1.cpp
 
-insti_unittest1 : $(SRC_DIR)/insti.o $(SRC_DIR)/impute.o $(SRC_DIR)/emcchain.o insti_unittest1.o gtest_main.a $(SRC_DIR)/olivier/utils.o
+insti_unittest1 : $(SRC_DIR)/insti.o $(SRC_DIR)/impute.o $(SRC_DIR)/emcchain.o insti_unittest1.o gtest_main.a $(SRC_DIR)/olivier/utils.o $(SRC_DIR)/relationshipGraph.o
 	$(CC) $(CXXFLAGS) -lpthread $^ -o $@ $(LIBS) && ./$@
+
 
 
 
