@@ -13,32 +13,78 @@ use Env qw(HOME);
 use ParseArgs 0.000002 qw/getCommandArguments/;
 use POSIX;
 use DBI;
+use bamTrackLib;
 
 my %args = getCommandArguments(
     requiredArgs => {
 
-               WD                    => undef,
-        DB => "/Net/sparse/data/BGI/bamDB/",
+        WD       => undef,
+
+                     # database options
+        host     => 'mus.well.ox.ac.uk',
+        db       => "bgibams",
+        user     => 'winni',
+        
+                    # diagnosis
+                     listDrivers=> 0,
+
+                     # commands
+                     addBams=>0,
+
+                     # input/output files
+                     bamList=>0,
     }
 );
 
-print "Available DBI drivers:\n";
-my @drivers = DBI->available_drivers('quiet');
-my @sources;
+die "Please export your password to DBI_PASS environment var before running this script" unless defined $ENV{DBI_PASS};
 
-foreach my $driver (@drivers) {
-    print "$driver\n";
-    @sources = eval { DBI->data_sources($driver) };
-    if ($@) {
-        print "\tError: $@\n";
-    }
-    elsif (@sources) {
-        foreach my $source (@sources) {
-            print "\t$source\n";
+my $bto = bamTrackLib->new(operations=>[], inputFile=>'testing.list', db=>$args{db}, host=>$args{host}, user=>$args{user});
+
+$bto->listDrivers() if $args{listDrivers};
+
+my $dbh=DBI->connect('dbi:mysql:'.$args{db}.':'.$args{host}, $args{user}) || die "Error opening database: $DBI::errstr";
+
+$bto->dbHandle($dbh);exit;
+
+# load in bam files from 
+#addBams($args{bamList}) if $args{addBams};
+
+
+
+my $sth = $dbh->prepare("select * from pet where species = 'bird' or species = 'cat';") || die "Prepare failed: $DBI::errstr\n";
+
+$sth->execute() || die "Could not execute query: $DBI::errstr\n";
+
+while(my ( $id, $name) = $sth->fetchrow_array){
+    print "$name has $id\n";
+}
+
+$sth->finish();
+
+# disconnect
+$dbh->disconnect() || die "Failed to disconnect";
+
+#sub addBam
+
+sub listDrivers {
+    print "Available DBI drivers:\n";
+    my @drivers = DBI->available_drivers('quiet');
+    my @sources;
+
+    foreach my $driver (@drivers) {
+        print "$driver\n";
+        @sources = eval { DBI->data_sources($driver) };
+        if ($@) {
+            print "\tError: $@\n";
         }
-    }
-    else {
-        print "\tno known data sources\n";
+        elsif (@sources) {
+            foreach my $source (@sources) {
+                print "\t$source\n";
+            }
+        }
+        else {
+            print "\tno known data sources\n";
+        }
     }
 }
 
