@@ -17,7 +17,7 @@ use DBI;
 my %args = getCommandArguments(
     requiredArgs => {
 
-        #        WD                    => undef,
+               WD                    => undef,
         DB => "/Net/sparse/data/BGI/bamDB/",
     }
 );
