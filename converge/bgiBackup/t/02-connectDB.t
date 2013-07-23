@@ -10,7 +10,7 @@ use Test::More;
 use FindBin;
 use lib "$FindBin::Bin/..";
 
-BEGIN { plan tests => 13 }
+BEGIN { plan tests => 14 }
 
 use warnings;
 use strict;
@@ -137,9 +137,31 @@ is( $bto->dropBams( file => $bamList[1] ), 1, "one row dropped successfully" );
 eq_or_diff \@bams, [ $bamList[0], $backupBam ],
   "backup + bamlist - dropped bam retrieved from db correctly";
 
+## now try some validation
+# create backup bam and phony md5 sum
+my $backupBam2 = "$wd/MD_CHW_AAS_10011.head500.bam";
+system "cp samples/bams/MD_CHW_AAS_10011.head500.bam $backupBam2";
+system "cp samples/bams/MD_CHW_AAS_10011.head500.bam.md5 $backupBam2.md5";
+system
+"sed 's/2bea/ffff/' < $backupBam2.md5 >$backupBam2.tmp && mv $backupBam2.tmp $backupBam2.md5";
+$bto->registerBams(
+    file         => "$backupBam2",
+    backup       => 1,
+    backupDevice => 'externalHD1'
+);
+
+my $bamList2 = "$wd/bam.list";
+open( $fh, '>', $bamList2 ) or die "could not open $bamList2 for writing";
+map { print $fh "$_\n" } ( @bams, $backupBam, $backupBam2 );
+close($fh);
+
+my @brokenBams =
+  $bto->validateBams( fileList => $bamList2, validationType => 'md5sum' );
+eq_or_diff( \@brokenBams, [$backupBam2],
+    "broken bam was successfully identified as broken" )
 
 #########################
 
-# Insert your test code below, the Test::More module is used here so read
-# its man page ( perldoc Test::More ) for help writing this test script.
+  # Insert your test code below, the Test::More module is used here so read
+  # its man page ( perldoc Test::More ) for help writing this test script.
 

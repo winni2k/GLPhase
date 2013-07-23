@@ -30,16 +30,16 @@ my %args = getCommandArguments(
 
                      # commands
                      addBamList=>0,
-
-                     # input/output files
-                     bamList=>0,
+                     removeBamList=>0,
+                     validateBamList=>0,
     }
 );
 
 my $bto = bamTrackLib->new( db=>$args{db}, host=>$args{host}, user=>$args{user});
 
 $bto->registerBams(fileList => $args{addBamList}) if $args{addBamList};
-
+$bto->dropBams(fileList=> $args{removeBamList}) if $args{removeBamList};
+$bto->validateBams(fileList => $args{validateBamList}) if $args{validateBamList};
 $bto->listDrivers() if $args{listDrivers};
 
 
