@@ -122,7 +122,7 @@ remove_tree($wd) if -d $wd;
 make_path($wd);
 
 my $backupBam = "$wd/MD_CHW_AAS_10179.head500.bam";
-system "cp samples/bams/MD_CHW_AAS_10179.head500.bam $backupBam";
+copy('samples/bams/MD_CHW_AAS_10179.head500.bam', $backupBam);
 
 $bto->registerBams(
     file         => $backupBam,
@@ -152,8 +152,8 @@ eq_or_diff \@bams, [ $bamList[0], $backupBam ],
 ## now try some validation
 # create backup bam and phony md5 sum
 my $backupBam2 = "$wd/MD_CHW_AAS_10011.head500.bam";
-system "cp samples/bams/MD_CHW_AAS_10011.head500.bam $backupBam2";
-system "cp samples/bams/MD_CHW_AAS_10011.head500.bam.md5 $backupBam2.md5";
+copy($bamList[0], $backupBam2);
+copy("$bamList[0].md5", "$backupBam2.md5");
 system
 "sed 's/2bea/ffff/' < $backupBam2.md5 >$backupBam2.tmp && mv $backupBam2.tmp $backupBam2.md5";
 $bto->registerBams(
