@@ -29,64 +29,21 @@ my %args = getCommandArguments(
                      listDrivers=> 0,
 
                      # commands
-                     addBams=>0,
+                     addBamList=>0,
 
                      # input/output files
                      bamList=>0,
     }
 );
 
-die "Please export your password to DBI_PASS environment var before running this script" unless defined $ENV{DBI_PASS};
+my $bto = bamTrackLib->new( db=>$args{db}, host=>$args{host}, user=>$args{user});
 
-my $bto = bamTrackLib->new(operations=>[], inputFile=>'testing.list', db=>$args{db}, host=>$args{host}, user=>$args{user});
+$bto->registerBams(fileList => $args{addBamList}) if $args{addBamList};
 
 $bto->listDrivers() if $args{listDrivers};
 
-my $dbh=DBI->connect('dbi:mysql:'.$args{db}.':'.$args{host}, $args{user}) || die "Error opening database: $DBI::errstr";
-
-$bto->dbHandle($dbh);exit;
-
-# load in bam files from 
-#addBams($args{bamList}) if $args{addBams};
 
 
-
-my $sth = $dbh->prepare("select * from pet where species = 'bird' or species = 'cat';") || die "Prepare failed: $DBI::errstr\n";
-
-$sth->execute() || die "Could not execute query: $DBI::errstr\n";
-
-while(my ( $id, $name) = $sth->fetchrow_array){
-    print "$name has $id\n";
-}
-
-$sth->finish();
-
-# disconnect
-$dbh->disconnect() || die "Failed to disconnect";
-
-#sub addBam
-
-sub listDrivers {
-    print "Available DBI drivers:\n";
-    my @drivers = DBI->available_drivers('quiet');
-    my @sources;
-
-    foreach my $driver (@drivers) {
-        print "$driver\n";
-        @sources = eval { DBI->data_sources($driver) };
-        if ($@) {
-            print "\tError: $@\n";
-        }
-        elsif (@sources) {
-            foreach my $source (@sources) {
-                print "\t$source\n";
-            }
-        }
-        else {
-            print "\tno known data sources\n";
-        }
-    }
-}
 
 __END__
 

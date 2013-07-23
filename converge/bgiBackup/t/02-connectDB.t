@@ -10,7 +10,7 @@ use Test::More;
 use FindBin;
 use lib "$FindBin::Bin/..";
 
-BEGIN { plan tests => 13 }
+BEGIN { plan tests => 10 }
 
 use warnings;
 use strict;
@@ -28,12 +28,25 @@ my $bto = bamTrackLib->new(
     db   => "testbgibams",
     user => 'winni'
 );
+
+# remove test table if it exists
+my $dbh = $bto->dbHandle;
+$dbh->do("DROP TABLE IF EXISTS md5sums");
+$dbh->do("DROP TABLE IF EXISTS bamNames");
+$dbh->commit;
+
+$bto = bamTrackLib->new(
+    host               => 'mus.well.ox.ac.uk',
+    db                 => "testbgibams",
+    user               => 'winni',
+    allowRelativePaths => 1,
+);
+
 isa_ok( $bto, 'bamTrackLib' );
 
 ok( $bto->connect(), "connection ok" );
 
 ### load a bam file list
-
 # load expected bam list
 my $bamList = './samples/bam.list';
 
@@ -49,8 +62,15 @@ while (<$fh>) {
     if ( -e $_ . ".md5" ) { remove_tree( $_ . ".md5" ) }
 }
 
+# touch an out of date .ok file
+system("touch $bamList[1].ok");
+system("touch $bamList[1]");
+
+# touch an in date .ok file
+system("touch $bamList[0].ok");
+
 # now start the api
-ok( $bto->registerBams($bamList), "registration completed" );
+ok( $bto->registerBams( fileList => $bamList ), "registration completed" );
 
 my @bams = sort keys %{ $bto->inputBams() };
 @bamList = sort @bamList;
@@ -63,40 +83,47 @@ my %md5sums = %{ $bto->inputBamMD5sums };
 
 # check if md5sums match
 for my $bam (@bamList) {
-    compare_ok( $bam . '.md5', $bam . '.md5.expected', "$bam md5sum is correct" );
+    compare_ok(
+        $bam . '.md5',
+        $bam . '.md5.expected',
+        "$bam md5sum is correct"
+    );
 }
 
-TODO: {
+# validate md5sums ... maybe later
+# $bto->validateInputBamMD5sums;
 
-    todo_skip "not implemented yet", 6;
+# make sure bams were registered correctly
+my @bamSampleNames = map { m|^.*/([A-Za-z0-9_]+)|; $1; } @bamList;
+@bams =
+  $bto->retrieveBams( filterColumns => { sampleName => \@bamSampleNames } );
+eq_or_diff \@bams, \@bamList, "bamlist saved in db and retrieved correctly";
 
-    # make sure bams were registered correctly
-    @bams = $bto->retrieveAllBams;
+@bams = $bto->retrieveBams(
+    filterColumns => { sampleName => \@bamSampleNames, passedValidateSam => 1 }
+);
+eq_or_diff \@bams, $bamList[0],
+  "bamlist saved in db and only validated bam retrieved correctly";
 
-    my %bams;
-    for my $bam (@bams) {
-        $bams{$bam} = 1;
-    }
+## Please see file perltidy.ERR
+my $wd = "t/02-workdir";
+remove_tree($wd) if -d $wd;
+ make_path($wd);
 
-    for my $bam ( sort keys %bamList ) {
-        ok( exists $bams{$bam}, "$bam was registered in db" );
-    }
+my $backupBam = "$wd/MD_CHW_AAS_10179.head500.bam";
+system "cp samples/bams/MD_CHW_AAS_10179.head500.bam $backupBam";
 
-    # now create any missing md5sums
-    ok( $bto->updateMD5sums(), "md5sums created successfully" );
+$bto->registerBams(
+    file         => $backupBam,
+    backup       => 1,
+    backupDevice => 'externalHD1'
+);
+@bams = $bto->retrieveBams( filterColumns => { backup => 1 } );
+eq_or_diff \@bams, $backupBam, "backup saved in db retrieved correctly";
 
-    # check if md5sums match
-    for my $bam ( sort keys %bamList ) {
-        compare_ok(
-            $bam . '.md5',
-            $bam . '.md5.expected',
-            "$bam md5sum is correct"
-        );
-    }
+@bams = $bto->retrieveBams( filterColumns => { backupDevice => 'externalHD1' } );
+eq_or_diff \@bams, $backupBam, "backup saved in db retrieved correctly";
 
-    # now validate md5sums
-    ok( $bto->validateMD5sums(), "md5sums validated" );
-}
 
 #########################
 
