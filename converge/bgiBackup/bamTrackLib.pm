@@ -49,6 +49,19 @@ around _inputBams => sub {
     croak "Bams with relative path are not allowed"
       if !$self->allowRelativePaths && grep { $_ !~ m|^/| } @inputBams;
 
+    # make sure input bams exist
+    my @tmpInputBams = @inputBams;
+    @inputBams = ();
+    for my $bam (@tmpInputBams) {
+        if ( -f $bam ) {
+            push @inputBams, $bam;
+        }
+        else {
+            carp
+              "input bam $bam does not seem to exist. Bam wos not registered";
+        }
+    }
+
     my %inputBams = map { $_ => 1 } @inputBams;
 
     # store input bams
@@ -58,26 +71,21 @@ around _inputBams => sub {
     ## look for md5sums based on bamList names
     # find md5sums not existent
     # run md5sums on any files that still need it
-    my %inputBamMD5sums = %inputBams;
+    my %inputBamMD5sumFiles = %inputBams;
     print STDERR "creating missing md5sums...\n";
 
-    my $ctx = Digest::MD5->new;
     for my $bam ( sort keys %inputBams ) {
         my $md5 = $bam . '.md5';
 
         # create new md5sum if md5 file does not exist
         # or it is younger than the bam modification time
         if ( !-e $md5 || ( stat($md5) )[9] < ( stat($bam) )[9] ) {
-            open( my $fh, '<', $bam ) or croak "Could not open $bam";
-
-            $ctx->addfile($fh);
-            my $digest = $ctx->hexdigest;
-            close($fh);
+            my $digest = $self->_getDigest($bam);
 
             # print out md5sum
             my ( $bamName, $path ) = fileparse($bam);
             print STDERR "\t" . $bamName . "\n";
-            open( $fh, '>', $md5 )
+            open( my $fh, '>', $md5 )
               or croak "could not open $md5 for writing";
             print $fh $digest . "  $bamName\n";
             close($fh);
@@ -86,13 +94,32 @@ around _inputBams => sub {
             #                system("cd $path && md5sum $bamName > $md5Name");
         }
 
-        $inputBamMD5sums{$bam} = $md5;
+        $inputBamMD5sumFiles{$bam} = $md5;
     }
 
-    $self->_inputBamMD5sums( \%inputBamMD5sums );
+    $self->_inputBamMD5sumFiles( \%inputBamMD5sumFiles );
+
+    my %md5sums = %inputBamMD5sumFiles;
+    for my $bam (sort keys %inputBamMD5sumFiles ) {
+        my $md5File = $inputBamMD5sumFiles{$bam};
+        open( my $fh, '<', $md5File )
+          or croak "could not read md5 file $md5File";
+        my $line = <$fh>;
+        chomp $line;
+        $line =~ m/^([0-9a-f]+)/;
+        my $md5sum = $1;
+        croak "md5sum of file $md5File is malformed: length of md5sum is not 32 characters" unless length $md5sum == 32;
+
+        $md5sums{$bam} = $md5sum;
+    }
+
+    $self->_inputBamMD5sums(\%md5sums);
 
     return \%inputBams;
 };
+
+has inputBamMD5sumFiles =>
+  ( is => 'ro', isa => 'HashRef[Str]', writer => '_inputBamMD5sumFiles' );
 
 has inputBamMD5sums =>
   ( is => 'ro', isa => 'HashRef[Str]', writer => '_inputBamMD5sums' );
@@ -220,12 +247,48 @@ sub retrieveBams {
 
 }
 
-#sub validateInputBamMD5sums {
-#    my $self = shift;
+sub validateBams {
+    my $self = shift;
+    my %args = @_;
+    $self->_processInputBams(@_);
 
-#    my $rhMD5sums = $self->inputBamMD5sums();
+    my %md5sums = %{$self->inputBamMD5sums};
+    
+    # get md5 digest of every bam file and compare to what we have on file
+    my @mismatchingBams;
+    for my $bam (sort keys %md5sums){
+        my $digest = $self->_getDigest($bam);
+        if($digest ne $md5sums{$bam}){
+            carp "Bam $bam does not match md5sum on record (GOT: $digest; EXPECTED: $md5sums{$bam})";
+            push @mismatchingBams, $bam;
+        }
+    }
 
-#}
+    return @mismatchingBams;
+}
+
+has _ctx => ( is =>'rw', isa=>'Digest::MD5');
+
+sub _getDigest {
+    my $self = shift;
+    my $bam = shift;
+
+    
+    my $ctx = $self->_ctx;
+    unless( defined $ctx){
+        $ctx = Digest::MD5->new;
+        $self->_ctx($ctx);
+    }
+
+    open( my $fh, '<', $bam ) or croak "Could not open $bam";
+    $ctx->addfile($fh);
+    my $digest = $ctx->hexdigest;
+    close($fh);
+
+    return $digest;
+}
+
+
 
 # takes a list of bams (file or arrayref) and saves them into the DB
 sub registerBams {
@@ -236,30 +299,23 @@ sub registerBams {
 
     # save input bam list and create missing md5sums
     my %inputBams = %{ $self->inputBams() };
-    my %md5sums   = %{ $self->inputBamMD5sums() };
+    my %md5sumFiles   = %{ $self->inputBamMD5sumFiles() };
 
     # make sure same bam files exist in both hashes
-    my $areEqual = ( keys %inputBams == keys %md5sums )
-      && 0 == grep { !exists $md5sums{$_} } keys %inputBams;
+    my $areEqual = ( keys %inputBams == keys %md5sumFiles )
+      && 0 == grep { !exists $md5sumFiles{$_} } keys %inputBams;
 
-    croak "programming error. list of bams and md5sums don't match."
+    croak "programming error. list of bams and md5sumFiles don't match."
       unless $areEqual;
 
     # pull out only name from inputBamFiles
-    my @bamFiles = sort keys %md5sums;
+    my @bamFiles = sort keys %md5sumFiles;
     my @bamNames = map { basename($_) } @bamFiles;
     my @bamDirs  = map { dirname($_) } @bamFiles;
 
     # pull md5sums from files
-    my @md5sums;
-    for my $md5File ( map { $md5sums{$_} } @bamFiles ) {
-        open( my $fh, '<', $md5File )
-          or croak "could not read md5 file $md5File";
-        my $line = <$fh>;
-        chomp $line;
-        $line =~ m/^([0-9a-f]+)/;
-        push @md5sums, $1;
-    }
+    my %md5sums = %{$self->inputBamMD5sums};
+    my @md5sums = map { $md5sums{$_} } sort keys %md5sums;
 
     # pull sample names from files
     my @sampleNames;
@@ -314,7 +370,7 @@ sub registerBams {
     my %bamByMD5;
 
     #
-    return 1;
+    return @bamFiles;
 
 }
 
