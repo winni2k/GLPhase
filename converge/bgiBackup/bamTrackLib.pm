@@ -232,20 +232,7 @@ sub registerBams {
     my $self = shift;
     my %args = @_;
 
-    if ( exists $args{fileList} ) {
-        $self->_inputBams( type => 'fileList', input => $args{fileList} );
-    }
-    if ( exists $args{file} ) {
-        $self->_inputBams( type => 'file', input => $args{file} );
-    }
-
-    my %availCommands;
-    $availCommands{$_} = 1 for qw/register drop/;
-    my $command =
-      defined $args{command}
-      ? $args{command}
-      : croak "command needs to be defined";
-    croak "invalid command: $command" unless defined $availCommands{$command};
+    $self->_processInputBams(@_);
 
     # save input bam list and create missing md5sums
     my %inputBams = %{ $self->inputBams() };
@@ -417,7 +404,43 @@ sub _parseBamListFile {
     return \@bams;
 }
 
+sub _processInputBams {
+
+    my $self = shift;
+    my %args = @_;
+
+    if ( exists $args{fileList} ) {
+        $self->_inputBams( type => 'fileList', input => $args{fileList} );
+    }
+    if ( exists $args{file} ) {
+        $self->_inputBams( type => 'file', input => $args{file} );
+    }
+}
+
 sub dropBams {
+    my $self = shift;
+    my %args = @_;
+    $self->_processInputBams(@_);
+    my @bamPaths = sort keys %{ $self->inputBams };
+
+    my $dbh = $self->dbHandle;
+    my $sth = $dbh->prepare("DELETE FROM bamNames WHERE bamPath = ?");
+    my $rows = 0;    # rows affected
+    for my $bamPath (@bamPaths) {
+        $rows += $sth->execute($bamPath) or croak $dbh->errstr;
+    }
+
+    carp "expected to drop " . @bamPaths . " bam paths, but only dropped $rows"
+      if $rows < @bamPaths;
+    if ( $rows > @bamPaths ) {
+        $dbh->rollback;
+        croak "expected to drop "
+          . @bamPaths
+          . " bam paths, but tried to drop more ($rows).  all drops have been rolled back";
+    }
+
+    $dbh->commit;
+    return $rows;
 }
 
 sub listDrivers {
