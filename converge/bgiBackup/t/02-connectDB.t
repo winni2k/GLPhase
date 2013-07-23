@@ -10,7 +10,7 @@ use Test::More;
 use FindBin;
 use lib "$FindBin::Bin/..";
 
-BEGIN { plan tests => 10 }
+BEGIN { plan tests => 13 }
 
 use warnings;
 use strict;
@@ -105,10 +105,9 @@ eq_or_diff \@bams, \@bamList, "bamlist saved in db and retrieved correctly";
 eq_or_diff \@bams, $bamList[0],
   "bamlist saved in db and only validated bam retrieved correctly";
 
-## Please see file perltidy.ERR
 my $wd = "t/02-workdir";
 remove_tree($wd) if -d $wd;
- make_path($wd);
+make_path($wd);
 
 my $backupBam = "$wd/MD_CHW_AAS_10179.head500.bam";
 system "cp samples/bams/MD_CHW_AAS_10179.head500.bam $backupBam";
@@ -121,8 +120,22 @@ $bto->registerBams(
 @bams = $bto->retrieveBams( filterColumns => { backup => 1 } );
 eq_or_diff \@bams, $backupBam, "backup saved in db retrieved correctly";
 
-@bams = $bto->retrieveBams( filterColumns => { backupDevice => 'externalHD1' } );
+@bams =
+  $bto->retrieveBams( filterColumns => { backupDevice => 'externalHD1' } );
 eq_or_diff \@bams, $backupBam, "backup saved in db retrieved correctly";
+
+### testing dropping of bams
+@bams =
+  $bto->retrieveBams( filterColumns => { sampleName => \@bamSampleNames } );
+eq_or_diff \@bams, [ @bamList, $backupBam ],
+  "backup + bamList saved in db retrieved correctly";
+
+is( $bto->dropBams( file => $bamList[1] ), 1, "one row dropped successfully" );
+
+@bams =
+  $bto->retrieveBams( filterColumns => { sampleName => \@bamSampleNames } );
+eq_or_diff \@bams, [ $bamList[0], $backupBam ],
+  "backup + bamlist - dropped bam retrieved from db correctly";
 
 
 #########################
