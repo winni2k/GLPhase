@@ -25,11 +25,14 @@ has host => ( is => 'ro', isa => 'Str', required => 1 );
 has user => ( is => 'ro', isa => 'Str', required => 1 );
 has allowRelativePaths =>
   ( is => 'ro', isa => 'Bool', required => 1, default => 0 );
-
 has _tables  => ( is => 'rw', isa => 'HashRef[Str]' );
 has _headers => ( is => 'rw', isa => 'HashRef[Str]' );
-
 has inputBams => ( is => 'ro', isa => 'HashRef[Str]', writer => '_inputBams' );
+has inputBamMD5sumFiles =>
+  ( is => 'ro', isa => 'HashRef[Str]', writer => '_inputBamMD5sumFiles' );
+has inputBamMD5sums =>
+  ( is => 'ro', isa => 'HashRef[Str]', writer => '_inputBamMD5sums' );
+has _ctx => ( is =>'rw', isa=>'Digest::MD5');
 
 around _inputBams => sub {
     my $orig = shift;
@@ -118,11 +121,6 @@ around _inputBams => sub {
     return \%inputBams;
 };
 
-has inputBamMD5sumFiles =>
-  ( is => 'ro', isa => 'HashRef[Str]', writer => '_inputBamMD5sumFiles' );
-
-has inputBamMD5sums =>
-  ( is => 'ro', isa => 'HashRef[Str]', writer => '_inputBamMD5sums' );
 
 sub BUILD {
     my $self = shift;
@@ -266,8 +264,6 @@ sub validateBams {
 
     return @mismatchingBams;
 }
-
-has _ctx => ( is =>'rw', isa=>'Digest::MD5');
 
 sub _getDigest {
     my $self = shift;
