@@ -22,6 +22,7 @@ use Test::Files;
 use Test::Differences;
 
 use File::Path qw(make_path remove_tree);
+use File::Copy;
 
 my $bto = bamTrackLib->new(
     host => 'mus.well.ox.ac.uk',
@@ -48,9 +49,20 @@ ok( $bto->connect(), "connection ok" );
 
 ### load a bam file list
 # load expected bam list
-my $bamList = './samples/bam.list';
+my $wd1 = "t/01-workdir";
+remove_tree($wd1) if -d $wd1;
+make_path($wd1);
 
-open( my $fh, '<', $bamList ) or die "could not open $bamList";
+my $bamList = $wd1 . '/bam.list';
+open( my $fh, '>', $bamList ) or die "could not open $bamList for writing";
+for my $bam ( "MD_CHW_AAS_10011.head500.bam", "MD_CHW_AAS_10179.head500.bam" ) {
+    copy( "samples/bams/" . $bam,                   $wd1 );
+    copy( "samples/bams/" . $bam . ".md5.expected", $wd1 );
+    print $fh $wd1 . '/' . $bam . "\n";
+}
+close($fh);
+
+open( $fh, '<', $bamList ) or die "could not open $bamList";
 my %bamList;
 my @bamList;
 while (<$fh>) {
@@ -59,12 +71,12 @@ while (<$fh>) {
     push @bamList, $_;
 
     # remove any md5sums that should not exist
-    if ( -e $_ . ".md5" ) { remove_tree( $_ . ".md5" ) }
+    die "no md5 files should exist at $_.md5" if ( -e $_ . ".md5" );
 }
 
 # touch an out of date .ok file
 system("touch $bamList[1].ok");
-system("touch $bamList[1]");
+system("sleep 1 && touch $bamList[1]");
 
 # touch an in date .ok file
 system("touch $bamList[0].ok");
@@ -76,7 +88,7 @@ my @bams = sort keys %{ $bto->inputBams() };
 @bamList = sort @bamList;
 eq_or_diff \@bams, \@bamList, "bamlist parsed correctly";
 
-my %md5sums = %{ $bto->inputBamMD5sums };
+#my %md5sums = %{ $bto->inputBamMD5sums };
 
 #my @md5Files = sort map { $md5sums{$_} } sort keys %md5sums;
 #my @expected_md5Files = sort map { $_.".md5.expected"} @bamList;
@@ -103,7 +115,7 @@ eq_or_diff \@bams, \@bamList, "bamlist saved in db and retrieved correctly";
     filterColumns => { sampleName => \@bamSampleNames, passedValidateSam => 1 }
 );
 eq_or_diff \@bams, $bamList[0],
-  "bamlist saved in db and only validated bam retrieved correctly";
+  "bamlist saved in db and only validateSam validated bam retrieved correctly";
 
 my $wd = "t/02-workdir";
 remove_tree($wd) if -d $wd;
