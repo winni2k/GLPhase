@@ -207,3 +207,7 @@ panel)
 CONVERGE meeting
 
 - talk to jieqin to get 4 samples sequenced to 10x
+
+###########
+# Mon Jul 22 15:13:21 BST 2013
+- weighting update by contribution to hmm likelihood
