@@ -7,3 +7,15 @@ BGI=/Net/sparse/data/BGI
 bgiBackup.pl\
   bamList=BGI/
   
+# creating valid test bam files
+java -jar opt/picard-tools-1.78/DownsampleSam.jar I=/data/BGI/01-10-2012/HKC11064_HUMzwrR/data/MD_CHW_AAS_10179.bam  O=MD_CHW_AAS_10179.bam PROBABILITY=0.00005
+
+FILE=MD_CHW_AAS_10179.downsamp.bam
+FILE=MD_CHW_AAS_10011.downsamp.bam
+FILE=MD_CHW_AAS_10011.invalid.bam
+java -jar ~/opt/ValidateSamFile.jar I=$FILE O=$FILE.validation MODE=SUMMARY VALIDATE_INDEX=TRUE && echo hi world
+
+# see ~/dev/bamTrackLib for further work on the backup suite
+
+# now run on sparse
+ssh sparse
