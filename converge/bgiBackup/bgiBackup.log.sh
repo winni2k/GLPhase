@@ -19,3 +19,10 @@ java -jar ~/opt/ValidateSamFile.jar I=$FILE O=$FILE.validation MODE=SUMMARY VALI
 
 # now run on sparse
 ssh sparse
+
+# register bams
+bamTracker.pl validateSamJar=~/opt/ValidateSamFile.jar addBamList=/data/BGI/bamlist.curr
+
+# now back them up to externalHD1
+# first test 17 problem bams
+bamTracker.pl validateSamJar=~/opt/ValidateSamFile.jar backupBamList=doubleSlash.bam.list backupTargetDir=cairparavel:/mnt/externalhd1/BGI backupDeviceName=externalhd1
