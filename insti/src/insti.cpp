@@ -669,10 +669,18 @@ void    Insti::estimate_EMC() {
 }
 
 
-/* solve_AMH -- Adaptive Metropolis Hastings
-   see estimate_AMH() for more details
+/*
+  DEPRECATED DEPRECATED DEPRECATED
 
-   modified from Impute::solve() of SNPTools
+  This functionality is now being handled by Insti::solve().
+  This function only still exists in case it becomes useful at some later stage.
+
+  DEPRECATED DEPRECATED DEPRECATED
+
+  solve_AMH -- Adaptive Metropolis Hastings
+  see estimate_AMH() for more details
+
+  modified from Impute::solve() of SNPTools
 */
 
 // solve(individual, number of cycles, penalty, burnin?)
