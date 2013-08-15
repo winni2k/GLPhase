@@ -40,7 +40,7 @@ main.o: main.cpp impute.h insti.h
 olivier/utils.o: olivier/utils.cpp olivier/utils.h 
 	$(CC) -Wno-sign-compare $(CXXFLAGS) -c $^ $(LIBS)
 
-insti: main.o impute.o insti.o emcchain.o utils.o relationshipGraph.o
+insti: main.o impute.o insti.o emcchain.o relationshipGraph.o olivier/utils.o
 	$(CC) $(CXXFLAGS) -o insti $^ $(LIBS)
 
 
