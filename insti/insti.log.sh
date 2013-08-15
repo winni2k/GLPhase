@@ -52,3 +52,6 @@ perl -ane 'if(++$i==1){print "rsid position a0 a1\n"}else{print join(" ",("$F[0]
 # create haplotypes file
 perl -e 'for (0..600){print join(" ",qw/0 1 0 1/)."\n"}; for (601..1023){ print join(" ", qw/1 0 0 1/)."\n"}' > 20_011976121_012173018.bin.onlyThree.haps
 
+###########
+# Thu Aug 15 16:43:46 BST 2013
+# let's work on the kickstart option
