@@ -100,6 +100,7 @@ int main(int ac, char **av) {
             Insti::document();
         }
     }
+    
     // need to specify ref panel if kickstarting
     if(Insti::s_bKickStartFromRef){
         if( sLegendFile.size() == 0){
