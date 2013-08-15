@@ -807,6 +807,11 @@ void    Insti::document(void) {
     cerr << "\n\t-p <integer>    number of parallel chains to use in parallel estimation algorithms";
     cerr << "\n\t                (at least 2, default 5)";
     cerr << "\n\t-C <integer>    number of cycles to estimate an individual's parents before updating";
+
+    cerr << "\n\nREFERENCE PANEL OPTIONS";
+    cerr << "\n\t-H <file>       Impute2 style haplotypes file";
+    cerr << "\n\t-L <file>       Impute2 style legend file";
+    cerr << "\n\t-C <integer>    number of cycles to estimate an individual's parents before updating";    
     cerr << "\n\t-k              Kickstart phasing by using only ref panel in first iteration";
     cerr << "\n\n";
     exit(1);
