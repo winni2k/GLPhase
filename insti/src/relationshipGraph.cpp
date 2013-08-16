@@ -32,7 +32,7 @@ unsigned RelationshipGraph::Hap2Col(unsigned uHap){
         return(uHap/2);
     default:
         cerr << "Unknown graph type selected: " << m_iGraphType << endl;
-        exit(1);
+        assert(false);
     }
 }
 
@@ -46,7 +46,7 @@ unsigned RelationshipGraph::Col2Hap(unsigned uCol){
         return(uCol * 2);
     default:
         cerr << "Unknown graph type selected: " << m_iGraphType << endl;
-        exit(1);
+        assert(false);
     }
 }
 
