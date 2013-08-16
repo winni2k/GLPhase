@@ -60,10 +60,13 @@ public:
     static unsigned s_uParallelChains; // see main.cpp and document for documentation
     static unsigned s_uCycles; // see main.cpp and document for documentation
     static bool s_bIsLogging; // true if logging
-
+    
     // bool flag to keep track if we want to phase samples from ref haps only in first round
     static bool s_bKickStartFromRef;
 
+    static string s_sLegendFile; //location of legend file
+    static string s_sRefHapsFile; // location of reference haplotypes file
+    
     unsigned GetNumWords() { return wn; }
 
     // returns allele of hap number hap at sites number site
