@@ -31,6 +31,7 @@ private:
     // -1 = undefined
     // 0 = sample/sample graph
     // 1 = sample/haplotype graph
+    // 2 = no graph - all samples are equally related
     int m_iGraphType = -1;
     bool m_bUsingHaps = false;
 
@@ -83,9 +84,10 @@ public:
         case 2:
             m_uCols = ceil(uHaplotypes/2);
             m_bUsingHaps = false;
+            break;
         default:
             std::cerr << "Unknown graph type selected: " << m_iGraphType << std::endl;
-            exit(1);
+            assert(false);
         }
 
         if(m_bUsingRelMat){
