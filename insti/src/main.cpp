@@ -24,11 +24,11 @@ int main(int ac, char **av) {
     Insti::s_uParallelChains = 5; // number of parallel chains to use for parallel estimators
     Insti::s_uCycles = 0; // alternate way of specifying number of sampling steps
     Insti::s_bKickStartFromRef = false;
+    Insti::s_sLegendFile = "";
+    Insti::s_sRefHapsFile = "";
     
     uint threads = 0;
     vector <string> file;
-    string sLegendFile;
-    string sRefHapsFile;
     
     string sLogFile;
     int opt;
@@ -88,10 +88,10 @@ int main(int ac, char **av) {
             Insti::s_uCycles = atoi(optarg);
             break;
         case 'L':
-            sLegendFile = optarg;
+            Insti::s_sLegendFile = optarg;
             break;
         case 'H':
-            sRefHapsFile = optarg;
+            Insti::s_sRefHapsFile = optarg;
             break;
         case 'k':
             Insti::s_bKickStartFromRef = true;
@@ -103,7 +103,7 @@ int main(int ac, char **av) {
     
     // need to specify ref panel if kickstarting
     if(Insti::s_bKickStartFromRef){
-        if( sLegendFile.size() == 0){
+        if( Insti::s_sLegendFile.size() == 0){
             cerr << endl << "error: Need to specify ref panel if kickstarting." << endl;
             Insti::document();
         }
@@ -140,11 +140,6 @@ int main(int ac, char **av) {
             continue;
         }
 
-        // load ref haps
-        if(sLegendFile.size() > 0 || sRefHapsFile.size() > 0){
-            lp.load_refPanel( sLegendFile, sRefHapsFile);
-        }
-
         /* debugging
         cout << "name\tsite\tprob\tposi"<<endl;
         for ( auto x: lp.name) cout << x << " ";
@@ -158,6 +153,7 @@ int main(int ac, char **av) {
         for (uint j = 0; j < Impute::vcf_file.size(); j++)
             cerr << Impute::vcf_file[j] << '\t' << lp.load_vcf(Impute::vcf_file[j].c_str()) << endl;
         cerr << "initializing..\n";
+
         lp.initialize();
         cerr << "estimating..\n";
 
