@@ -1,4 +1,5 @@
 
+
 #include "insti.h"
 
 //require c++11
@@ -36,6 +37,8 @@ uint Insti::s_uParallelChains;
 uint Insti::s_uCycles;
 bool Insti::s_bIsLogging = false;
 bool Insti::s_bKickStartFromRef = false;
+string Insti::s_sLegendFile = "";
+string Insti::s_sRefHapsFile = "";
 
 // return the probability of the model given the input haplotypes P and
 // emission and transition matrices of individual I
@@ -194,7 +197,7 @@ bool Insti::load_refPanel(string legendFile, string hapsFile){
         // make sure header start is correct
         if(uLineNum == 1){
             vector<string> headerTokenized;
-            string header = "rsid position a0 a1";
+            string header = "id position a0 a1";
             sutils::tokenize(header, headerTokenized);
             for(int i = 0; i != 4; i++){
                 assert(tokens[i] == headerTokenized[i]);
@@ -203,7 +206,14 @@ bool Insti::load_refPanel(string legendFile, string hapsFile){
         }
 
         // now make sure legend file matches sites
-        assert(tokens[1] == sutils::uint2str(site[uLineNum - 2].pos) && "Positions in legend file need to match current data");
+        try{
+            if(tokens[1] != sutils::uint2str(site[uLineNum - 2].pos) )
+                throw myException("Error at Line " + sutils::uint2str(uLineNum) + " in legend file:\tPosition " + tokens[1] + " in legend file needs to match position in probin file: " + sutils::uint2str(site[uLineNum - 2].pos));
+        }
+        catch (exception& e){
+            cout << e.what() << endl;
+            exit(1);
+        }
         assert(tokens[2]+tokens[3] == site[uLineNum - 2].all && "Alleles in legend file need to match current data");
 
     }
@@ -268,13 +278,18 @@ void Insti::initialize(){
 
     Impute::initialize();
 
+    // load ref haps
+    if(s_sLegendFile.size() > 0 || s_sRefHapsFile.size() > 0){
+        load_refPanel( s_sLegendFile, s_sRefHapsFile);
+    }
+
     if(m_bUsingRefHaps){
         // add ref haplotypes to sample haps
         haps.insert(haps.end(), m_vRefHaps.begin(), m_vRefHaps.end());
 
         // enlarge hnew so haps and hnew can be swapped
         // the ref haps are never updated, so they'll stick around forever
-        hnew.insert(haps.end(), m_vRefHaps.begin(), m_vRefHaps.end());
+        hnew.insert(hnew.end(), m_vRefHaps.begin(), m_vRefHaps.end());
 
         // re-assign pare in light of the haplotypes
         pare.assign(in * (in + m_uNumRefHaps/2), 0);
