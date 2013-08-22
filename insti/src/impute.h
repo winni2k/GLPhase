@@ -74,7 +74,7 @@ protected:
 
     void hmm_work(uint I, uint *P, fast S);
 
-    virtual fast solve(uint I, uint    &N, fast S, bool P);
+    virtual fast solve(uint I, uint    &N, fast S);
 
     void replace(uint I);
 
@@ -103,7 +103,7 @@ public:
     std::vector <std::string> name;
     std::vector<real> posi;
     std::vector<fast> prob;
-    std::vector <std::uint16_t> pare;
+//    std::vector <std::uint16_t> pare;
 
     Impute() {
         rng = gsl_rng_alloc(gsl_rng_default);
@@ -123,7 +123,7 @@ public:
 
     void save_vcf(const char *F);
 
-    void save_pare(const char *F);
+//    void save_pare(const char *F);
 };
 
 #endif /* _IMPUTE_H */
