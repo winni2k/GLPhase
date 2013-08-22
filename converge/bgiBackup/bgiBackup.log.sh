@@ -25,4 +25,8 @@ bamTracker.pl validateSamJar=~/opt/ValidateSamFile.jar addBamList=/data/BGI/baml
 
 # now back them up to externalHD1
 # first test 17 problem bams
-bamTracker.pl validateSamJar=~/opt/ValidateSamFile.jar backupBamList=doubleSlash.bam.list backupTargetDir=cairparavel:/mnt/externalhd1/BGI backupDeviceName=externalhd1
+bamTracker.pl validateSamJar=~/opt/ValidateSamFile.jar backupBamList=doubleSlash.bam.list backupTargetDir=cairparavel:/mnt/extHD1/BGI backupDeviceName=externalhd1 doNotValidate=1 doNotIndex=1
+
+# ok, now do this on first 1000 of bamlist.curr
+head -n 1000 /data/BGI/bamlist.curr > bamlist.curr.head1000
+bamTracker.pl validateSamJar=~/opt/ValidateSamFile.jar backupBamList=bamlist.curr.head1000 backupTargetDir=cairparavel:/mnt/extHD1/BGI backupDeviceName=externalhd1 doNotValidate=1 doNotIndex=1
