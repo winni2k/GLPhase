@@ -196,7 +196,7 @@ void    Impute::initialize(void) {
     haps.resize(hn * wn);  // space to store all haplotypes
     hnew.resize(hn * wn);  // number of haplotypes = 2 * number of samples  ... haps mn is # of sites,
     hsum.assign(hn * mn, 0); // one uint for every hap's site - what for?  To estimate allele probs
-    pare.assign(in * in, 0);  // in x in matrix, one uint16 for every pair of individuals
+//    pare.assign(in * in, 0);  // in x in matrix, one uint16 for every pair of individuals
     pn = 3 * mn;  // set the number of transitions.  three transitions for every site
     tran.resize(pn);  // tran looks like the transition matrix,
                       // i.e. recombination rate
@@ -449,7 +449,7 @@ void    Impute::hmm_work(uint I, uint *P, fast S) {
 // A - finding a set of four haps that are close to the current individual
 // B - running the HMM and udating the individual I's haplotypes
 // A takes much longer than B
-fast    Impute::solve(uint I, uint    &N, fast S, bool P) {  // solve(i,	len,	pen,	n>=bn)
+fast    Impute::solve(uint I, uint    &N, fast S) {  // solve(i,	len,	pen,	n>=bn)
 
     // pick 4 haplotype indices at random not from individual
     uint p[4];
@@ -475,11 +475,13 @@ fast    Impute::solve(uint I, uint    &N, fast S, bool P) {  // solve(i,	len,	pe
     }
 
     // if we have passed the burnin cycles (n >= bn)
-    // start sampling the haplotypes for output
+    // start saving pair information
+    /*
     if (P) {
         uint16_t *pa = &pare[I * in];
         for (uint i = 0; i < 4; i++) pa[p[i] / 2]++;
     }
+    */
     hmm_work(I, p, S);
     return curr;
 }
@@ -497,7 +499,7 @@ void    Impute::estimate(void) {
         pen *= pen;  // pen = 1 after bn/2 iterations
         for (uint i = 0; i < in; i++) {
             uint len = nn * in;  // nn is number of folds, in = num individuals
-            sum += solve(i, len, pen, n >= bn);  // call solve=> inputs the sample number,
+            sum += solve(i, len, pen);  // call solve=> inputs the sample number,
             iter += len;
         }
         swap(hnew, haps);
@@ -577,6 +579,7 @@ void    Impute::save_vcf(const char *F) {
     gzclose(f);
 }
 
+/*
 void    Impute::save_pare(const char *F) {
     string temp = F;
     temp += ".par.gz";
@@ -591,6 +594,7 @@ void    Impute::save_pare(const char *F) {
     gzprintf(f, "\n");
     gzclose(f);
 }
+*/
 
 void    Impute::document(void) {
     cerr << "\nimpute";

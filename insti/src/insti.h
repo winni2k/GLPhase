@@ -40,12 +40,10 @@ private:
     // so far it only adds logging
     virtual  fast hmm_like(unsigned I, unsigned *P) override;
 
-    fast solve(unsigned I, unsigned    &N, fast S, bool P, RelationshipGraph  &oRelGraph);
-    virtual fast solve(unsigned I, unsigned    &N, fast S, bool P) override { cerr << I << N << S << P; exit(1); }
+    fast solve(unsigned I, unsigned    &N, fast S, RelationshipGraph  &oRelGraph);
+    virtual fast solve(unsigned I, unsigned    &N, fast S) override { cerr << I << N << S; exit(1); }
 
-    fast solve_EMC(unsigned I, unsigned    N, fast S, bool P);
-
-    fast solve_AMH(unsigned I, unsigned    N, fast S, bool P, RelationshipGraph  &oRelGraph);
+    fast solve_EMC(unsigned I, unsigned    N, fast S);
 
     // returns the number of a hap that is not owned by individual I
     unsigned SampleHap( unsigned I, bool bUseRefPanel, gsl_rng * rng, unsigned hn, unsigned m_uNumRefHaps);

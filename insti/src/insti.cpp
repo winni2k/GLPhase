@@ -292,7 +292,7 @@ void Insti::initialize(){
         hnew.insert(hnew.end(), m_vRefHaps.begin(), m_vRefHaps.end());
 
         // re-assign pare in light of the haplotypes
-        pare.assign(in * (in + m_uNumRefHaps/2), 0);
+//        pare.assign(in * (in + m_uNumRefHaps/2), 0);
     }
 
 }
@@ -308,7 +308,7 @@ void Insti::initialize(){
 */
 
 // solve(individual, number of cycles, penalty, burnin?)
-fast Insti::solve(uint I, uint    &N, fast S, bool P, RelationshipGraph &oRelGraph) {
+fast Insti::solve(uint I, uint    &N, fast S, RelationshipGraph &oRelGraph) {
 
     // write log header
     stringstream message;
@@ -366,10 +366,12 @@ fast Insti::solve(uint I, uint    &N, fast S, bool P, RelationshipGraph &oRelGra
 
     // if we have passed the burnin cycles (n >= bn)
     // start sampling the haplotypes for output
+    /*
     if (P) {
         uint16_t *pa = &pare[I * in];
         for (uint i = 0; i < 4; i++) pa[p[i] / 2]++;
     }
+    */
     hmm_work(I, p, S);
     return curr;
 }
@@ -393,7 +395,7 @@ void    Insti::estimate() {
         fast sum = 0, pen = fminf(2 * (n + 1.0f) / bn, 1), iter = 0;
         pen *= pen;  // pen = 1 after bn/2 iterations
         for (uint i = 0; i < in; i++) {
-            sum += solve(i, m_uCycles, pen, n >= bn, oRelGraph);  // call solve=> inputs the sample number,
+            sum += solve(i, m_uCycles, pen, oRelGraph);  // call solve=> inputs the sample number,
             iter += m_uCycles;
         }
         swap(hnew, haps);
@@ -414,7 +416,7 @@ void    Insti::estimate() {
 */
 
 // solve(individual, number of cycles, penalty, burnin?)
-fast Insti::solve_EMC(uint I, uint  N, fast S, bool P) {
+fast Insti::solve_EMC(uint I, uint  N, fast S) {
 
     DEBUG_MSG( "Entering solve_EMC..." << endl);
     // for lack of a better place, define free parameters here
@@ -634,10 +636,12 @@ fast Insti::solve_EMC(uint I, uint  N, fast S, bool P) {
 
     // if we have passed the burnin cycles (n >= bn)
     // start sampling the haplotypes for output
+    /*
     if (P) {
         uint16_t *pa = &pare[I * in];
         for (uint i = 0; i < 4; i++) pa[rcFirstChain.getParent(i) / 2]++;
     }
+    */
 
     DEBUG_MSG( "Updating individual " << I << "\n");
     // update haplotypes of I
@@ -672,7 +676,7 @@ void    Insti::estimate_EMC() {
         fast sum = 0, pen = fminf(2 * (n + 1.0f) / bn, 1), iter = 0;
         pen *= pen;  // pen = 1 after bn/2 iterations
         for (uint i = 0; i < in; i++) {
-            sum += solve_EMC(i, m_uCycles, pen, n >= bn);  // call solve=> inputs the sample number,
+            sum += solve_EMC(i, m_uCycles, pen);  // call solve=> inputs the sample number,
             iter += m_uCycles;
         }
         swap(hnew, haps);
@@ -683,79 +687,6 @@ void    Insti::estimate_EMC() {
     result();    // call result
 }
 
-
-/*
-  DEPRECATED DEPRECATED DEPRECATED
-
-  This functionality is now being handled by Insti::solve().
-  This function only still exists in case it becomes useful at some later stage.
-
-  DEPRECATED DEPRECATED DEPRECATED
-
-  solve_AMH -- Adaptive Metropolis Hastings
-  see estimate_AMH() for more details
-
-  modified from Impute::solve() of SNPTools
-*/
-
-// solve(individual, number of cycles, penalty, burnin?)
-fast Insti::solve_AMH(uint I, uint  N, fast S, bool P, RelationshipGraph &oRelGraph) {
-
-    // write log header
-    stringstream message;
-    message << "##iteration\tindividual\tproposal" << endl;
-    WriteToLog( message.str() );
-
-    // pick 4 haplotype indices at random not from individual
-    // also use relationship matrix for rejection sampling
-    uint p[4];
-    for (uint j = 0; j < 4; j++) {
-        p[j] = oRelGraph.SampleHap(I, rng);
-    }
-
-    // get a probability of the model for individual I given p
-    fast curr = hmm_like(I, p);
-
-    // pick a random haplotype to replace with another one from all
-    // haplotypes.  calculate the new probability of the model given
-    // those haplotypes.
-    // accept new set if probability has increased.
-    // otherwise, accept with penalized probability
-    for (uint n = 0; n < N; n++) {  // fixed number of iterations
-
-        // choose haplotype to update
-        // evaluate proposal
-        uint rp = gsl_rng_get(rng) & 3, oh = p[rp];
-        p[rp] = oRelGraph.SampleHap(I, rng);
-        fast prop = hmm_like(I, p);
-        bool bAccepted = false;
-        if (prop > curr || gsl_rng_uniform(rng) < exp((prop - curr) * S)) {
-            curr = prop;
-            bAccepted = true;
-        }
-        else p[rp] = oh;
-
-        // update relationship graph
-        oRelGraph.UpdateGraph(p, bAccepted, I);
-
-        // log accepted proposals
-        if(bAccepted){
-            stringstream message;
-            message << m_nIteration << "\t" << I << "\t" <<  prop << endl;
-            WriteToLog( message.str() );
-        }
-
-    }
-
-    // if we have passed the burnin cycles (n >= bn)
-    // start sampling the haplotypes for output
-    if (P) {
-        uint16_t *pa = &pare[I * in];
-        for (uint i = 0; i < 4; i++) pa[p[i] / 2]++;
-    }
-    hmm_work(I, p, S);
-    return curr;
-}
 
 /* estimate_AMH -- Adaptive Metropolis Hastings
    Here we try to increase the speed of convergence by
@@ -787,7 +718,7 @@ void    Insti::estimate_AMH(unsigned uRelMatType) {
 
         // update all individuals once
         for (uint i = 0; i < in; i++) {
-            sum += solve(i, m_uCycles, pen, n >= bn, oRelGraph);
+            sum += solve(i, m_uCycles, pen, oRelGraph);
             iter += m_uCycles;
         }
         swap(hnew, haps);

@@ -55,3 +55,17 @@ perl -e 'for (0..600){print join(" ",qw/0 1 0 1/)."\n"}; for (601..1023){ print 
 ###########
 # Thu Aug 15 16:43:46 BST 2013
 # let's work on the kickstart option
+
+# that worked quite nicely
+
+###########
+# Wed Aug 21 11:52:35 BST 2013
+# let's do some memory profiling
+ssh feng
+mkdir -p /homes/kretzsch/feng/marchini/insti/results/2013-08-21_Massif_memcheck
+cd /homes/kretzsch/feng/marchini/insti/results/2013-08-21_Massif_memcheck
+mkdir gls
+cp ../2013-08-16_impute_C100_asianRefPanel/gls/20_059875288_060024976.bin.plusThree.bin gls/
+
+# run massif memory check on insti in kickstart mode
+valgrind --tool=massif ../../src/insti -m 10 -b 10 -C 1 -k -L ../2013-07-18b_insti_amh_100_cycles_kickstart/refPanelDir/ALL.chr20.integrated_phase1_v3.20101123.snps_indels_svs.genotypes.only_snps.asians.polymorphic.20_059875288_060024976.bin.minusThree.legend.gz -H ../2013-07-18b_insti_amh_100_cycles_kickstart/refPanelDir/ALL.chr20.integrated_phase1_v3.20101123.snps_indels_svs.genotypes.only_snps.asians.polymorphic.20_059875288_060024976.bin.minusThree.hap.gz -e 20_059875288_060024976.bin.IMPUTE_1000C_ASIAN_REF_KS.log.gz gls/20_059875288_060024976.bin.plusThree.bin
