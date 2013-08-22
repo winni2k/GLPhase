@@ -211,3 +211,18 @@ CONVERGE meeting
 ###########
 # Mon Jul 22 15:13:21 BST 2013
 - weighting update by contribution to hmm likelihood
+
+###########
+# Wed Aug 21 10:35:12 BST 2013
+- look at iterations reduction
+- reduce burnin
+- reduce RAM 
+- instiAMH is c100
+- full TGP with kickstart
+- kickstart + adaptive
+- run Beagle on 1024 sites
+  - what is ram and timing?
+
+accurate
+fast
+scales well in ram and time
