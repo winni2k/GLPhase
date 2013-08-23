@@ -154,7 +154,7 @@ uint    Impute::load_vcf(const char *F) {  // this section loads known genotypes
                 for (uint i = 0; i < vin; i++) {
                     si >> st;
                     if (vid[i] == 0xffff) continue;
-                    fast *p = &prob[m * in * 2 + vid[i] * 2], pa = max(1 - p[0] - p[1], 0);
+                    fast *p = &prob[m * in * 2 + vid[i] * 2], pa = max<fast>(1 - p[0] - p[1], 0);
                     if (st[0] == '0' && st[2] == '0') {
                         pa *= conf;
                         p[0] *= rest;
@@ -497,7 +497,7 @@ void    Impute::estimate(void) {
     // increase penalty from 2/bn to 1 as we go through burnin
     // iterations.    
     for (uint n = 0; n < bn + sn; n++) {  
-        fast sum = 0, pen = min(2 * (n + 1.0f) / bn, 1), iter = 0;
+        fast sum = 0, pen = min<fast>(2 * (n + 1.0f) / bn, 1), iter = 0;
         pen *= pen;  // pen = 1 after bn/2 iterations
         for (uint i = 0; i < in; i++) {
             uint len = nn * in;  // nn is number of folds, in = num individuals
