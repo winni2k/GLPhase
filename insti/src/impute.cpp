@@ -206,7 +206,6 @@ void    Impute::initialize(void) {
     // 4 emissions, for each site 4 emissions * number of samples.  (0|0, 1|1 0|1 1|0)
     en = 4 * mn;
     emit.resize(in * en);
-    cerr << "emit size: " << in * en * sizeof(emit[0]) <<endl;
 
     // is_par defines whether a site is in the paralogous region
     // if the site is on chromosome X
