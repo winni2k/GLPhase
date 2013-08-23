@@ -29,7 +29,7 @@
 #define    MaskHA    0x80
 #define    MaskHB    0x40
 #define    MaskG    0x3f
-typedef double fast;
+typedef float fast;
 typedef double real;
 typedef unsigned uint;
 typedef std::uint64_t word;
