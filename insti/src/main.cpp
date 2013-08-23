@@ -135,6 +135,7 @@ int main(int ac, char **av) {
         lp.WriteToLog(log.str());
 
         // load gls
+        // add a reserve of space
         if (!lp.load_bin(file[i].c_str())) {
             cerr << "fail to load " << file[i] << endl;
             continue;
