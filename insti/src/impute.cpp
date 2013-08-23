@@ -154,7 +154,7 @@ uint    Impute::load_vcf(const char *F) {  // this section loads known genotypes
                 for (uint i = 0; i < vin; i++) {
                     si >> st;
                     if (vid[i] == 0xffff) continue;
-                    fast *p = &prob[m * in * 2 + vid[i] * 2], pa = fmaxf(1 - p[0] - p[1], 0);
+                    fast *p = &prob[m * in * 2 + vid[i] * 2], pa = max<fast>(1 - p[0] - p[1], 0);
                     if (st[0] == '0' && st[2] == '0') {
                         pa *= conf;
                         p[0] *= rest;
@@ -206,10 +206,12 @@ void    Impute::initialize(void) {
     // 4 emissions, for each site 4 emissions * number of samples.  (0|0, 1|1 0|1 1|0)
     en = 4 * mn;
     emit.resize(in * en);
+    cerr << "emit size: " << in * en * sizeof(emit[0]) <<endl;
 
     // is_par defines whether a site is in the paralogous region
     // if the site is on chromosome X
     // these magic numbers should probably get their own #define statement...
+    // move away from vector of bools to vector of chars
     vector<bool> is_par(mn);
     if (posi.size() == mn) {
         for (uint m = 0; m < mn; m++)
@@ -271,9 +273,9 @@ void    Impute::initialize(void) {
 
             // initialize genotype probabilities as genotype likelihoods
             if (is_x && male.find(name[i]) != male.end() && !is_par[m]) { /// treat it differently for genders
-                t[0] = fmaxf(1 - p[0] - p[1], 0.0f);
+                t[0] = max(1 - p[0] - p[1], 0.0f);
                 t[1] = 0;
-                t[2] = fmaxf(p[1], 0.0f);
+                t[2] = max(p[1], 0.0f);
                 if (t[0] + t[2]) {
                     t[0] /= t[0] + t[2];
                     t[2] = 1 - t[0];
@@ -282,9 +284,9 @@ void    Impute::initialize(void) {
             }
             else {
                 // initial prob is the GL.
-                t[0] = fmaxf(1 - p[0] - p[1], 0.0f);
-                t[1] = fmaxf(p[0], 0.0f);
-                t[2] = fmaxf(p[1], 0.0f);  
+                t[0] = max(1 - p[0] - p[1], 0.0f);
+                t[1] = max(p[0], 0.0f);
+                t[2] = max(p[1], 0.0f);  
             }
 
             // initial emit assumes all states are by random mutation only.  basic state is ref/ref
@@ -495,7 +497,7 @@ void    Impute::estimate(void) {
     // increase penalty from 2/bn to 1 as we go through burnin
     // iterations.    
     for (uint n = 0; n < bn + sn; n++) {  
-        fast sum = 0, pen = fminf(2 * (n + 1.0f) / bn, 1), iter = 0;
+        fast sum = 0, pen = min<fast>(2 * (n + 1.0f) / bn, 1), iter = 0;
         pen *= pen;  // pen = 1 after bn/2 iterations
         for (uint i = 0; i < in; i++) {
             uint len = nn * in;  // nn is number of folds, in = num individuals
