@@ -1,6 +1,6 @@
 export CC= g++-4.7+
 export DEBUGFLAGS= -ggdb
-export CXXFLAGS= -Wall -Wextra -O1 -fopenmp -std=c++11 -std=gnu++11 $(DEBUGFLAGS)
+export CXXFLAGS= -Wall -Wextra -O0 -fopenmp -std=c++11 -std=gnu++11 $(DEBUGFLAGS)
 export LIBS += -lgomp -lpthread -lgsl -lgslcblas -lz -lbam -ltabix -lbz2 -lboost_iostreams-mt
 export CPATH := snptools.cpp/samtools-0.1.16:snptools.cpp/tabix-0.2.5:olivier
 export LIBRARY_PATH := snptools.cpp/samtools-0.1.16:snptools.cpp/tabix-0.2.5
