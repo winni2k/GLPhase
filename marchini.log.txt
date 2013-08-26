@@ -227,6 +227,9 @@ CONVERGE meeting
              kept low using sparse matrices
 
 - instiAMH is c100
+-> results: - change made
+            - impute is now STimpute to be clearer
+
 - full TGP with kickstart
 - kickstart + adaptive
 - run Beagle on 1024 sites
