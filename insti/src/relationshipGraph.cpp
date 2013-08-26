@@ -143,7 +143,10 @@ unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng){
         vector<unsigned> & vuRelRowDen = m_2dRelationshipMatDen[uInd];
         unsigned uPropInd = 0;
         unsigned uProp = 0;
+        unsigned uTryNum = 0;
         while(1){
+
+            uTryNum ++;
             
             // m_uCols is 1 based, but % makes choice 0 based
             uPropHap = gsl_rng_get(rng) % Col2Hap( m_uCols );
@@ -157,9 +160,10 @@ unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng){
 
             // resample if individual does not pass rejection sample
             if (vuRelRowNum[uProp] / vuRelRowDen[uProp] < 1){
-                cerr << "Acceptance probability: " << vuRelRowNum[uProp] / vuRelRowDen[uProp] << endl;
+                cerr << "\rTry "<< uTryNum <<"\tAcceptance probability: " << vuRelRowNum[uProp] / vuRelRowDen[uProp];
             }
             if( gsl_rng_uniform(rng) <= vuRelRowNum[uProp] / vuRelRowDen[uProp] )
+                cerr << endl;
                 break;
         }
     }
