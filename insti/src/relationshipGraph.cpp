@@ -156,7 +156,9 @@ unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng){
                 continue;
 
             // resample if individual does not pass rejection sample
-            cerr << "Acceptance probability: " << vuRelRowNum[uProp] / vuRelRowDen[uProp] << endl;
+            if (vuRelRowNum[uProp] / vuRelRowDen[uProp] < 1){
+                cerr << "Acceptance probability: " << vuRelRowNum[uProp] / vuRelRowDen[uProp] << endl;
+            }
             if( gsl_rng_uniform(rng) <= vuRelRowNum[uProp] / vuRelRowDen[uProp] )
                 break;
         }
