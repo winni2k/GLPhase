@@ -1,12 +1,17 @@
 export CC= g++-4.7+
 export DEBUGFLAGS= -ggdb
-export CXXFLAGS= -Wall -Wextra -O0 -fopenmp -std=c++11 -std=gnu++11 $(DEBUGFLAGS)
+export CXXFLAGS= -Wall -Wextra -fopenmp -std=c++11 -std=gnu++11 $(DEBUGFLAGS)
 export LIBS += -lgomp -lpthread -lgsl -lgslcblas -lz -lbam -ltabix -lbz2 -lboost_iostreams-mt
 export CPATH := snptools.cpp/samtools-0.1.16:snptools.cpp/tabix-0.2.5:olivier
 export LIBRARY_PATH := snptools.cpp/samtools-0.1.16:snptools.cpp/tabix-0.2.5
 export LD_LIBRARY_PATH := snptools.cpp/samtools-0.1.16:snptools.cpp/tabix-0.2.5
 
 all: insti
+
+insti: CXXFLAGS += -O3
+
+instiO0: CXXFLAGS += -O0
+
 
 debug:
 	echo $(CPATH)
@@ -42,5 +47,8 @@ olivier/utils.o: olivier/utils.cpp olivier/utils.h
 
 insti: main.o impute.o insti.o emcchain.o relationshipGraph.o olivier/utils.o
 	$(CC) $(CXXFLAGS) -o insti $^ $(LIBS)
+
+instiO0: main.o impute.o insti.o emcchain.o relationshipGraph.o olivier/utils.o
+	$(CC) $(CXXFLAGS) -o instiO0 $^ $(LIBS)
 
 
