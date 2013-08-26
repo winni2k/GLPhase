@@ -163,7 +163,8 @@ unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng){
                 cerr << "\rTry "<< uTryNum <<"\tNumerator: "<< vuRelRowNum[uProp] << "\tDenominator: "<< vuRelRowDen[uProp] <<"\tProposal: " << uProp;
             }
             if( gsl_rng_uniform(rng) <= vuRelRowNum[uProp] / vuRelRowDen[uProp] )
-                cerr << endl;
+                if (vuRelRowNum[uProp] / vuRelRowDen[uProp] < 1){
+                    cerr << endl;
                 break;
         }
     }
