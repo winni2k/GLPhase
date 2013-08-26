@@ -106,13 +106,13 @@ void RelationshipGraph::UpdateGraph( unsigned *p, bool bAccepted, unsigned uInd)
 unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng, bool bOnlyFromRef){
 
     if(bOnlyFromRef){
-    unsigned uRetHap;
-    while(1){
-        uRetHap = RelationshipGraph::SampleHap( uInd, rng);
-        if(uRetHap >= m_uRows * 2)
-            break;
-    }
-    return(uRetHap);
+        unsigned uRetHap;
+        while(1){
+            uRetHap = RelationshipGraph::SampleHap( uInd, rng);
+            if(uRetHap >= m_uRows * 2)
+                break;
+        }
+        return(uRetHap);
     }
     else{
         cerr << "programming error";
@@ -156,6 +156,7 @@ unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng){
                 continue;
 
             // resample if individual does not pass rejection sample
+            cerr << "Acceptance probability: " << vuRelRowNum[uProp] / vuRelRowDen[uProp] << endl;
             if( gsl_rng_uniform(rng) <= vuRelRowNum[uProp] / vuRelRowDen[uProp] )
                 break;
         }
