@@ -392,7 +392,7 @@ void    Insti::estimate() {
     // iterations.
     for (uint n = 0; n < bn + sn; n++) {
         m_nIteration = n;
-        fast sum = 0, pen = fminf(2 * (n + 1.0f) / bn, 1), iter = 0;
+        fast sum = 0, pen = min<fast>(2 * (n + 1.0f) / bn, 1), iter = 0;
         pen *= pen;  // pen = 1 after bn/2 iterations
         for (uint i = 0; i < in; i++) {
             sum += solve(i, m_uCycles, pen, oRelGraph);  // call solve=> inputs the sample number,
@@ -600,7 +600,7 @@ fast Insti::solve_EMC(uint I, uint  N, fast S) {
             DEBUG_MSG3( "\tsecond chain: " << vuChainTempHierarchy[ uSecondChainIndex ]);
 
             // MH step for exchange
-            fast fAcceptProb = fminf( exp( (vcChains[uFirstChainHierarchyIndex].getLike() - vcChains[uSecondCHI].getLike())
+            fast fAcceptProb = min<fast>( exp( (vcChains[uFirstChainHierarchyIndex].getLike() - vcChains[uSecondCHI].getLike())
                                             * ( (1/vcChains[uFirstChainHierarchyIndex].m_fTemp) - (1/vcChains[uSecondCHI].m_fTemp)))
                                       , 1);
 
@@ -673,7 +673,7 @@ void    Insti::estimate_EMC() {
     // iterations.
     for (uint n = 0; n < bn + sn; n++) {
         m_nIteration = n;
-        fast sum = 0, pen = fminf(2 * (n + 1.0f) / bn, 1), iter = 0;
+        fast sum = 0, pen = min<fast>(2 * (n + 1.0f) / bn, 1), iter = 0;
         pen *= pen;  // pen = 1 after bn/2 iterations
         for (uint i = 0; i < in; i++) {
             sum += solve_EMC(i, m_uCycles, pen);  // call solve=> inputs the sample number,
@@ -712,12 +712,14 @@ void    Insti::estimate_AMH(unsigned uRelMatType) {
     // iterations.
 
     for (uint n = 0; n < bn + sn; n++) {
+        cerr << "iter\t" << n << endl;
         m_nIteration = n;
-        fast sum = 0, pen = fminf(2 * (n + 1.0f) / bn, 1), iter = 0;
+        fast sum = 0, pen = min<fast>(2 * (n + 1.0f) / bn, 1), iter = 0;
         pen *= pen;  // pen = 1 after bn/2 iterations
 
         // update all individuals once
         for (uint i = 0; i < in; i++) {
+            cerr << "cycle\t" << i << endl;
             sum += solve(i, m_uCycles, pen, oRelGraph);
             iter += m_uCycles;
         }
