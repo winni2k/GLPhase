@@ -175,3 +175,20 @@ unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng){
     return uPropHap;
 }
 
+
+// based on code from SNPTools::Impute
+void    RelationshipGraph::Save(std::string fileName) {
+    fileName += ".relGraph.num.gz";
+    ofile f(fileName);
+    f << "Numerator";
+/*    for (uint i = 0; i < in; i++) gzprintf(f, "\t%s", name[i].c_str());
+    for (uint i = 0; i < in; i++) {
+        gzprintf(f, "\n%s", name[i].c_str());
+        uint16_t *p = &pare[i * in];
+        for (uint j = 0; j < in; j++, p++) gzprintf(f, "\t%.3f", (float) (*p) / sn);
+    }
+    gzprintf(f, "\n");
+    gzclose(f); */
+}
+
+

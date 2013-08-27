@@ -21,7 +21,7 @@
 #include	<zlib.h>
 #include	<cmath>
 #include	<ctime>
-#include	<omp.h>
+//#include	<omp.h>
 #include	<set>
 
 #define    WordShift    6
