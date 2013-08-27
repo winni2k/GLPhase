@@ -308,7 +308,7 @@ void Insti::initialize(){
 */
 
 // solve(individual, number of cycles, penalty, burnin?)
-fast Insti::solve(uint I, uint    &N, fast S, RelationshipGraph &oRelGraph) {
+fast Insti::solve(uint I, uint    &N, fast pen, RelationshipGraph &oRelGraph) {
 
     // write log header
     stringstream message;
@@ -344,17 +344,20 @@ fast Insti::solve(uint I, uint    &N, fast S, RelationshipGraph &oRelGraph) {
         
         fast prop = hmm_like(I, p);
         bool bAccepted = false;
-        if (prop > curr || gsl_rng_uniform(rng) < exp((prop - curr) * S)) {
+        if (prop > curr || gsl_rng_uniform(rng) < exp((prop - curr) * pen)) {
             curr = prop;
             bAccepted = true;
         }
         else p[rp] = oh;
 
+        // Update relationship graph with proportion pen
+        oRelGraph.UpdateGraph(p, bAccepted, I, pen);
+        
         // update relationship graph with probability exp((prop - curr) * S)
-        if(prop >curr)
-            oRelGraph.UpdateGraph(p, bAccepted, I);
-        else
-            oRelGraph.UpdateGraph(p, bAccepted, I, exp((prop - curr) * S), rng);
+//        if(prop >curr)
+//            oRelGraph.UpdateGraph(p, bAccepted, I);
+//        else
+//            oRelGraph.UpdateGraph(p, bAccepted, I, exp((prop - curr) * S), rng);
         
         // log accepted proposals
         if(bAccepted){
@@ -372,7 +375,7 @@ fast Insti::solve(uint I, uint    &N, fast S, RelationshipGraph &oRelGraph) {
         for (uint i = 0; i < 4; i++) pa[p[i] / 2]++;
     }
     */
-    hmm_work(I, p, S);
+    hmm_work(I, p, pen);
     return curr;
 }
 
@@ -712,7 +715,7 @@ void    Insti::estimate_AMH(unsigned uRelMatType) {
     // iterations.
 
     for (uint n = 0; n < bn + sn; n++) {
-        cerr << "iter\t" << n << endl;
+//        cerr << "iter\t" << n << endl;
         m_nIteration = n;
         fast sum = 0, pen = min<fast>(2 * (n + 1.0f) / bn, 1), iter = 0;
         pen *= pen;  // pen = 1 after bn/2 iterations
@@ -720,7 +723,7 @@ void    Insti::estimate_AMH(unsigned uRelMatType) {
         // update all individuals once
         for (uint i = 0; i < in; i++) {
             if( i % 1000 == 0)
-                cerr << "cycle\t" << i << endl;
+//                cerr << "cycle\t" << i << endl;
             sum += solve(i, m_uCycles, pen, oRelGraph);
             iter += m_uCycles;
         }

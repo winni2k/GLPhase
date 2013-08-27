@@ -40,8 +40,8 @@ private:
     // so far it only adds logging
     virtual  fast hmm_like(unsigned I, unsigned *P) override;
 
-    fast solve(unsigned I, unsigned    &N, fast S, RelationshipGraph  &oRelGraph);
-    virtual fast solve(unsigned I, unsigned    &N, fast S) override { cerr << I << N << S; exit(1); }
+    fast solve(unsigned I, unsigned    &N, fast pen, RelationshipGraph  &oRelGraph);
+    virtual fast solve(unsigned I, unsigned    &N, fast pen) override { cerr << I << N << pen; exit(1); }
 
     fast solve_EMC(unsigned I, unsigned    N, fast S);
 

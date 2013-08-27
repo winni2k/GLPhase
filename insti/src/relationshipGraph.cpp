@@ -50,7 +50,7 @@ unsigned RelationshipGraph::Col2Hap(unsigned uCol){
     }
 }
 
-void RelationshipGraph::UpdateGraph( unsigned *p, bool bAccepted, unsigned uInd, double dUpdateProb, gsl_rng *rng){
+void RelationshipGraph::UpdateGraph( unsigned *p, bool bAccepted, unsigned uInd, float dUpdateProb, gsl_rng *rng){
 
     // don't update the graph if we aren't using it
     if(m_iGraphType == 2)

@@ -113,7 +113,7 @@ public:
     void UpdateGraph( unsigned * p, bool bAccepted, unsigned uInd);
 
     // update graph with probability dUpdateProb
-    void UpdateGraph( unsigned *p, bool bAccepted, unsigned uInd, double dUpdateProb, gsl_rng *rng);
+    void UpdateGraph( unsigned *p, bool bAccepted, unsigned uInd, float dUpdateProb, gsl_rng *rng);
 
     // update graph with number fRatio instead of 1
     void UpdateGraph( unsigned *p, bool bAccepted, unsigned uInd, float fRatio);
