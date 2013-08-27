@@ -25,8 +25,8 @@ private:
 //    unsigned m_bUsingRefPanel;
     bool m_bUsingRelMat = true;
 
-    std::vector< std::vector< unsigned > > m_2dRelationshipMatNum;
-    std::vector< std::vector< unsigned > > m_2dRelationshipMatDen;
+    std::vector< std::vector< float > > m_2dRelationshipMatNum;
+    std::vector< std::vector< float > > m_2dRelationshipMatDen;
 
     // -1 = undefined
     // 0 = sample/sample graph
@@ -114,6 +114,10 @@ public:
 
     // update graph with probability dUpdateProb
     void UpdateGraph( unsigned *p, bool bAccepted, unsigned uInd, double dUpdateProb, gsl_rng *rng);
+
+    // update graph with number fRatio instead of 1
+    void UpdateGraph( unsigned *p, bool bAccepted, unsigned uInd, float fRatio);
+
 };
 
 #endif /* _RELATIONSHIPGRAPH_H */
