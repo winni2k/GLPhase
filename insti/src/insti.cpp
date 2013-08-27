@@ -746,7 +746,7 @@ void    Insti::document(void) {
     cerr << "\n\t-l <file>       list of input files";
     cerr << "\n\t-m <mcmc>       sampling generations (200)";
     cerr << "\n\t-n <fold>       sample size*fold of nested MH sampler iteration (2)";
-    cerr << "\n\t-t <thread>     number of threads (0=MAX)";
+//    cerr << "\n\t-t <thread>     number of threads (0=MAX)";
     cerr << "\n\t-v <vcf>        integrate known genotype in VCF format";
     cerr << "\n\t-c <conf>       confidence of known genotype (0.9998)";
     cerr << "\n\t-x <gender>     impute x chromosome data";

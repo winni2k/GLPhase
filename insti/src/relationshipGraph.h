@@ -6,10 +6,10 @@
 
 #include        <gsl/gsl_rng.h>
 #include        <vector>
-#include        <string>
 #include        <cassert>
 #include        <cmath>
 #include        <iostream>
+#include        "utils.h"
 
 //require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
@@ -43,6 +43,9 @@ private:
 
 public:
 
+    // empty constructor makes my life easier sometimes
+    RelationshipGraph();
+    
 // takes sample num and haplotype num as well as graph type
 // samples can be updated, while haplotypes can only be copied from
 // every sample has two haplotypes
@@ -117,6 +120,8 @@ public:
 
     // update graph with number fRatio instead of 1
     void UpdateGraph( unsigned *p, bool bAccepted, unsigned uInd, float fRatio);
+
+    void Save(std::string fileName);
 
 };
 
