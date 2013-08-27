@@ -145,7 +145,7 @@ unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng){
         unsigned uProp = 0;
         unsigned uTryNum = 0;
         while(1){
-            cerr << ".";
+//            cerr << ".";
             uTryNum ++;
             
             // m_uCols is 1 based, but % makes choice 0 based
@@ -160,7 +160,7 @@ unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng){
 
             // resample if individual does not pass rejection sample
             if( gsl_rng_uniform(rng) <= vuRelRowNum[uProp] / vuRelRowDen[uProp] )
-                cerr << endl;
+//                cerr << endl;
                 break;
         }
     }
