@@ -712,14 +712,14 @@ void    Insti::estimate_AMH(unsigned uRelMatType) {
     // iterations.
 
     for (uint n = 0; n < bn + sn; n++) {
-//        cerr << "iter\t" << n << endl;
+        cerr << "iter\t" << n << endl;
         m_nIteration = n;
         fast sum = 0, pen = min<fast>(2 * (n + 1.0f) / bn, 1), iter = 0;
         pen *= pen;  // pen = 1 after bn/2 iterations
 
         // update all individuals once
         for (uint i = 0; i < in; i++) {
-//            cerr << "cycle\t" << i << endl;
+            cerr << "cycle\t" << i << endl;
             sum += solve(i, m_uCycles, pen, oRelGraph);
             iter += m_uCycles;
         }
