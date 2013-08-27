@@ -719,7 +719,8 @@ void    Insti::estimate_AMH(unsigned uRelMatType) {
 
         // update all individuals once
         for (uint i = 0; i < in; i++) {
-            cerr << "cycle\t" << i << endl;
+            if( i % 1000 == 0)
+                cerr << "cycle\t" << i << endl;
             sum += solve(i, m_uCycles, pen, oRelGraph);
             iter += m_uCycles;
         }
