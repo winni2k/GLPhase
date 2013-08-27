@@ -27,12 +27,12 @@ int main(int ac, char **av) {
     Insti::s_sLegendFile = "";
     Insti::s_sRefHapsFile = "";
     
-    uint threads = 0;
+//    uint threads = 0;
     vector <string> file;
     
     string sLogFile;
     int opt;
-    while ((opt = getopt(ac, av, "d:b:l:m:n:t:v:c:x:e:E:p:C:L:H:k")) >= 0) {
+    while ((opt = getopt(ac, av, "d:b:l:m:n:v:c:x:e:E:p:C:L:H:k")) >= 0) {
         switch (opt) {
         case    'd':
             Impute::density = atof(optarg);
@@ -45,9 +45,6 @@ int main(int ac, char **av) {
             break;
         case    'n':
             Impute::nn = atoi(optarg);
-            break;
-        case    't':
-            threads = atoi(optarg);
             break;
         case    'v':
             Impute::vcf_file.push_back(optarg);
@@ -96,6 +93,10 @@ int main(int ac, char **av) {
         case 'k':
             Insti::s_bKickStartFromRef = true;
             break;
+/*        case    't':
+            threads = atoi(optarg);
+            break;
+*/            
         default:
             Insti::document();
         }
@@ -109,13 +110,13 @@ int main(int ac, char **av) {
         }
     }
     
-    if (threads) omp_set_num_threads(threads);
+//    if (threads) omp_set_num_threads(threads);
     for (int i = optind; i < ac; i++) file.push_back(av[i]);
     sort(file.begin(), file.end());
     uint fn = unique(file.begin(), file.end()) - file.begin();
     if (!fn) Insti::document();
 
-#pragma omp parallel for
+//#pragma omp parallel for
     for (uint i = 0; i < fn; i++) {
 
         // keep track of time - these things are important!
@@ -178,7 +179,7 @@ int main(int ac, char **av) {
 
         // save results of estimation
         lp.save_vcf(file[i].c_str());
-//        lp.save_pare(file[i].c_str());
+//        lp.save_relationship_graph(file[i]);
 //        char temp[256];
 //        sprintf(temp, "mv %s %s.ok", file[i].c_str(), file[i].c_str());
 //        cerr << "rename\t" << system(temp) << endl;

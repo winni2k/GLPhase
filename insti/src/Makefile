@@ -33,7 +33,7 @@ impute.o: impute.cpp impute.h
 insti.o: insti.cpp insti.h impute.h emcchain.h relationshipGraph.h olivier/utils.h
 	$(CC) $(CXXFLAGS) -c $^ $(LIBS)
 
-relationshipGraph.o: relationshipGraph.cpp relationshipGraph.h
+relationshipGraph.o: relationshipGraph.cpp relationshipGraph.h olivier/utils.h
 	$(CC) $(CXXFLAGS) -c $^ $(LIBS)
 
 emcchain.o: emcchain.cpp emcchain.h
