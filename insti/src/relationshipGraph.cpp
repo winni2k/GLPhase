@@ -66,6 +66,11 @@ void RelationshipGraph::UpdateGraph( unsigned *p, bool bAccepted, unsigned uInd,
 
 void RelationshipGraph::UpdateGraph( unsigned *p, bool bAccepted, unsigned uInd){
 
+    RelationshipGraph::UpdateGraph( p, bAccepted, uInd, 1.0f);
+}
+
+void RelationshipGraph::UpdateGraph( unsigned *p, bool bAccepted, unsigned uInd, float fRatio){
+
     // don't update the graph if we aren't using it
     if(m_iGraphType == 2)
         return;
@@ -78,25 +83,25 @@ void RelationshipGraph::UpdateGraph( unsigned *p, bool bAccepted, unsigned uInd)
         unsigned uProp = Hap2Col(uPropHap);
 
         // update proposal hap or sample for current sample
-        m_2dRelationshipMatDen[uInd][uProp] ++;
+        m_2dRelationshipMatDen[uInd][uProp] += fRatio;
         if(bAccepted)
-            m_2dRelationshipMatNum[uInd][uProp] ++;
+            m_2dRelationshipMatNum[uInd][uProp] += fRatio;
 
         // update current sample for proposal hap or sample if proposal is not
         // from reference panel
         if(  m_2dRelationshipMatDen.size() > uProp ){
             if(m_bUsingHaps){
-                m_2dRelationshipMatDen[uProp][Col2Hap(uInd)]++;
-                m_2dRelationshipMatDen[uProp][Col2Hap(uInd)+1]++;
+                m_2dRelationshipMatDen[uProp][Col2Hap(uInd)] += fRatio;
+                m_2dRelationshipMatDen[uProp][Col2Hap(uInd)+1] += fRatio;
                 if(bAccepted){
-                    m_2dRelationshipMatNum[uProp][Col2Hap(uInd)] ++;
-                    m_2dRelationshipMatNum[uProp][Col2Hap(uInd)+1] ++;
+                    m_2dRelationshipMatNum[uProp][Col2Hap(uInd)] += fRatio;
+                    m_2dRelationshipMatNum[uProp][Col2Hap(uInd)+1] += fRatio;
                 }
             }
             else{
-                m_2dRelationshipMatDen[uProp][uInd]++;
+                m_2dRelationshipMatDen[uProp][uInd] += fRatio;
                 if(bAccepted)
-                    m_2dRelationshipMatNum[uProp][uInd] ++;
+                    m_2dRelationshipMatNum[uProp][uInd] += fRatio;
             }
         }
     }
@@ -139,14 +144,13 @@ unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng){
     // otherwise use the relationship graph
     else{
 
-        vector<unsigned> & vuRelRowNum = m_2dRelationshipMatNum[uInd];
-        vector<unsigned> & vuRelRowDen = m_2dRelationshipMatDen[uInd];
+        vector<float> & vuRelRowNum = m_2dRelationshipMatNum[uInd];
+        vector<float> & vuRelRowDen = m_2dRelationshipMatDen[uInd];
         unsigned uPropInd = 0;
         unsigned uProp = 0;
-        unsigned uTryNum = 0;
+//        unsigned uTryNum = 0;
         while(1){
-//            cerr << ".";
-            uTryNum ++;
+//            uTryNum ++;
             
             // m_uCols is 1 based, but % makes choice 0 based
             uPropHap = gsl_rng_get(rng) % Col2Hap( m_uCols );
@@ -158,9 +162,10 @@ unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng){
             if(uPropInd == uInd)
                 continue;
 
+            assert(vuRelRowNum[uProp] / vuRelRowDen[uProp] > 0 );
+            assert(vuRelRowNum[uProp] / vuRelRowDen[uProp] <= 1 );
             // resample if individual does not pass rejection sample
             if( gsl_rng_uniform(rng) <= vuRelRowNum[uProp] / vuRelRowDen[uProp] )
-//                cerr << endl;
                 break;
         }
     }
