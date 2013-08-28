@@ -352,13 +352,7 @@ fast Insti::solve(uint I, uint    &N, fast pen, RelationshipGraph &oRelGraph) {
 
         // Update relationship graph with proportion pen
         oRelGraph.UpdateGraph(p, bAccepted, I, pen);
-        
-        // update relationship graph with probability exp((prop - curr) * S)
-//        if(prop >curr)
-//            oRelGraph.UpdateGraph(p, bAccepted, I);
-//        else
-//            oRelGraph.UpdateGraph(p, bAccepted, I, exp((prop - curr) * S), rng);
-        
+                
         // log accepted proposals
         if(bAccepted){
             stringstream message;
@@ -388,7 +382,7 @@ void    Insti::estimate() {
     cerr.precision(3);
     cerr << "iter\tpress\tlike\tfold\n";
 
-    RelationshipGraph oRelGraph(2, in, hn + m_uNumRefHaps);
+    m_oRelGraph.init(2, in, hn + m_uNumRefHaps);
     
     // n is number of cycles = burnin + sampling cycles
     // increase penalty from 2/bn to 1 as we go through burnin
@@ -398,7 +392,7 @@ void    Insti::estimate() {
         fast sum = 0, pen = min<fast>(2 * (n + 1.0f) / bn, 1), iter = 0;
         pen *= pen;  // pen = 1 after bn/2 iterations
         for (uint i = 0; i < in; i++) {
-            sum += solve(i, m_uCycles, pen, oRelGraph);  // call solve=> inputs the sample number,
+            sum += solve(i, m_uCycles, pen, m_oRelGraph);  // call solve=> inputs the sample number,
             iter += m_uCycles;
         }
         swap(hnew, haps);
@@ -407,9 +401,6 @@ void    Insti::estimate() {
     }
     cerr << endl;
     result();    // call result
-
-    // swap empty member relationship graph with now filled graph to print out later
-//    swap(m_oRelGraph, oRelGraph);
 
 }
 
@@ -712,7 +703,7 @@ void    Insti::estimate_AMH(unsigned uRelMatType) {
     // create a relationshipGraph object
     // initialize relationship matrix
     // create an in x uSamplingInds matrix
-    RelationshipGraph oRelGraph(uRelMatType, in, hn + m_uNumRefHaps);
+    m_oRelGraph.init(uRelMatType, in, hn + m_uNumRefHaps);
 
     // n is number of cycles = burnin + sampling cycles
     // increase penalty from 2/bn to 1 as we go through burnin
@@ -728,7 +719,7 @@ void    Insti::estimate_AMH(unsigned uRelMatType) {
         for (uint i = 0; i < in; i++) {
 //            if( i % 1000 == 0)
 //                cerr << "cycle\t" << i << endl;
-            sum += solve(i, m_uCycles, pen, oRelGraph);
+            sum += solve(i, m_uCycles, pen, m_oRelGraph);
             iter += m_uCycles;
         }
         swap(hnew, haps);
@@ -737,11 +728,13 @@ void    Insti::estimate_AMH(unsigned uRelMatType) {
     }
     cerr << endl;
     result();    // call result
-
-    // swap empty member relationship graph with now filled graph to print out later
-//    swap(&m_oRelGraph, &oRelGraph);
 }
 
+void Insti::save_relationship_graph ( string sOutputFile ){
+    vector<string> refSampNames;
+    for(uint i = 0; i < ceil(m_uNumRefHaps/2); i++)  refSampNames.push_back("refSamp" + i);
+    m_oRelGraph.Save(sOutputFile, refSampNames, in);
+}
 
 void    Insti::document(void) {
     cerr << "\nimpute";
