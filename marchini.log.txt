@@ -232,8 +232,13 @@ CONVERGE meeting
 
 - full TGP with kickstart
 - kickstart + adaptive
+-> results: - done, nothing new
+
 - run Beagle on 1024 sites
   - what is ram and timing?
+-> results: - see timings.tsv and resMemUsage.tsv
+            - insti uses an order of magnitude less peak mem
+            - however, beagle could be constrained
 
 accurate
 fast
