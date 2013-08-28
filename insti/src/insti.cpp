@@ -407,6 +407,10 @@ void    Insti::estimate() {
     }
     cerr << endl;
     result();    // call result
+
+    // swap empty member relationship graph with now filled graph to print out later
+//    swap(m_oRelGraph, oRelGraph);
+
 }
 
 /* estimate_EMC -- Evolutionary Monte Carlo
@@ -709,7 +713,7 @@ void    Insti::estimate_AMH(unsigned uRelMatType) {
     // initialize relationship matrix
     // create an in x uSamplingInds matrix
     RelationshipGraph oRelGraph(uRelMatType, in, hn + m_uNumRefHaps);
-    
+
     // n is number of cycles = burnin + sampling cycles
     // increase penalty from 2/bn to 1 as we go through burnin
     // iterations.
@@ -733,6 +737,9 @@ void    Insti::estimate_AMH(unsigned uRelMatType) {
     }
     cerr << endl;
     result();    // call result
+
+    // swap empty member relationship graph with now filled graph to print out later
+//    swap(&m_oRelGraph, &oRelGraph);
 }
 
 

@@ -16,6 +16,7 @@
 #include <limits>
 #include <cassert>
 #include <cstdint>
+#include <utility>
 
 //require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
@@ -31,6 +32,9 @@ private:
     unsigned m_nIteration;
     unsigned m_uCycles;
     bool m_bUsingRefHaps = false;
+
+    // keep track of relationship graph
+    RelationshipGraph m_oRelGraph();
 
     // reference haplotypes
     vector<uint64_t> m_vRefHaps;
