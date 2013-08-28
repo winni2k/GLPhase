@@ -179,7 +179,7 @@ int main(int ac, char **av) {
 
         // save results of estimation
         lp.save_vcf(file[i].c_str());
-//        lp.save_relationship_graph(file[i]);
+        lp.save_relationship_graph(file[i]);
 //        char temp[256];
 //        sprintf(temp, "mv %s %s.ok", file[i].c_str(), file[i].c_str());
 //        cerr << "rename\t" << system(temp) << endl;

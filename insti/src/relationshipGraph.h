@@ -43,8 +43,9 @@ private:
 
 public:
 
-    // empty constructor makes my life easier sometimes
-    RelationshipGraph();
+    // has the class been successfully intitialized?
+    // initialization happens through a call to init()
+    bool m_bInitialized = false;
     
 // takes sample num and haplotype num as well as graph type
 // samples can be updated, while haplotypes can only be copied from
@@ -64,47 +65,14 @@ public:
 // 2 = no graph - all samples are equally related
 
     // m_bUsingRefPanel(uSamples * 2 < uHaplotypes)
-    RelationshipGraph(int iGraphType, unsigned uSamples, unsigned uHaplotypes)
-        : m_bUsingRelMat(iGraphType != 2), m_iGraphType(iGraphType) {
+    RelationshipGraph(int iGraphType, unsigned uSamples, unsigned uHaplotypes) {
+        init(iGraphType, uSamples, uHaplotypes);
+    };
 
-        // make sure we have at least as many haplotypes as samples
-        assert(uSamples * 2  <= uHaplotypes);
+    // need to call init after construction with empty constructor;
+    RelationshipGraph(){};
 
-        // figure out how many rows and columns our matrix is going to have
-
-        m_uRows = uSamples;
-        m_uCols = 0;
-
-        switch (m_iGraphType){
-        case 0:
-            m_uCols = ceil(uHaplotypes/2);
-            m_bUsingHaps = false;
-            break;
-        case 1:
-            m_uCols = uHaplotypes;
-            m_bUsingHaps = true;
-            break;
-        case 2:
-            m_uCols = ceil(uHaplotypes/2);
-            m_bUsingHaps = false;
-            break;
-        default:
-            std::cerr << "Unknown graph type selected: " << m_iGraphType << std::endl;
-            assert(false);
-        }
-
-        if(m_bUsingRelMat){
-            // resize the relationship matrixes to the appropriate size
-            // assign all numerators and denominators a count of 1
-            m_2dRelationshipMatNum.resize(m_uRows);
-            m_2dRelationshipMatDen.resize(m_uRows);
-            for(unsigned i = 0; i < m_uRows; i++){
-                m_2dRelationshipMatNum[i].resize(m_uCols,1);
-                m_2dRelationshipMatDen[i].resize(m_uCols,1);
-            }
-        }
-
-    }
+    void init(int iGraphType, unsigned uSamples, unsigned uHaplotypes);
 
     // returns a haplotype sampled using the relationship graph
     unsigned SampleHap(unsigned uInd, gsl_rng *rng);
@@ -121,7 +89,7 @@ public:
     // update graph with number fRatio instead of 1
     void UpdateGraph( unsigned *p, bool bAccepted, unsigned uInd, float fRatio);
 
-    void Save(std::string fileName);
+    void Save(std::string fileName, const vector<std::string> & name, unsigned uNumSamples);
 
 };
 
