@@ -182,13 +182,15 @@ bool    Insti::load_bin(const char *F) {
         si >> temp.chr >> temp.pos >> temp.all;
         site.push_back(temp);
         posi.push_back(temp.pos);  // add to end of vector
-        for (uint i = 0; i < 2 * in; i++) {
-            si >> rawp;
-            prob.push_back(rawp);
-        }  // store the raw GL , whith the prob of het and homo alt
+        for (uint j = 0; j < in; j++){
+            for (uint i = 0; i < 2; i++) {
+                si >> rawp;
+                prob.push_back(rawp);
+            }  // store the raw GL , whith the prob of het and homo alt
 
-        // add in dummy number to make prob the right size
-        prob.push_back(0.0f);
+            // add in dummy number to make prob the right size
+            prob.push_back(0.0f);
+        }
     }
 
     //clean up
