@@ -8,11 +8,14 @@
 
 // 
 
+#include "version.h"
 #include "impute.h"
 #include "insti.h"
 #include <chrono>
 
 int main(int ac, char **av) {
+
+    cerr<< "INSTI " << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_REVISION << endl << endl;
     Impute::bn = 56;
     Impute::sn = 200;
     Impute::nn = 2;
