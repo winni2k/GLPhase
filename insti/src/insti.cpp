@@ -558,7 +558,7 @@ void    Insti::estimate() {
         }
         swap(hnew, haps);
         if (n >= bn) for (uint i = 0; i < in; i++) replace(i);  // call replace
-        cerr << n << '\t' << pen << '\t' << sum / in / mn << '\t' << iter / in / in << '\r';
+        cerr << n << '\t' << pen << '\t' << sum / in / mn << '\t' << iter / in / in << endl;
     }
     cerr << endl;
     result();    // call result
