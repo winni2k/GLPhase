@@ -151,9 +151,54 @@ int Insti::RWSelection( const vector <EMCChain> &rvcChains){
 
 bool    Insti::load_bin(const char *F) {
 
-    bool retval = Impute::load_bin(F);
-    if(retval == false){ return false; }
+    // first clear all the data that will be filled
+    name.clear();
+    site.clear();
+    prob.clear();
+    posi.clear();
 
+    // open the gzip file passed in 
+    gzFile f = gzopen(F, "rt");
+    if (f == Z_NULL) return false;
+    char *buffer = new char [1024 * 1024];
+
+    // parse header
+    {
+        gzgets(f, buffer, 1024 * 1024);
+        string s;
+        istringstream si(buffer);
+        for (si >> s >> s >> s >> s; !si.eof(); si >> s) name.push_back(s);  // name stores all the sample names
+        in = name.size();  // number of samples
+    }
+
+    // parse each line at a time: chr position alleles GL1 GL2 GL3 ...
+    // save positions in posi vector
+    // save site information in site vector
+    // save GLs in prob vector of het and homo alt
+    Site temp;
+    fast rawp;
+    while (gzgets(f, buffer, 1024 * 1024) != NULL) {
+        istringstream si(buffer);
+        si >> temp.chr >> temp.pos >> temp.all;
+        site.push_back(temp);
+        posi.push_back(temp.pos);  // add to end of vector
+        for (uint i = 0; i < 2 * in; i++) {
+            si >> rawp;
+            prob.push_back(rawp);
+        }  // store the raw GL , whith the prob of het and homo alt
+
+        // add in dummy number to make prob the right size
+        prob.push_back(0.0f);
+    }
+
+    //clean up
+    mn = site.size();  // mn = number of sites
+    delete    []    buffer;
+    gzclose(f);
+    cerr << F << endl;
+    cerr << "sites\t" << mn << endl;
+    cerr << "sample\t" << in << endl;  // which sample
+    
     // setting number of cycles to use
     // here is best place to do it because in is defined in load_bin()
 
@@ -276,7 +321,123 @@ bool Insti::load_refPanel(string legendFile, string hapsFile){
 
 void Insti::initialize(){
 
-    Impute::initialize();
+        // all haplotypes are saved in 64 bit unsigned ints (a word), where each bit represents a position
+    // first, figure out how many words we'll need to store a hap and save in wn
+
+    // if total sites overlaps with 00111111,  then wn = mn number of sites shifter to right....
+    // we define a minimum block size of 64.
+    wn = (mn & WordMod) ? (mn >> WordShift) + 1 : (mn >> WordShift); 
+
+    hn = in * 2; //number of haps
+    haps.resize(hn * wn);  // space to store all haplotypes
+    hnew.resize(hn * wn);  // number of haplotypes = 2 * number of samples  ... haps mn is # of sites,
+    hsum.assign(hn * mn, 0); // one uint for every hap's site - what for?  To estimate allele probs
+//    pare.assign(in * in, 0);  // in x in matrix, one uint16 for every pair of individuals
+    pn = 3 * mn;  // set the number of transitions.  three transitions for every site
+    tran.resize(pn);  // tran looks like the transition matrix,
+                      // i.e. recombination rate
+//    vector<fast> temp(in * pn);    // transitions between 3 types of genotypes P(RR), P(RA) P(AA)
+
+    // initialize emission matrix
+    // 4 emissions, for each site 4 emissions * number of samples.  (0|0, 1|1 0|1 1|0)
+    en = 4 * mn;
+    emit.resize(in * en);
+
+    // is_par defines whether a site is in the paralogous region
+    // if the site is on chromosome X
+    // these magic numbers should probably get their own #define statement...
+    // move away from vector of bools to vector of chars
+    vector<bool> is_par(mn);
+    if (posi.size() == mn) {
+        for (uint m = 0; m < mn; m++)
+            is_par[m] = (posi[m] >= 60001 && posi[m] <= 2699520) || (posi[m] >= 154931044 && posi[m] <= 155270560);
+    }
+    if (posi.size() != mn) {
+        posi.resize(mn);
+        for (uint m = 0; m < mn; m++) posi[m] = m;
+    }    // if sites not stored
+
+    // initialize the mutation rate mu:
+    // If S is a harmonic series of length hn (number of haplotypes),
+    // then mu = 1/S ( hn + 1/S)
+    // initialize recombination rate rho based on SNP density
+    fast mu = 0, rho;
+    for (uint i = 1; i < hn; i++) mu += 1.0 / i;
+    mu = 1 / mu;
+    rho = 0.5 * mu * (mn - 1) / (posi[mn - 1] - posi[0]) / density;
+    mu = mu / (hn + mu);  // rho is recombination rate?  mu is mutation rate
+
+    // initialzie the site transition matrix tran
+    // posi is recombination between its position and previous
+    // r < 1; the larger the number of haplotypes, the smaller r gets
+    // tran is a site's recombination probability matrix
+    // r therefore must be a recombination rate estimate
+    for (uint m = mn - 1; m; m--) {
+        posi[m] = (posi[m] - posi[m - 1]) * rho;
+        fast r = posi[m] / (posi[m] + hn); 
+        tran[m * 3] = (1 - r) * (1 - r);
+        tran[m * 3 + 1] = r * (1 - r);
+        tran[m * 3 + 2] = r * r;  // for each position, transition.  r= alternative, 1-r= refrence? 4 state HMM with three transitions at each position
+    }
+
+    // initialize site mutation probability matrix
+    // diagonal is chance of no mutation
+    // the diagonal "rotated by 90 degrees" is the chance of both positions mutating
+    // all other entries are chance of just one mutation
+    pc[0][0] = pc[1][1] = pc[2][2] = pc[3][3] = (1 - mu) * (1 - mu); //	  probability of mutating no positions for each parents haplotype
+    pc[0][1] = pc[0][2] = pc[1][0] = pc[1][3] = pc[2][0] = pc[2][3] = pc[3][1] = pc[3][2] = mu * (1 - mu);  //	  probability of mutating one position for each parental haplotype
+    pc[0][3] = pc[1][2] = pc[2][1] = pc[3][0] = mu * mu;  //	  probability of mutating both positions for each parental haplotype
+
+    //
+    for (uint i = 0; i < in; i++) {
+        // define pointers to an individual's two haplotypes: ha and hb
+        word *ha = &haps[i * 2 * wn], *hb = ha + wn;
+                
+        // here an individual's transition and probability matrices are
+        // pulled out of the set of all individuals' matrices
+        // t = new genotype probability matrix
+        // e = phase emission matrix
+        // p = a site's genotype probability (initially GL)
+
+        // now iterate through each site
+//        fast *t = &temp[i * pn];
+        fast *e = &emit[i * en], *p = &prob[i * 3];   
+        for (uint m = 0; m < mn; m++, e += 4, p += hn) {
+            // set each hap's bit randomly to 0 or 1 (equal probability)
+            if (gsl_rng_get(rng) & 1) set1(ha, m);   
+            if (gsl_rng_get(rng) & 1) set1(hb, m);
+
+            // t will temporarily hold the genotype probabilities
+            vector<fast> t(3);
+
+            // initialize genotype probabilities as genotype likelihoods
+            if (is_x && male.find(name[i]) != male.end() && !is_par[m]) { /// treat it differently for genders
+                t[0] = max(1 - p[0] - p[1], 0.0f);
+                t[1] = 0;
+                t[2] = max(p[1], 0.0f);
+                if (t[0] + t[2]) {
+                    t[0] /= t[0] + t[2];
+                    t[2] = 1 - t[0];
+                }
+                else t[0] = t[2] = 0.5;
+            }
+            else {
+                // initial prob is the GL.
+                t[0] = max(1 - p[0] - p[1], 0.0f);
+                t[1] = max(p[0], 0.0f);
+                t[2] = max(p[1], 0.0f);  
+            }
+
+            // initial emit assumes all states are by random mutation only.  basic state is ref/ref
+            for (uint j = 0; j < 4; j++)
+                e[j] = pc[j][0] * t[0] + pc[j][1] * t[1] + pc[j][2] * t[1] + pc[j][3] * t[2];  
+
+            // save t in prob
+            for( int j = 0; i<3; i++) 
+                p[j] = t[j];
+        }
+    }
+//    swap(temp, prob);  // swap the assignments to each vector
 
     // load ref haps
     if(s_sLegendFile.size() > 0 || s_sRefHapsFile.size() > 0){
