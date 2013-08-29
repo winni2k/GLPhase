@@ -13,7 +13,6 @@ TEST(Insti, loadBin){
     ASSERT_EQ(3, lp.in);
 
     // testing sites
-    cerr << "site size: " << lp.site.size() << endl;
     EXPECT_EQ(1024, lp.site.size());
 
     // chr
@@ -33,6 +32,9 @@ TEST(Insti, loadBin){
     EXPECT_EQ("GT", lp.site[1023].all);
 
     // prob
+    // making sure prob size is correct
+    EXPECT_EQ(1024*3, lp.prob.size());
+        
     EXPECT_EQ(0, lp.prob[0]);
     EXPECT_EQ(1, lp.prob[1]);
     EXPECT_EQ(0, lp.prob[2]);
