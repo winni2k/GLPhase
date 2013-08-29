@@ -33,7 +33,7 @@ TEST(Insti, loadBin){
 
     // prob
     // making sure prob size is correct
-    EXPECT_EQ(1024*3, lp.prob.size());
+    EXPECT_EQ(1024*3*in, lp.prob.size());
         
     EXPECT_EQ(0, lp.prob[0]);
     EXPECT_EQ(1, lp.prob[1]);
