@@ -443,7 +443,7 @@ void Insti::initialize(){
 
             // save t in prob
             for( int j = 0; i<3; i++) 
-                p[j] = t[j];
+                prob[i*3 + j] = t[j];
         }
     }
 //    swap(temp, prob);  // swap the assignments to each vector
