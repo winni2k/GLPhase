@@ -58,7 +58,7 @@ TEST(Insti, loadBin){
     EXPECT_EQ(0.2f, lp.prob[1 + lp.mn * 3]);
     EXPECT_EQ(0, lp.prob[2 + lp.mn * 3]);
 
-    EXPECT_EQ(0, lp.prob[0 + lp.mn *2 * 3]);
+    EXPECT_EQ(1, lp.prob[0 + lp.mn *2 * 3]);
     EXPECT_EQ(0, lp.prob[1 + lp.mn *2 * 3]);
     EXPECT_EQ(0, lp.prob[2 + lp.mn *2 * 3]);
 
