@@ -44,9 +44,9 @@ TEST(Insti, loadBin){
     EXPECT_EQ(0, lp.prob[6]);
     EXPECT_EQ(0, lp.prob[7]);
     EXPECT_EQ(0, lp.prob[8]);
-    EXPECT_EQ(0, lp.prob[6]);
-    EXPECT_EQ(1, lp.prob[7]);
-    EXPECT_EQ(1, lp.prob[lp.in*9-5]);
+    EXPECT_EQ(0, lp.prob[9]);
+    EXPECT_EQ(1, lp.prob[10]);
+    EXPECT_EQ(1, lp.prob[lp.in*9-6]);
 
     // now initialize lp and see if probs still make sense
     lp.initialize();
@@ -59,9 +59,9 @@ TEST(Insti, loadBin){
     EXPECT_EQ(0, lp.prob[6]);
     EXPECT_EQ(0, lp.prob[7]);
     EXPECT_EQ(0, lp.prob[8]);
-    EXPECT_EQ(0, lp.prob[6]);
-    EXPECT_EQ(1, lp.prob[7]);
-    EXPECT_EQ(1, lp.prob[lp.in*9-5]);    
+    EXPECT_EQ(0, lp.prob[9]);
+    EXPECT_EQ(1, lp.prob[10]);
+    EXPECT_EQ(1, lp.prob[lp.in*9-6]);    
 }
 
 TEST(Insti, loadHaps){
