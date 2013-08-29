@@ -249,6 +249,10 @@ bool Insti::load_refPanel(string legendFile, string hapsFile){
                     if(tokens[i] != headerTokenized[i])
                         throw myException("Error in legend file (-L): header start does not match " + header + ".  Instead the first line of the header is: " + buffer + "\n");
                 }
+                catch (exception& e){
+                    cout << e.what() << endl;
+                    exit(2);
+                }
             }
             continue;
         }
