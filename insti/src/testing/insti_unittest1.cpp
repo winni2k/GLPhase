@@ -53,13 +53,13 @@ TEST(Insti, loadBin){
     EXPECT_EQ(0, lp.prob[1]);
     EXPECT_EQ(1, lp.prob[2]);
 
-    EXPECT_EQ(0.8f, lp.prob[0 + lp.mn]);
-    EXPECT_EQ(0.2f, lp.prob[1 + lp.mn]);
-    EXPECT_EQ(0, lp.prob[2 + lp.mn]);
+    EXPECT_EQ(0.8f, lp.prob[0 + lp.mn * lp.pn]);
+    EXPECT_EQ(0.2f, lp.prob[1 + lp.mn * lp.pn]);
+    EXPECT_EQ(0, lp.prob[2 + lp.mn * lp.pn]);
 
-    EXPECT_EQ(0, lp.prob[0] + lp.mn *2);
-    EXPECT_EQ(0, lp.prob[1 + lp.mn *2]);
-    EXPECT_EQ(0, lp.prob[2 + lp.mn *2]);
+    EXPECT_EQ(0, lp.prob[0 + lp.mn *2 * lp.pn]);
+    EXPECT_EQ(0, lp.prob[1 + lp.mn *2 * lp.pn]);
+    EXPECT_EQ(0, lp.prob[2 + lp.mn *2 * lp.pn]);
 
     EXPECT_EQ(0, lp.prob[3]);
     EXPECT_EQ(1, lp.prob[4]);
