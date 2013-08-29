@@ -44,7 +44,7 @@ class Impute {
 protected:
     gsl_rng *rng;
     uint hn; // 2 * number of individuals = number of haplotypes
-    uint pn; // 3 * number of sites = number of transitions
+    uint pn; // 3 * number of sites = number of gls
     uint en; // 4 * number of sites = number of possible emissions
     uint wn; // this is the number of blocks of size 64 to save haps in
     std::vector<word> haps, hnew;
