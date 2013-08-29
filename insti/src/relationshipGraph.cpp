@@ -178,9 +178,6 @@ unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng, bool bOnlyFro
 // sample a haplotype based on the relationship graph that does not come from individual uInd
 unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng){
 
-    // don't print graph if we don't have one...
-    if(m_iGraphType == 2) return(0);
-
     assert(uInd <= m_uRows - 1);
     unsigned uPropHap = Col2Hap(m_uCols); // this hap is out of bounds
 
@@ -232,6 +229,9 @@ unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng){
 // name should be a list of sample names that includes reference panel sample names
 // fileName should be the basename for output
 void    RelationshipGraph::Save(string fileName, const vector<string> & name, unsigned uNumSamples) {
+
+    // don't print graph if we don't have one...
+    if(m_iGraphType == 2) return;
 
     unsigned uExpectedNumNames = m_2dRelationshipMatDen[0].size();
     if(m_bUsingHaps) uExpectedNumNames = ceil(uExpectedNumNames/2);
