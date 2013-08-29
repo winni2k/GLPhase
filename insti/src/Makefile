@@ -39,7 +39,7 @@ relationshipGraph.o: relationshipGraph.cpp relationshipGraph.h olivier/utils.h
 emcchain.o: emcchain.cpp emcchain.h
 	$(CC) $(CXXFLAGS) -c $^ $(LIBS)
 
-main.o: main.cpp impute.h insti.h
+main.o: main.cpp impute.h insti.h version.h
 	$(CC) $(CXXFLAGS) -c $^ $(LIBS)
 
 olivier/utils.o: olivier/utils.cpp olivier/utils.h 
