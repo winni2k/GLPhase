@@ -170,7 +170,7 @@ bool    Insti::load_bin(const char *F) {
 // this is where I load the legend and haps files
 bool Insti::load_refPanel(string legendFile, string hapsFile){
 
-    cerr << "Loading Reference Panel..." << endl;
+//    cerr << "Loading Reference Panel..." << endl;
 
     // make sure both files are defined
     if(legendFile.size() == 0){
@@ -389,7 +389,7 @@ fast Insti::solve(uint I, uint    &N, fast pen, RelationshipGraph &oRelGraph) {
 void    Insti::estimate() {
     cerr.setf(ios::fixed);
     cerr.precision(3);
-    cerr << "iter\tpress\tlike\tfold" << endl;
+    cerr << "iter\tpress\tlike\tfold\trunTime\texpectedRunTime" << endl;
 
     m_oRelGraph.init(2, in, hn + m_uNumRefHaps);
     
