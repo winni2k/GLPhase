@@ -737,9 +737,10 @@ void    Insti::estimate_AMH(unsigned uRelMatType) {
 }
 
 void Insti::save_relationship_graph ( string sOutputFile ){
-    vector<string> refSampNames;
-    for(uint i = 0; i < ceil(m_uNumRefHaps/2); i++)  refSampNames.push_back("refSamp" + i);
-    m_oRelGraph.Save(sOutputFile, refSampNames, in);
+    vector<string> vsSampNames;
+    vsSampNames.insert(vsSampNames.end(), name.begin(), name.end());
+    for(uint i = 0; i < ceil(m_uNumRefHaps/2); i++)  vsSampNames.push_back("refSamp" + i);
+    m_oRelGraph.Save(sOutputFile, vsSampNames, in);
 }
 
 void    Insti::document(void) {
