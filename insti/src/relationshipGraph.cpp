@@ -237,7 +237,7 @@ void    RelationshipGraph::Save(string fileName, const vector<string> & name, un
     
     unsigned uExpectedNumNames = m_2dRelationshipMatDen[0].size();
     if(m_bUsingHaps) uExpectedNumNames = ceil(uExpectedNumNames/2);
-    cerr << "name.sive() = " << name.size << endl;
+    cerr << "name.sive() = " << name.size() << endl;
     cerr << "uExpectedNumNames = " << uExpectedNumNames << endl;
     assert(name.size() == uExpectedNumNames);
     
