@@ -261,12 +261,12 @@ void    RelationshipGraph::Save(string fileName, const vector<string> & name, un
     *denFile << "Denominator";
     *ratFile << "Numerator/Denominator";
 
-    for ( unsigned uFileNum = 0; uFileNum < ofiles.size(); uFileNum++){
+    for ( int iFileNum = 0; iFileNum < ofiles.size(); iFileNum++){
 
         // finish printing header
         for (unsigned i = 0; i < uNumSamples; i++){            
-            *ofiles[uFileNum] << "\t" << name[i];
-            if(m_bUsingHaps) *ofiles[uFileNum] << "\t" << name[i];
+            *ofiles[iFileNum] << "\t" << name[i];
+            if(m_bUsingHaps) *ofiles[iFileNum] << "\t" << name[i];
         }
         
         // print data rows
@@ -274,10 +274,10 @@ void    RelationshipGraph::Save(string fileName, const vector<string> & name, un
         for (unsigned uRowNum = 0; uRowNum < m_uRows; uRowNum++) {
 
             // print sample name
-            *ofiles[uFileNum] << "\t" << name[uRowNum];
+            *ofiles[iFileNum] << "\t" << name[uRowNum];
             for ( unsigned uColNum = 0; uColNum < m_uCols; uColNum++){
                 float fPrintVal = 0;
-                switch (uFileNum){
+                switch (iFileNum){
                 case 0:
                     fPrintVal = m_2dRelationshipMatNum[uRowNum][uColNum];
                     assert(fPrintVal != 0);
@@ -288,12 +288,12 @@ void    RelationshipGraph::Save(string fileName, const vector<string> & name, un
                     fPrintVal =  m_2dRelationshipMatNum[uRowNum][uColNum] /  m_2dRelationshipMatDen[uRowNum][uColNum];
                     assert(fPrintVal != 0);
                 default:
-                    cerr << "Programming error: RelationshipGraph::Save: Unknown file number:" << uFileNum << endl;
+                    cerr << "Programming error: RelationshipGraph::Save: Unknown file number:" << iFileNum << endl;
                     assert(false);
                 }
-                *ofiles[uFileNum] << "\t" << fPrintVal;
+                *ofiles[iFileNum] << "\t" << fPrintVal;
             }
-            *ofiles[uFileNum] << endl;
+            *ofiles[iFileNum] << endl;
         }
     }
     cerr << "\t...saving of relationship graph complete." << endl;
