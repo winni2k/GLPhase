@@ -386,7 +386,7 @@ fast Insti::solve(uint I, uint    &N, fast pen, RelationshipGraph &oRelGraph) {
 void    Insti::estimate() {
     cerr.setf(ios::fixed);
     cerr.precision(3);
-    cerr << "iter\tpress\tlike\tfold\n";
+    cerr << "iter\tpress\tlike\tfold" << endl;
 
     m_oRelGraph.init(2, in, hn + m_uNumRefHaps);
     
