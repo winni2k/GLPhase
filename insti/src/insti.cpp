@@ -273,8 +273,7 @@ bool Insti::load_refPanel(string legendFile, string hapsFile){
         throw 2;
     }
 
-    cerr << "Reference panel loaded successfully" << endl;
-    cerr << "\tNumber of referenc haplotypes loaded: " << m_uNumRefHaps << endl;
+    cerr << "Reference panel haplotypes\t" << m_uNumRefHaps << endl;
 
     return true;
 
