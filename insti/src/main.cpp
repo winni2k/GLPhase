@@ -120,7 +120,7 @@ int main(int ac, char **av) {
     if (!fn) Insti::document();
 
     if(fn != 1){
-        cerr << endl << "INSTI only accepts one input .bin file" << endl << enl;
+        cerr << endl << "INSTI only accepts one input .bin file" << endl << endl;
         Insti::document();
     }
     
