@@ -707,7 +707,7 @@ void    Insti::estimate_AMH(unsigned uRelMatType) {
     cerr.setf(ios::fixed);
     cerr.precision(3);
     cerr << "Running Adaptive Metropolis Hastings\n";
-    cerr << "iter\tpress\tlike\tfold\n";
+    cerr << "iter\tpress\tlike\tfold" << endl;
 
     // create a relationshipGraph object
     // initialize relationship matrix
@@ -733,7 +733,7 @@ void    Insti::estimate_AMH(unsigned uRelMatType) {
         }
         swap(hnew, haps);
         if (n >= bn) for (uint i = 0; i < in; i++) replace(i);  // call replace
-        cerr << n << '\t' << pen << '\t' << sum / in / mn << '\t' << iter / in / in << '\r';
+        cerr << n << '\t' << pen << '\t' << sum / in / mn << '\t' << iter / in / in << endl;
     }
     cerr << endl;
     result();    // call result
