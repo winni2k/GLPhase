@@ -170,6 +170,8 @@ bool    Insti::load_bin(const char *F) {
 // this is where I load the legend and haps files
 bool Insti::load_refPanel(string legendFile, string hapsFile){
 
+    cerr << "Loading Reference Panel..." << endl;
+
     // make sure both files are defined
     if(legendFile.size() == 0){
         cerr << "Need to define a legend file if defining a reference haplotypes file";
@@ -271,6 +273,8 @@ bool Insti::load_refPanel(string legendFile, string hapsFile){
         throw 2;
     }
 
+    cerr << "Reference panel loaded successfully" << endl;
+    cerr << "\tNumber of referenc haplotypes loaded: " << m_uNumRefHaps << endl;
 
     return true;
 

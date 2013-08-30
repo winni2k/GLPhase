@@ -15,7 +15,7 @@
 
 int main(int ac, char **av) {
 
-    cerr<< "INSTI " << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_REVISION << endl << endl;
+    cerr<< "INSTI -- v" << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_REVISION << endl << endl;
     Impute::bn = 56;
     Impute::sn = 200;
     Impute::nn = 2;
@@ -119,6 +119,11 @@ int main(int ac, char **av) {
     uint fn = unique(file.begin(), file.end()) - file.begin();
     if (!fn) Insti::document();
 
+    if(fn != 1){
+        cerr << endl << "INSTI only accepts one input .bin file" << endl << enl;
+        Insti::document();
+    }
+    
 //#pragma omp parallel for
     for (uint i = 0; i < fn; i++) {
 
