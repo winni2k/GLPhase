@@ -233,8 +233,12 @@ void    RelationshipGraph::Save(string fileName, const vector<string> & name, un
     // don't print graph if we don't have one...
     if(m_iGraphType == 2) return;
 
+    cerr << "Saving Relationship graph to prefix " << fileName << "..." << endl;
+    
     unsigned uExpectedNumNames = m_2dRelationshipMatDen[0].size();
     if(m_bUsingHaps) uExpectedNumNames = ceil(uExpectedNumNames/2);
+    cerr << "name.sive() = " << name.size << endl;
+    cerr << "uExpectedNumNames = " << uExpectedNumNames << endl;
     assert(name.size() == uExpectedNumNames);
     
     string numeratorFile = fileName + ".relGraph.num.gz";
@@ -292,6 +296,7 @@ void    RelationshipGraph::Save(string fileName, const vector<string> & name, un
             *ofiles[uFileNum] << endl;
         }
     }
+    cerr << "\t...saving of relationship graph complete." << endl;
 }
 
 
