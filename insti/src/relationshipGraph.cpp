@@ -277,18 +277,21 @@ void    RelationshipGraph::Save(string fileName, const vector<string> & name, un
             *ofiles[uFileNum] << "\t" << name[uRowNum];
             for ( unsigned uColNum = 0; uColNum < m_uCols; uColNum++){
                 float fPrintVal = 0;
-                switch ( static_cast<int>(uFileNum) ){
+                switch ( uFileNum ){
                 case 0:
                     fPrintVal = m_2dRelationshipMatNum[uRowNum][uColNum];
                     assert(fPrintVal != 0);
+                    break;
                 case 1:
                     fPrintVal = m_2dRelationshipMatDen[uRowNum][uColNum];
                     assert(fPrintVal != 0);
+                    break;
                 case 2:
                     fPrintVal =  m_2dRelationshipMatNum[uRowNum][uColNum] /  m_2dRelationshipMatDen[uRowNum][uColNum];
                     assert(fPrintVal != 0);
+                    break;
                 default:
-                    cerr << "Programming error: RelationshipGraph::Save: Unknown file number:" << uFileNum << endl;
+                    cerr << "Programming error: RelationshipGraph::Save: Unknown file number: " << uFileNum << endl;
                     assert(false);
                 }
                 *ofiles[uFileNum] << "\t" << fPrintVal;
