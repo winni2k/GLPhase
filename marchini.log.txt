@@ -282,3 +282,9 @@ scales well in ram and time
   - plug for haplotype consortium ?
   - did we find a hit? no, but we're working on it.
 
+###########
+# Fri Aug 30 10:28:37 BST 2013
+# CONVERGE skype date
+- send Jingchu instructions on how to extract GLs
+- verify bqsr method
+- something else?
