@@ -264,9 +264,9 @@ void    RelationshipGraph::Save(string fileName, const vector<string> & name, un
     for ( unsigned uFileNum = 0; uFileNum < ofiles.size(); uFileNum++){
 
         // finish printing header
-        for (unsigned i = 0; i < uNumSamples; i++){            
-            *ofiles[uFileNum] << "\t" << name[i];
-            if(m_bUsingHaps) *ofiles[uFileNum] << ".hapA" << "\t" << name[i] << ".hapB";
+        for (auto sName: name){
+            *ofiles[uFileNum] << "\t" << sName;
+            if(m_bUsingHaps) *ofiles[uFileNum] << ".hapA" << "\t" << sName << ".hapB";
         }
         *ofiles[uFileNum] << endl;
         
