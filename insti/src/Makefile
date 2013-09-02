@@ -30,26 +30,35 @@ clean:
 
 ## headers
 version.h.gch: version.h
-	$(CXX) $(CXXFLAGS) -x c++-header version.h
-
+	$(CXX) $(CXXFLAGS) -x c++-header $^
+insti.h.gch: insti.h
+	$(CXX) $(CXXFLAGS) -x c++-header $^
+impute.h.gch: impute.h
+	$(CXX) $(CXXFLAGS) -x c++-header $^
+olivier/utils.h.gch: olivier/utils.h
+	$(CXX) $(CXXFLAGS) -x c++-header $^
+relationshipGraph.h.gch: relationshipGraph.h
+	$(CXX) $(CXXFLAGS) -x c++-header $^
+emcchain.h.gch: emcchain.h
+	$(CXX) $(CXXFLAGS) -x c++-header $^
 
 ## object files
-impute.o: impute.cpp impute.h
-	$(CXX) $(CXXFLAGS) -c impute.cpp impute.h $(LIBS)
-
-insti.o: insti.cpp insti.h impute.h emcchain.h relationshipGraph.h olivier/utils.h
+impute.o: impute.cpp impute.h.gch
 	$(CXX) $(CXXFLAGS) -c $^ $(LIBS)
 
-relationshipGraph.o: relationshipGraph.cpp relationshipGraph.h olivier/utils.h
+insti.o: insti.cpp insti.h.gch impute.h.gch emcchain.h.gch relationshipGraph.h.gch olivier/utils.h.gch
 	$(CXX) $(CXXFLAGS) -c $^ $(LIBS)
 
-emcchain.o: emcchain.cpp emcchain.h
+relationshipGraph.o: relationshipGraph.cpp relationshipGraph.h.gch olivier/utils.h.gch
 	$(CXX) $(CXXFLAGS) -c $^ $(LIBS)
 
-main.o: main.cpp impute.h insti.h version.h.gch
+emcchain.o: emcchain.cpp emcchain.h.gch
 	$(CXX) $(CXXFLAGS) -c $^ $(LIBS)
 
-olivier/utils.o: olivier/utils.cpp olivier/utils.h 
+main.o: main.cpp impute.h.gch insti.h.gch version.h.gch
+	$(CXX) $(CXXFLAGS) -c $^ $(LIBS)
+
+olivier/utils.o: olivier/utils.cpp olivier/utils.h.gch 
 	$(CXX) -Wno-sign-compare $(CXXFLAGS) -c $^ $(LIBS)
 
 insti: main.o impute.o insti.o emcchain.o relationshipGraph.o olivier/utils.o
