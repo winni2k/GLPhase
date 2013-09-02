@@ -234,6 +234,9 @@ void    RelationshipGraph::Save(string fileName, const vector<string> & name, un
     if(m_iGraphType == 2) return;
 
     cerr << "Saving Relationship graph to prefix " << fileName << " ..." << endl;
+    cerr << "name: ";
+    for(auto iName:  name) cerr << "\t" << iName;
+    cerr << endl; exit(1);
     
     unsigned uExpectedNumNames = m_2dRelationshipMatDen[0].size();
     if(m_bUsingHaps) uExpectedNumNames = ceil(uExpectedNumNames/2);
