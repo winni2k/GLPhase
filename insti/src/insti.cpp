@@ -743,7 +743,7 @@ void Insti::save_relationship_graph ( string sOutputFile ){
     vector<string> vsSampNames;
     vsSampNames.insert(vsSampNames.end(), name.begin(), name.end());
     for(uint i = 0; i < ceil(m_uNumRefHaps/2); i++)  vsSampNames.push_back(string("refSamp") + sutils::uint2str(i));
-    m_oRelGraph.Save(sOutputFile, vsSampNames, in);
+    m_oRelGraph.Save(sOutputFile, vsSampNames);
 }
 
 void    Insti::document(void) {

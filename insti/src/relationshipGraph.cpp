@@ -228,15 +228,12 @@ unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng){
 // based on code from SNPTools::Impute
 // name should be a list of sample names that includes reference panel sample names
 // fileName should be the basename for output
-void    RelationshipGraph::Save(string fileName, const vector<string> & name, unsigned uNumSamples) {
+void    RelationshipGraph::Save(string fileName, const vector<string> & name) {
 
     // don't print graph if we don't have one...
     if(m_iGraphType == 2) return;
 
     cerr << "Saving Relationship graph to prefix " << fileName << " ..." << endl;
-    cerr << "name: ";
-    for(auto iName:  name) cerr << "\t" << iName;
-    cerr << endl; exit(1);
     
     unsigned uExpectedNumNames = m_2dRelationshipMatDen[0].size();
     if(m_bUsingHaps) uExpectedNumNames = ceil(uExpectedNumNames/2);

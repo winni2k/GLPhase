@@ -89,7 +89,7 @@ public:
     // update graph with number fRatio instead of 1
     void UpdateGraph( unsigned *p, bool bAccepted, unsigned uInd, float fRatio);
 
-    void Save(std::string fileName, const vector<std::string> & name, unsigned uNumSamples);
+    void Save(std::string fileName, const vector<std::string> & name);
 
 };
 
