@@ -43,22 +43,22 @@ emcchain.h.gch: emcchain.h
 	$(CXX) $(CXXFLAGS) -x c++-header $^
 
 ## object files
-impute.o: impute.cpp impute.h.gch
+impute.o: impute.cpp
 	$(CXX) $(CXXFLAGS) -c $^ $(LIBS)
 
-insti.o: insti.cpp insti.h.gch impute.h.gch emcchain.h.gch relationshipGraph.h.gch olivier/utils.h.gch
+insti.o: insti.cpp
 	$(CXX) $(CXXFLAGS) -c $^ $(LIBS)
 
-relationshipGraph.o: relationshipGraph.cpp relationshipGraph.h.gch olivier/utils.h.gch
+relationshipGraph.o: relationshipGraph.cpp 
 	$(CXX) $(CXXFLAGS) -c $^ $(LIBS)
 
-emcchain.o: emcchain.cpp emcchain.h.gch
+emcchain.o: emcchain.cpp
 	$(CXX) $(CXXFLAGS) -c $^ $(LIBS)
 
-main.o: main.cpp impute.h.gch insti.h.gch version.h.gch
+main.o: main.cpp
 	$(CXX) $(CXXFLAGS) -c $^ $(LIBS)
 
-olivier/utils.o: olivier/utils.cpp olivier/utils.h.gch 
+olivier/utils.o: olivier/utils.cpp
 	$(CXX) -Wno-sign-compare $(CXXFLAGS) -c $^ $(LIBS)
 
 insti: main.o impute.o insti.o emcchain.o relationshipGraph.o olivier/utils.o

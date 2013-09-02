@@ -275,7 +275,7 @@ void    RelationshipGraph::Save(string fileName, const vector<string> & name) {
         for (unsigned uRowNum = 0; uRowNum < m_uRows; uRowNum++) {
 
             // print sample name
-            *ofiles[uFileNum] << "\t" << name[uRowNum];
+            *ofiles[uFileNum] << name[uRowNum];
             for ( unsigned uColNum = 0; uColNum < m_uCols; uColNum++){
                 float fPrintVal = 0;
                 switch ( uFileNum ){
