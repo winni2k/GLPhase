@@ -151,9 +151,8 @@ int Insti::RWSelection( const vector <EMCChain> &rvcChains){
 
 bool    Insti::load_bin(const char *F) {
 
-    bool retval = Impute::load_bin(F);
-    if(retval == false){ return false; }
-
+    Impute::load_bin(F);
+    
     // setting number of cycles to use
     // here is best place to do it because in is defined in load_bin()
 
@@ -170,6 +169,8 @@ bool    Insti::load_bin(const char *F) {
 
 // this is where I load the legend and haps files
 bool Insti::load_refPanel(string legendFile, string hapsFile){
+
+//    cerr << "Loading Reference Panel..." << endl;
 
     // make sure both files are defined
     if(legendFile.size() == 0){
@@ -200,7 +201,14 @@ bool Insti::load_refPanel(string legendFile, string hapsFile){
             string header = "id position a0 a1";
             sutils::tokenize(header, headerTokenized);
             for(int i = 0; i != 4; i++){
-                assert(tokens[i] == headerTokenized[i]);
+                try{
+                    if(tokens[i] != headerTokenized[i])
+                        throw myException("Error in legend file ("+ legendFile +"): header start does not match:\n\t" + header + "\n.  Instead the first line of the header is:\n\t" + buffer + "\n");
+                }
+                catch (exception& e){
+                    cout << e.what() << endl;
+                    exit(2);
+                }
             }
             continue;
         }
@@ -265,6 +273,7 @@ bool Insti::load_refPanel(string legendFile, string hapsFile){
         throw 2;
     }
 
+    cerr << "Reference panel haplotypes\t" << m_uNumRefHaps << endl;
 
     return true;
 
@@ -277,7 +286,7 @@ bool Insti::load_refPanel(string legendFile, string hapsFile){
 void Insti::initialize(){
 
     Impute::initialize();
-
+        
     // load ref haps
     if(s_sLegendFile.size() > 0 || s_sRefHapsFile.size() > 0){
         load_refPanel( s_sLegendFile, s_sRefHapsFile);
@@ -352,13 +361,7 @@ fast Insti::solve(uint I, uint    &N, fast pen, RelationshipGraph &oRelGraph) {
 
         // Update relationship graph with proportion pen
         oRelGraph.UpdateGraph(p, bAccepted, I, pen);
-        
-        // update relationship graph with probability exp((prop - curr) * S)
-//        if(prop >curr)
-//            oRelGraph.UpdateGraph(p, bAccepted, I);
-//        else
-//            oRelGraph.UpdateGraph(p, bAccepted, I, exp((prop - curr) * S), rng);
-        
+                
         // log accepted proposals
         if(bAccepted){
             stringstream message;
@@ -386,9 +389,9 @@ fast Insti::solve(uint I, uint    &N, fast pen, RelationshipGraph &oRelGraph) {
 void    Insti::estimate() {
     cerr.setf(ios::fixed);
     cerr.precision(3);
-    cerr << "iter\tpress\tlike\tfold\n";
+    cerr << "iter\tpress\tlike\tfold\trunTime\texpectedRunTime" << endl;
 
-    RelationshipGraph oRelGraph(2, in, hn + m_uNumRefHaps);
+    m_oRelGraph.init(2, in, hn + m_uNumRefHaps);
     
     // n is number of cycles = burnin + sampling cycles
     // increase penalty from 2/bn to 1 as we go through burnin
@@ -398,18 +401,15 @@ void    Insti::estimate() {
         fast sum = 0, pen = min<fast>(2 * (n + 1.0f) / bn, 1), iter = 0;
         pen *= pen;  // pen = 1 after bn/2 iterations
         for (uint i = 0; i < in; i++) {
-            sum += solve(i, m_uCycles, pen, oRelGraph);  // call solve=> inputs the sample number,
+            sum += solve(i, m_uCycles, pen, m_oRelGraph);  // call solve=> inputs the sample number,
             iter += m_uCycles;
         }
         swap(hnew, haps);
         if (n >= bn) for (uint i = 0; i < in; i++) replace(i);  // call replace
-        cerr << n << '\t' << pen << '\t' << sum / in / mn << '\t' << iter / in / in << '\r';
+        cerr << n << '\t' << pen << '\t' << sum / in / mn << '\t' << iter / in / in << endl;
     }
     cerr << endl;
     result();    // call result
-
-    // swap empty member relationship graph with now filled graph to print out later
-//    swap(m_oRelGraph, oRelGraph);
 
 }
 
@@ -707,12 +707,12 @@ void    Insti::estimate_AMH(unsigned uRelMatType) {
     cerr.setf(ios::fixed);
     cerr.precision(3);
     cerr << "Running Adaptive Metropolis Hastings\n";
-    cerr << "iter\tpress\tlike\tfold\n";
+    cerr << "iter\tpress\tlike\tfold" << endl;
 
     // create a relationshipGraph object
     // initialize relationship matrix
     // create an in x uSamplingInds matrix
-    RelationshipGraph oRelGraph(uRelMatType, in, hn + m_uNumRefHaps);
+    m_oRelGraph.init(uRelMatType, in, hn + m_uNumRefHaps);
 
     // n is number of cycles = burnin + sampling cycles
     // increase penalty from 2/bn to 1 as we go through burnin
@@ -728,20 +728,23 @@ void    Insti::estimate_AMH(unsigned uRelMatType) {
         for (uint i = 0; i < in; i++) {
 //            if( i % 1000 == 0)
 //                cerr << "cycle\t" << i << endl;
-            sum += solve(i, m_uCycles, pen, oRelGraph);
+            sum += solve(i, m_uCycles, pen, m_oRelGraph);
             iter += m_uCycles;
         }
         swap(hnew, haps);
         if (n >= bn) for (uint i = 0; i < in; i++) replace(i);  // call replace
-        cerr << n << '\t' << pen << '\t' << sum / in / mn << '\t' << iter / in / in << '\r';
+        cerr << n << '\t' << pen << '\t' << sum / in / mn << '\t' << iter / in / in << endl;
     }
     cerr << endl;
     result();    // call result
-
-    // swap empty member relationship graph with now filled graph to print out later
-//    swap(&m_oRelGraph, &oRelGraph);
 }
 
+void Insti::save_relationship_graph ( string sOutputFile ){
+    vector<string> vsSampNames;
+    vsSampNames.insert(vsSampNames.end(), name.begin(), name.end());
+    for(uint i = 0; i < ceil(m_uNumRefHaps/2); i++)  vsSampNames.push_back(string("refSamp") + sutils::uint2str(i));
+    m_oRelGraph.Save(sOutputFile, vsSampNames);
+}
 
 void    Insti::document(void) {
     cerr << "\nimpute";

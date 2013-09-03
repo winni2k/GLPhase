@@ -537,12 +537,16 @@ void    Impute::replace(uint I) {
         }
 }
 
-
+// stores the average first and second allele in prob for lack of a better place to put them...
 void    Impute::result(void) {
     prob.resize(mn * hn);
-    fast norm = 1.0 / sn;
+    fast norm = 1.0 / sn; // sn = no. of sampling iterations
+
+    // mn = number of sites
     for (uint m = 0; m < mn; m++) {
         fast *p = &prob[m * hn];
+
+        //in = number individuals
         for (uint i = 0; i < in; i++, p += 2) {
             p[0] = hsum[i * 2 * mn + m] * norm;
             p[1] = hsum[(i * 2 + 1) * mn + m] * norm;

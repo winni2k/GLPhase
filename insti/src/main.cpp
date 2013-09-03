@@ -8,11 +8,14 @@
 
 // 
 
+#include "version.h"
 #include "impute.h"
 #include "insti.h"
 #include <chrono>
 
 int main(int ac, char **av) {
+
+    cerr<< "INSTI -- v" << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_REVISION << endl << endl;
     Impute::bn = 56;
     Impute::sn = 200;
     Impute::nn = 2;
@@ -116,6 +119,11 @@ int main(int ac, char **av) {
     uint fn = unique(file.begin(), file.end()) - file.begin();
     if (!fn) Insti::document();
 
+    if(fn != 1){
+        cerr << endl << "INSTI only accepts one input .bin file" << endl << endl;
+        Insti::document();
+    }
+    
 //#pragma omp parallel for
     for (uint i = 0; i < fn; i++) {
 
@@ -179,7 +187,7 @@ int main(int ac, char **av) {
 
         // save results of estimation
         lp.save_vcf(file[i].c_str());
-//        lp.save_relationship_graph(file[i]);
+        lp.save_relationship_graph(file[i]);
 //        char temp[256];
 //        sprintf(temp, "mv %s %s.ok", file[i].c_str(), file[i].c_str());
 //        cerr << "rename\t" << system(temp) << endl;
