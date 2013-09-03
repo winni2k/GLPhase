@@ -188,5 +188,58 @@ What to discuss with Jonathan tomorrow
 -pasaniuc paper
 -> sequencing methods came out on top, but check sample prep cost etc.
 
+###########
+# Mon Jun 10 15:31:08 BST 2013
+New todo list:
 
+Wimpute
+- Run Beagle on test regions with TGP samples (with and without ref
+panel)
+- Implement AMH with correction for temp
 
+- Implement reference panel for wimpute
+-- Run aggressive imputation on chr10 and chr3 regions from Tim
+
+- Implement SNPTools multithreaded updates
+
+###########
+# Thu Jun 13 10:04:27 BST 2013
+CONVERGE meeting
+
+- talk to jieqin to get 4 samples sequenced to 10x
+
+###########
+# Mon Jul 22 15:13:21 BST 2013
+- weighting update by contribution to hmm likelihood
+
+###########
+# Wed Aug 21 10:35:12 BST 2013
+- look at iterations reduction
+- reduce burnin
+- reduce RAM 
+-> result: - using all floats and got rid of unnecessary matrix
+             short peak usage is 483 MB with normal run usage at 353 MB
+           - RAM usage will scale linearly with number of samples
+           - Can drastically reduce RAM usage by using memory mapped
+             files with asynchronous loading, as much of the data is
+             accessed sequentially one sample at a time
+           - AMH will likely increase RAM usage, but this could be
+             kept low using sparse matrices
+
+- instiAMH is c100
+-> results: - change made
+            - impute is now STimpute to be clearer
+
+- full TGP with kickstart
+- kickstart + adaptive
+-> results: - done, nothing new
+
+- run Beagle on 1024 sites
+  - what is ram and timing?
+-> results: - see timings.tsv and resMemUsage.tsv
+            - insti uses an order of magnitude less peak mem
+            - however, beagle could be constrained
+
+accurate
+fast
+scales well in ram and time

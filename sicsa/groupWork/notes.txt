@@ -1,0 +1,67 @@
+###########
+# Wed Jul 10 11:40:49 BST 2013
+# changed dataset
+
+Tasks
+- take a look at test data
+- create test data set
+
+
+###########
+# Mon Jul 08 16:51:30 BST 2013
+
+Ideas
+- map scaled by price
+- round trip search
+- how do we allow emergent findings through Vis?
+- 
+
+factors for regression
+- month
+- price of oil
+- u
+
+Questions
+- when to book flight for 
+  -- specific date
+  -- connection
+  -- 
+
+
+two tasks
+- predicting future data
+ -- model needs to be updatable
+ 
+- visualization methods
+
+
+DATA
+- 6 years of budget airline prices
+- from to time how much it was
+- 1.5T uncompressed
+
+
+###########
+# Tue Jul 09 15:13:18 BST 2013
+
+# Syrian ISP data
+IDEAS
+- top domains
+- blocked domains
+- variation of blocked domains with time
+- track users over time
+- GET requests
+- chat system use
+- browser usage
+- ip address locations
+- topic modeling
+- what are people interested in?
+- google query terms are blocked
+
+selection.datavisualization.ch
+
+# Tue 16:49:55
+# domains of interest
+
+
+√√
