@@ -1,0 +1,566 @@
+%%% transfer.tex ---
+
+%% Author: wkretzsch@gmail.com
+%% Version: $Id: transfer.tex,v 0.0 2013/05/20 09:54:17 winni Exp$
+
+\documentclass[a4paper]{article}
+%\documentclass[nobib,a4paper]{tufte-handout}
+
+% \renewcommand{\cite}[2][0pt]{\sidenote[][#1]{\fullcite{#2}}}
+%% \usepackage[debugshow,final]{graphics}
+
+\usepackage{color}
+
+% For comments in blue.
+\newcommand{\blue}[1]{\textsf{\textbf{\textcolor{blue}{[#1]}}}}
+% For comments in magenta.
+\newcommand{\magenta}[1]{\textsf{\textbf{\textcolor{magenta}{[#1]}}}}
+% For comments in red
+\newcommand{\red}[1]{\textsf{\textbf{\textcolor{red}{[#1]}}}}
+% \linespread{1.6} % for double spacing
+
+\usepackage{graphicx}
+\usepackage{booktabs}
+
+%\morefloats
+
+\newcommand{\rsq}{$\mbox{r}^2$~}
+\newcommand{\ttilde}{\raise.17ex\hbox{$\scriptstyle\sim$}}
+
+\usepackage{tabularx}
+\usepackage{subcaption}
+\usepackage{comment}
+
+% bibliography
+\usepackage{csquotes}
+\usepackage[
+backend=biber,
+style=authoryear-ibid,
+url=false,
+doi=false,
+isbn=false,
+autocite=inline
+]{biblatex}
+% \usepackage[backend=biber,style=nature]{biblatex}
+\addbibresource{transfer.bib}
+
+\begin{document}
+
+\title{Methods for phasing and imputation of very low coverage sequencing data}
+% \date{\today}
+\author{Warren W. Kretzschmar\\
+ \emph{PRS, DPhil Program in Genomic Medicine and Statistics}\\
+ \\
+  Supervisor: Jonathan Marchini\\
+  \emph{Department of Statistics}}
+
+\maketitle
+
+%%%% ##########################################################################
+
+\begin{abstract}
+
+  The CONVERGE study of Major Depression has collected low-coverage (1x)
+  sequencing data on 12,000 Chinese women. This study is one of the
+  largest whole-genome sequencing studies currently underway. To
+  accurately infer genotypes in these samples, linkage-disequilibrium-based genotype
+  refinement methods are needed.  However, the study size makes this a
+  challenging proposition. I am investigating several computationally
+  tractable strategies for calling genotypes.
+
+  I have applied current methods to genotype likelihoods at 13,837,179
+  1000 Genomes Project Phase 1 (TGPP1) SNPs polymorphic in TGPP1
+  Asians. The computational cost of inferring genotypes for 9300 samples
+  of the CONVERGE cohort at these sites was equivalent to \ttilde{}2,000 CPU days on a single core
+  of a current Intel processor. I measured the accuracy of our
+  imputed genotypes using external validation genotypes on 16
+  individuals typed on the genome-wide Illumina Zhonghua-8 SNP chip with
+  890,371 SNPs. The mean imputation \rsq at minor allele
+  frequencies $<0.5\%$,
+  $0.5-1\%$, $1-2\%$, $2-5\%$, and $>5\%$ are $0.21$, $0.57$, $0.70$, $0.82$, and
+  $0.92$.
+
+  Current MCMC schemes for
+  phasing and genotype calling do not explicitly encapsulate the local
+  IBD structure between individuals. I am investigating new adaptive
+  MCMC schemes to sample haplotypes and genotypes that underlie each
+  sample that try to learn details about local haplotype sharing as the
+  MCMC sampler evolves.
+
+\end{abstract}
+
+\section*{Introduction}
+
+By 2020, depression is projected to become the second largest
+contributor to worldwide disability-adjusted life years
+lost, right after ischemic heart disease~\autocite{Murray1996}. It is a
+complex disease caused both by environmental and genetic effects, with
+twin studies estimating the heritability as
+$31\%-47\%$~\autocite{Sullivan2000}.  Despite having this
+major genetic component, no genome-wide association study for major
+depression has been able to find a genome-wide significant
+result~\autocite{Kohli2011,Rietschel2010,Wray2012,Muglia2010,Lewis2010,Sullivan2009,Boomsma2008,Shyn2011}
+and replicate it in an independent cohort.
+Similarly, a meta-analysis of 9,420 cases and 9,519 controls also
+found no result with genome-wide significance~\autocite{Ripke2013}.
+
+Two reasons why previous genetic
+association studies may not have found consistent signals for depression
+are that it may be a heterogeneous phenotype and that
+important genetic variation may not be captured by genotyping arrays.
+CONVERGE (China, Oxford and VCU Experimental Research on Genetic
+Epidemiology) is a genome-wide genetic association study on major
+depression in 12,000 Chinese women that seeks to address phenotype
+heterogeneity by collecting a large number of phenotypes for each
+sample and only sampling women with very extreme cases of depression,
+and lack of sensitivity to multiple types of genetic variation 
+by using very low coverage next generation sequencing to genotype
+samples. This makes CONVERGE one of the largest sequencing studies in
+the world.
+
+It is well established that imputation methods can substantially
+improve genotype calls from low-coverage sequence data
+~\autocite{Project2012, Li2010, Wang2013}.
+The Marchini Group's experience from the 1000 Genomes Projects is that
+the most accurate genotype calls can be obtained by first applying the BEAGLE~\autocite{Browning2009}
+method to obtain an initial set of estimated haplotypes. These
+haplotypes are then used to initialize a program such as
+Impute2~\autocite{Howie2009} or MaCH~\autocite{Li2010} to further refine the
+estimates.
+However, using this strategy on the CONVERGE cohort requires a large
+amount of computational resources.
+
+In the following, I present the work I have done thus far in my DPhil project on
+the generation of a genotype call set for the CONVERGE project, and
+the work I intend to complete during the remainder of my DPhil on
+haplotype phasing and imputation methods for large sample sizes of
+very low coverage sequencing data.
+
+\section*{Results}
+
+
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth, trim=2cm 0cm 2cm 2cm,clip=true ]{{{img/imputationRounds}}}
+  \caption{\emph{Summary of CONVERGE imputation parameters}. Round 1 was a
+      pilot for imputing the whole-genome on all available samples in
+      round 2.  Downsampled TGPP1 BAM files were removed for round 2 to
+      maximize haplotype reference panel size.}
+    \label{fig:imputationRounds}
+\end{figure}
+
+The CONVERGE genotype call set was generated over two rounds (see figure~\ref{fig:imputationRounds}).
+Round 1 was a pilot designed to determine good parameters for imputing
+the whole CONVERGE data set in round 2. The principal findings from round 1 were
+that using a reference panel increased imputation accuracy, and that
+BEAGLE iterations and chunk size could be reduced to 6 and 700kb,
+respectively, without appreciable loss in imputation accuracy.
+
+\subsection*{Imputation Round 1}
+
+In an effort to increase BEAGLE imputation
+accuracy, I examined the
+effect of using a reference panel on genotype
+imputation accuracy. 
+I performed imputation on 5680 CONVERGE and three TGPP1 Chinese
+samples on all TGPP1 single nucleotide polymorphisms (SNPs) on
+chromosome 20 (82,186 SNPs). High quality 
+genotype calls from 10x sequencing data were available for the three
+TGPP1 samples. I found that adding a reference panel of 496 TGPP1
+Asian haplotypes increased \rsq by 20 and 10 percentage points at minor
+allele frequencies (MAF) $<5\%$ and $>5\%$, respectively. Increasing
+BEAGLE iterations from the default 10 to 20 did not change imputation
+accuracy  (see figure~\ref{fig:2mbChunks}).
+
+\begin{figure}[htbp]
+  \includegraphics[width=\textwidth]{{{img/5683.4x/rsquares.tgp.converge.82093.niter20.binned_by_varaf.1000SNP_bin_sizes.ggplot}}}
+  \caption{\emph{\rsq between BEAGLE imputed genotype dose estimates
+      and genotypes in three Chinese TGPP1 samples}. Genotypes were
+    called from 10x Illumina sequencing data at all TGPP1 sites on chromosome
+    20. Sites were binned as a function
+    of MAF in TGPP1 Asians.  BEAGLE was run for 10 iterations with and without a
+    reference panel and for 20 iterations with a reference panel. The
+    lines and semi-transparent ribbons represent the mean and two
+    times the standard deviation of \rsq around the mean,
+    respectively, of the three samples at each bin. }
+  \label{fig:2mbChunks}
+\end{figure}
+
+\begin{table}[htbp]
+  \begin{subtable}[b]{0.45\textwidth}
+  \centering
+  \begin{tabular}{rrrr}
+    \toprule
+    Chr & Start & End & Sites\\
+    \midrule
+    20 & 7000 & 9000 & 28247\\
+    20 & 35000 & 37000 & 25290\\
+    20 & 57400 & 59400 & 28649\\
+    \bottomrule
+  \end{tabular}
+  \caption{2mb regions}
+  \label{tab:2mbChunks}
+\end{subtable}
+\hfill
+\begin{subtable}[b]{0.45\textwidth}
+  \centering
+  \begin{tabular}{rrrr}
+    \toprule
+    Chr & Start & End & Sites\\
+    \midrule
+    20 & 7650 & 8350 & 9755\\
+    20 & 35650 & 36350 & 9356\\
+    20 & 58050 & 58750 & 10329\\
+    \bottomrule
+  \end{tabular}
+  \caption{700kb regions}
+  \label{tab:700kbChunks}
+\end{subtable}
+\caption{\emph{Coordinates and number of sites contained in regions
+    used in BEAGLE optimization experiments.} Coordinates are given in
+    kb.}
+\label{tab:chunks}
+\end{table}
+
+In order to reduce BEAGLE run time and memory requirements to under 2
+GB of resident RAM\footnote{The target platform for my computations was a cluster with 2 GB of RAM
+available per core.}, I
+investigated the effect of reducing chunk size on imputation accuracy.
+From past experience of running BEAGLE on sequencing data, I estimated
+that a chunk size of 700kb would be sufficiently small
+to fit the memory constraint.
+The 700kb regions selected for testing were chosen to lie centered within three 2mb chunks
+on chromosome 20  previously estimated in order to
+compare 2mb to 700kb regions.  Table~\ref{tab:chunks} lists the 2mb
+and 700kb chunks used for these experiments. At the
+same time, I also investigated reducing the number of iterations for
+BEAGLE. This experiment was only performed on three regions to keep
+the analysis simple.  This was necessary because I was under a grant
+dead-line to complete round 2 of imputation. 
+
+I also investigated increasing the reference panel from 496 TGPP1
+Asians haplotypes to almost all TGPP1 haplotypes (2178). However, I found
+that this increased BEAGLE resident memory requirements from well
+under 2 GB to well over 4 GB and approximately tripled run time.
+Together, this would have increased run time nine fold on the
+cluster we had available, so I did not further investigate imputation
+accuracy using the complete TGPP1 haplotype reference panel at that time.
+
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{{{img/5683.4x/rsquares.tgp.converge.29440.700kb.binned_by_varaf.1000SNP_bin_sizes.ggplot}}}
+  \caption{\emph{\rsq of BEAGLE imputed dose estimates
+      decreases at 4 BEAGLE iterations and remains high in 700kb
+      chunks}.
+    Genotypes were called 
+    from 10x Illumina sequencing data.  Sites were binned as a function
+    of MAF in TGPP1 Asians. The 700kb region used is the first listed in
+    table~\ref{tab:700kbChunks}. BEAGLE was run for 4, 6, and 10
+    iterations with a reference panel, and for 10 iterations on the
+    first 2mb region listed in table~\ref{tab:2mbChunks}. The
+    lines and semi-transparent ribbons represent the mean and two
+    times the standard deviation of \rsq around the mean,
+    respectively, of three Chinese TGPP1 samples at each bin.}
+  \label{fig:700kbChunks}
+\end{figure}
+
+Figure~\ref{fig:700kbChunks} shows imputation accuracy binned by
+MAF for one 2mb and one 700kb region at 4, 6, and 10 BEAGLE iterations.
+Although imputation accuracy for 4 iterations does decrease
+appreciably, imputation accuracy for 6 and 10 iterations are similar.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{{{img/5683.4x/rsquares.tgp.converge.29440.700kb.binned_by_region_loc.1000SNP_bin_sizes.ggplot}}}
+\caption{\emph{\rsq of BEAGLE imputed dose estimates is reduced in the
+    last 50kb tails of three 700kb regions}. Genotypes were called 
+    from 10x Illumina sequencing data.  Sites were binned as a function
+    of relative region location from the start of the region. The
+    700kb regions used can be found in table~\ref{tab:700kbChunks}. 
+    BEAGLE was run for 6 and 10
+    iterations with a reference panel, and for 10 iterations on the
+    2mb regions listed in table~\ref{tab:2mbChunks}. The
+    lines and semi-transparent ribbons represent the mean and two
+    times the standard deviation of \rsq around the mean,
+    respectively, of the three Chinese TGPP1 samples at each bin.}
+  \label{fig:700kbChunkBaseLoc}
+\end{figure}
+
+\begin{comment}
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{{{img/5683.4x/rsquares.tgp.converge.29440.700kb.binned_by_location.loc1}}}
+  \caption{Data from figure~\ref{fig:700kbChunks} plotted as a function
+    of chromosomal position for the first chunk of size 700kb (see
+    table~\ref{tab:700kbChunks}).}
+  \label{fig:700kbChunk1}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{{{img/5683.4x/rsquares.tgp.converge.29440.700kb.binned_by_location.loc2}}}
+  \caption{Data from figure~\ref{fig:700kbChunks} plotted as a function
+    of chromosomal position for the second chunk of size 700kb (see
+    table~\ref{tab:700kbChunks}).}
+  \label{fig:700kbChunk2}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{{{img/5683.4x/rsquares.tgp.converge.29440.700kb.binned_by_location.loc3}}}
+  \caption{Data from figure~\ref{fig:700kbChunks} plotted as a function
+    of chromosomal position for the third chunk of size 700kb (see
+    table~\ref{tab:700kbChunks}).}
+  \label{fig:700kbChunk3}
+\end{figure}
+\end{comment}
+
+From figure~\ref{fig:700kbChunkBaseLoc}
+%figures~\ref{fig:700kbChunk1},~\ref{fig:700kbChunk2},~and~\ref{fig:700kbChunk3}
+it is clear that reducing chunk size from
+2mb to 700kb only results in a decrease in accuracy at the 50kb
+margins of the chunks listed in table~\ref{tab:700kbChunks}. BEAGLE
+with 6 iterations continues to perform as well as with 10 iterations.
+Accordingly, I chose chunk sizes of 700kb with 50kb overlap with neighboring
+chunks, and 6 BEAGLE iterations for round 2 of imputation.
+
+\subsection*{Imputation round 2}
+
+Whole-genome imputation of 9300 CONVERGE samples at 13,837,179 SNPs
+using 572 reference haplotypes resulted in a mean \rsq of $92\%$ for
+SNPs with a MAF $>5\%$ (see figure~\ref{fig:wgsRsq}).  This means that
+an association study on the imputed genotypes would have the power to
+detect an association at alleles with MAF $>5\%$ equivalent to the
+power of approximately 8556 samples genotyped on a microarray
+chip~\autocite{Pritchard2001}.
+
+The computational cost of imputation on an Intel Xeon based cluster was between
+1000 and 3000 CPU hours.  This was after reducing the number of sites
+to impute by 60\% from all TGPP1 SNPs to only the ones polymorphic in
+TGPP1 Asians.
+
+\begin{figure}[htbp]
+  \includegraphics[width=\textwidth]{{{img/9300/handSelect.wgs.results}}}
+  \caption{\emph{\rsq between round 2 imputed dose estimates and
+      genotypes in 16 CONVERGE samples}. Genotypes were called from a
+    Zhonghua-8 900k SNP chip and binned by minor allele frequency. The
+    solid line and semi-transparent ribbon represent the mean and two
+    times the standard deviation of \rsq around the mean,
+    respectively, of the 16 samples at each bin. }
+  \label{fig:wgsRsq}
+\end{figure}
+
+
+\section*{Discussion}
+
+Imputation accuracy in round 2 was as good as, or better than round 1
+imputation accuracy and it matches what has been predicted for 1x
+coverage data from simulation studies~\autocite{Pasaniuc2012}.
+However, the increase in accuracy from round 1 to round 2 
+is confounded by the technology used to determine ``true'' genotypes.
+In round 1, genotypes were called from 10x Illumina sequencing data at all TGPP1
+SNPs (approximately. 40 million SNPs), while in round 2 genotypes were called
+from a genotyping array at only 890,371 SNPs.  It is possible that the
+sites used in the SNP chip may be biased towards sites that are easy
+to genotype because they are in more accessible parts of the
+genome. Therefore, these sites may on average have higher coverage
+than the rest of the TGPP1 sites.  We are sequencing
+four CONVERGE samples to 10x to get comparable results.
+
+A major limitation in this sort of imputation study is computational
+power. Of all the imputation methods currently available, BEAGLE is
+probably the program that provides the best genotyping accuracy at an
+affordable computational cost for 1x coverage data and a sample size
+around ten thousand. In future rounds of CONVERGE it is expected that we
+will do our own site discovery, which would greatly increase the
+number of sites to impute, and double or quadruple the number of
+samples.  It is unclear whether computational power available to the
+project will increase at the same rate that our sample size will
+increase.  If we want high-quality genotypes, then we cannot wait for
+computational power to increase until we can run
+Impute2~\autocite{Howie2009} or MaCH~\autocite{Li2010}. Instead, we
+need an imputation method that can deliver high accuracy genotype
+calls at the computational cost of BEAGLE. 
+
+Furthermore, these sample size considerations are not going to remain specific to
+the CONVERGE project. \Textcite{Pasaniuc2012} argue that sequencing at
+coverage as low as 0.1x might one day deliver a cheaper alternative to microarray
+genotyping. However, this will only be feasible if the computational
+cost of imputation can be further reduced.
+
+Another trend to consider is that haplotype reference panels
+are expected to increase in size~\autocite{Li2010}. In the next few
+years, our group expects that haplotype reference panels numbering
+more than ten thousand haplotypes will become available.  This is a
+great opportunity for increasing
+imputation accuracy. However, it also requires the development of
+methods that can efficiently search this increased haplotype space.
+
+I believe the SNPTools~\autocite{Wang2013} approach to phasing and
+imputation can be adapted to efficiently impute very low coverage sequencing
+data that scales well with sample and reference panel size.
+
+The SNPTools method for phasing and imputation from genotype
+likelihoods is similar to the MaCH~\autocite{Li2010} approach.  A
+sample is modeled as an imperfect mosaic of a set of haplotypes drawn
+from the current haplotype estimates of the remaining
+samples using a Hidden Markov Model (HMM)~\autocite{Li2003}. Both
+methods use a Markov Chain Monte Carlo (MCMC) scheme to iteratively
+update the haplotypes of one sample at a 
+time based on the current estimate of the haplotypes of all the other
+samples. In the case of SNPTools, the MCMC scheme is a
+Simulated Annealing Metropolis-Hastings sampler~\autocite{Kirkpatrick1983}.
+The most
+striking difference between the two methods is that to update a
+sample's haplotypes, SNPTools constrains itself to copying from only
+four haplotypes, while MACH uses a much larger random subset of the haplotypes.
+Both SNPTools and MACH
+outperform BEAGLE in genotype and haplotype imputation
+accuracy~\autocite{Wang2013, Li2010}, albeit at a higher computational
+cost.
+However, the simplicity of the SNPTools HMM means that the HMM run time is
+independent of the size of the haplotype sampling space. This allows
+me to focus on optimizing the MCMC method that SNPTools uses to find
+candidate haplotypes to phase.
+In fact, benchmarking of SNPTools on
+the CONVERGE data set shows that SNPTools spends 99\% of its
+computational time determining which four haplotypes to copy
+from.
+Furthermore, I believe that the relatively simple MCMC sampling scheme
+employed by SNPTools leaves considerable room for improvement.
+
+One
+category of schemes termed Adaptive
+Metropolis-Hastings~\autocite{Haario2001} is of particular interest, as it allows the
+MCMC sampler to learn from past
+samples to weight the sampling distribution towards samples that
+are likely to increase the likelihood of the HMM.  In this case, I
+propose to replace the Simulated Annealing Metropolis-Hastings with an
+Adaptive Metropolis-Hastings
+sampler that keeps track of which haplotypes tend to increase the
+likelihood of the HMM when used to phase a particular sample. While I have
+implemented these changes to the SNPTools code, my accuracy
+comparisons are still in a preliminary stage due to the long time that
+SNPTools takes to run on the CONVERGE data set (approximately 5000 CPU
+days to impute chromosome 20).
+
+\section*{Timetable}
+The timetable for my DPhil can be found in table~\ref{tab:timetable}.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabularx}{\textwidth}{rrX}
+    \toprule
+    Start & End & Description\\
+    \midrule
+    Oct 2011 & Dec 2011 & Classes and independent reading\\
+    Jan 2012 & Mar 2012 & Rotation in the Battacharya lab\\
+    Mar 2012 & Mar 2013 & Complete round 1 and 2 of imputation for the
+    CONVERGE project\\
+    Mar 2013 & Dec 2013 & Investigate different types of Adaptive Metropolis-Hastings
+    schemes\\
+    Aug 2013 & Aug 2013 & Re-run round 2 imputation pipeline on
+    all 12,000 CONVERGE samples\\
+    Jan 2014 & Feb 2014 & Generate SNP call set for the CONVERGE
+    project using SNPTools Varisite\\
+    Mar 2014 & May 2014 & Generate genotype call set for CONVERGE at
+    all detected SNPs using my version of SNPTools\\
+    Jun 2014 & Aug 2014 & Write and submit paper on my version of
+    SNPTools\\
+    Sep 2014 & Feb 2015 & Investigate further improvements to my
+    version of SNPTools\\
+    & & \emph{or} investigate Bayesian methods for performing
+    a genome-wide association study on multiple phenotypes in the
+    CONVERGE data set\\
+    & & \emph{or} investigate the population genetics of the
+    CONVERGE samples\\
+    Mar 2015 & Aug 2015 & Write and submit thesis\\
+    \bottomrule
+  \end{tabularx}
+  \caption{\emph{DPhil timetable}: I joined the Marchini lab in my
+    second rotation in March 2012.}
+  \label{tab:timetable}
+\end{table}
+
+\newpage
+
+\section*{Appendix A -- Methods}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth, trim=0cm 0cm 2cm 0cm,clip=true]{{{img/pipelineFig3}}}
+  \caption{\emph{Structure of imputation pipeline used in round 2}}
+  \label{fig:structure}
+\end{figure}
+
+The structure of the round 2 imputation pipeline is shown in figure~\ref{fig:structure}.
+
+\subsection*{Genotype likelihood estimation}
+
+Sequencing Reads for each of the 9300 samples were aligned to the
+human reference genome GRCh37.p5 and stored in BAM format.
+The aligner used was Stampy (v1.0.17)~\autocite{Lunter2011} with
+BWA (v0.5.9)~\autocite{Li2009}. Sequence alignment was performed by
+the Beijing Genomics Institute.
+
+A Base quality score recalibration table was created for each BAM file
+using GATK (v2.3.9)~\autocite{McKenna2010,Trio2011}, and a
+reference SNP and indel list from dbSNP version 137, excluding all
+sites after version 129.
+For each BAM file, GATKlite (v2.2.15)~\autocite{McKenna2010,Trio2011} was
+used to remove the reads that were not properly mapped, and to recalibrate
+base quality scores from the recalibration tables. This involved removing between 1--5$\%$ of reads
+per sample.
+
+SNPTools bamodel~\autocite{Wang2013} was used to calculate genotype
+likelihoods (GL) at only those SNP sites that were polymorphic in the
+286 TGPP1 Asian samples~\autocite{Project2012}. This resulted in GLs at 13,837,179
+SNPs. Detecting new SNPs from the CONVERGE samples was left for later
+(see table~\ref{tab:timetable}) because it was not strictly necessary
+for generating a first genotype call set.
+
+\subsection*{BEAGLE experiments to reduce iterations}
+
+Three non-overlapping 2mb regions were randomly chosen from chromosome 20
+(See table~\ref{tab:2mbChunks}).
+The GLs of 5680 CONVERGE samples and three TGPP1 CHB
+and CHS samples sequenced on the Illumina platform and downsampled to
+1x\footnote{GLs were generated using SNPTools bamodel} were imputed
+and phased using BEAGLE (v3.3.2)~\autocite{Browning2009}.
+Genotype calls at those sites were generated from 10x Illumina
+sequencing data provided by the Beijing Genomics Institute.
+
+\subsection*{Imputation round 2}
+
+BEAGLE was run on chunks containing roughly 2800 sites such
+that neighboring chunks shared 400 sites. This corresponds to
+approximately 700kb chunks with 50kb overlap after filtering out all
+sites monomorphic in TGPP1 Asians. At each
+chunk, BEAGLE was run for six iterations on the genotype likelihoods
+and using all 572 TGPP1
+Asian haplotypes as a reference panel to generate genotype
+probabilities.  After imputation and phasing, the outside 200 sites of
+every chunk were discarded and the remainder of the chunks merged to
+generate a whole-genome genotype call set.
+
+Genotyping accuracy of the whole-genome genotype call set was assessed
+in the following way: 16 randomly selected CONVERGE samples (8 cases,
+8 controls) were genotyped at 825,306 sites using an Illumina
+Zhonghua-8 900k SNP chip.  These sites were binned by minor allele
+frequency as shown in figure~\ref{fig:wgsRsq}.  The minor allele frequency was
+calculated from the reference panel haplotypes alone. For each
+combination of sample and bin, the squared Pearson correlation
+coefficient (\rsq) between all SNP chip genotypes and imputed dose
+estimates was calculated.
+
+\newpage
+
+\section*{Appendix B -- References}
+
+%%%% ##########################################################################
+
+\printbibliography
+
+\end{document}

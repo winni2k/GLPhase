@@ -21,7 +21,7 @@
 #include	<zlib.h>
 #include	<cmath>
 #include	<ctime>
-#include	<omp.h>
+//#include	<omp.h>
 #include	<set>
 
 #define    WordShift    6
@@ -29,28 +29,27 @@
 #define    MaskHA    0x80
 #define    MaskHB    0x40
 #define    MaskG    0x3f
-typedef double fast;
+typedef float fast;
 typedef double real;
 typedef unsigned uint;
-typedef uint64_t word;
-
-using    namespace    std;
+typedef std::uint64_t word;
 
 struct Site {
-    string chr, all;
+    std::string chr, all;
     uint pos;
 };
 
 class Impute {
+
 protected:
     gsl_rng *rng;
     uint hn; // 2 * number of individuals = number of haplotypes
     uint pn; // 3 * number of sites = number of transitions
     uint en; // 4 * number of sites = number of possible emissions
     uint wn; // this is the number of blocks of size 64 to save haps in
-    vector<word> haps, hnew;
-    vector<uint> hsum;
-    vector<fast> tran, emit;
+    std::vector<word> haps, hnew;
+    std::vector<uint> hsum;
+    std::vector<fast> tran, emit;
 
     fast pc[4][4];      // mutation matrix
 
@@ -71,12 +70,11 @@ protected:
         return (P[I >> WordShift] >> (I & WordMod)) & static_cast<word>(1);
     }
 
-
     fast hmm(uint I, uint *P, fast S);
 
     void hmm_work(uint I, uint *P, fast S);
 
-    virtual fast solve(uint I, uint    &N, fast S, bool P);
+    virtual fast solve(uint I, uint    &N, fast S);
 
     void replace(uint I);
 
@@ -93,19 +91,19 @@ public:
     // number of burnin, sampling iterations and folds
     static uint bn, sn, nn;
     static real density, conf;
-    static vector <string> vcf_file;
-    static set <string> male;
+    static std::vector <std::string> vcf_file;
+    static std::set <std::string> male;
     static bool is_x, is_y;
 
     static bool gender(char *F);
 
     static void document(void);
 
-    vector<Site> site;
-    vector <string> name;
-    vector<real> posi;
-    vector<fast> prob;
-    vector <uint16_t> pare;
+    std::vector<Site> site;
+    std::vector <std::string> name;
+    std::vector<real> posi;
+    std::vector<fast> prob;
+//    std::vector <std::uint16_t> pare;
 
     Impute() {
         rng = gsl_rng_alloc(gsl_rng_default);
@@ -125,7 +123,7 @@ public:
 
     void save_vcf(const char *F);
 
-    void save_pare(const char *F);
+//    void save_pare(const char *F);
 };
 
 #endif /* _IMPUTE_H */

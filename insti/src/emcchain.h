@@ -13,7 +13,7 @@
 #include	<cstdio>
 #include	<iostream>
 
-typedef double fast;
+typedef float fast;
 typedef unsigned uint;
 
 // used in estimate_EMC() for now
