@@ -5,6 +5,55 @@ static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
 using namespace std;
 
+void RelationshipGraph::init(int iGraphType, unsigned uSamples, unsigned uHaplotypes){
+
+    // only allow initialization once. Construct new object otherwise.
+    assert(m_bInitialized == false);
+    
+    m_bUsingRelMat = (iGraphType != 2);
+    m_iGraphType = iGraphType;
+
+    // make sure we have at least as many haplotypes as samples
+    assert(uSamples * 2  <= uHaplotypes);
+
+        // figure out how many rows and columns our matrix is going to have
+
+        m_uRows = uSamples;
+        m_uCols = 0;
+
+        switch (m_iGraphType){
+        case 0:
+            m_uCols = ceil(uHaplotypes/2);
+            m_bUsingHaps = false;
+            break;
+        case 1:
+            m_uCols = uHaplotypes;
+            m_bUsingHaps = true;
+            break;
+        case 2:
+            m_uCols = ceil(uHaplotypes/2);
+            m_bUsingHaps = false;
+            break;
+        default:
+            std::cerr << "Unknown graph type selected: " << m_iGraphType << std::endl;
+            assert(false);
+        }
+
+        if(m_bUsingRelMat){
+            // resize the relationship matrixes to the appropriate size
+            // assign all numerators and denominators a count of 1
+            m_2dRelationshipMatNum.resize(m_uRows);
+            m_2dRelationshipMatDen.resize(m_uRows);
+            for(unsigned i = 0; i < m_uRows; i++){
+                m_2dRelationshipMatNum[i].resize(m_uCols,1);
+                m_2dRelationshipMatDen[i].resize(m_uCols,1);
+            }
+        }
+
+        m_bInitialized = true;
+}
+
+
 // takes sample num and haplotype num as well as graph type
 // samples can be updated, while haplotypes can only be copied from
 // every sample has two haplotypes
@@ -177,18 +226,83 @@ unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng){
 
 
 // based on code from SNPTools::Impute
-void    RelationshipGraph::Save(std::string fileName) {
-    fileName += ".relGraph.num.gz";
-    ofile f(fileName);
-    f << "Numerator";
-/*    for (uint i = 0; i < in; i++) gzprintf(f, "\t%s", name[i].c_str());
-    for (uint i = 0; i < in; i++) {
-        gzprintf(f, "\n%s", name[i].c_str());
-        uint16_t *p = &pare[i * in];
-        for (uint j = 0; j < in; j++, p++) gzprintf(f, "\t%.3f", (float) (*p) / sn);
+// name should be a list of sample names that includes reference panel sample names
+// fileName should be the basename for output
+void    RelationshipGraph::Save(string fileName, const vector<string> & name) {
+
+    // don't print graph if we don't have one...
+    if(m_iGraphType == 2) return;
+
+    cerr << "Saving Relationship graph to prefix " << fileName << " ..." << endl;
+    
+    unsigned uExpectedNumNames = m_2dRelationshipMatDen[0].size();
+    if(m_bUsingHaps) uExpectedNumNames = ceil(uExpectedNumNames/2);
+//    cerr << "name.size() = " << name.size() << endl;
+//    cerr << "uExpectedNumNames = " << uExpectedNumNames << endl;
+    assert(name.size() == uExpectedNumNames);
+    
+    string numeratorFile = fileName + ".relGraph.num.gz";
+    string denominatorFile = fileName + ".relGraph.den.gz";
+    string ratioFile = fileName + ".relGraph.gz";
+
+    typedef std::shared_ptr<ofile> ofile_ptr;
+    ofile_ptr numFile(new ofile(numeratorFile));
+    ofile_ptr denFile(new ofile(denominatorFile));
+    ofile_ptr ratFile(new ofile(ratioFile));
+
+
+    vector<ofile_ptr> ofiles;
+    ofiles.push_back( numFile );
+    ofiles.push_back( denFile );
+    ofiles.push_back( ratFile );
+
+    //start printing header
+    *numFile << "Numerator";
+    *denFile << "Denominator";
+    *ratFile << "Numerator/Denominator";
+
+    for ( unsigned uFileNum = 0; uFileNum < ofiles.size(); uFileNum++){
+
+        // finish printing header
+        for (auto sName: name){
+            *ofiles[uFileNum] << "\t" << sName;
+            if(m_bUsingHaps) *ofiles[uFileNum] << ".hapA" << "\t" << sName << ".hapB";
+        }
+        *ofiles[uFileNum] << endl;
+        
+        // print data rows
+        // cycle through samples
+        for (unsigned uRowNum = 0; uRowNum < m_uRows; uRowNum++) {
+
+            // print sample name
+            *ofiles[uFileNum] << name[uRowNum];
+
+            // print rest of row
+            for ( unsigned uColNum = 0; uColNum < m_uCols; uColNum++){
+                float fPrintVal = 0;
+                switch ( uFileNum ){
+                case 0:
+                    fPrintVal = m_2dRelationshipMatNum[uRowNum][uColNum];
+                    assert(fPrintVal != 0);
+                    break;
+                case 1:
+                    fPrintVal = m_2dRelationshipMatDen[uRowNum][uColNum];
+                    assert(fPrintVal != 0);
+                    break;
+                case 2:
+                    fPrintVal =  m_2dRelationshipMatNum[uRowNum][uColNum] /  m_2dRelationshipMatDen[uRowNum][uColNum];
+                    assert(fPrintVal != 0);
+                    break;
+                default:
+                    cerr << "Programming error: RelationshipGraph::Save: Unknown file number: " << uFileNum << endl;
+                    assert(false);
+                }
+                *ofiles[uFileNum] << "\t" << fPrintVal;
+            }
+            *ofiles[uFileNum] << endl;
+        }
     }
-    gzprintf(f, "\n");
-    gzclose(f); */
+    cerr << "\t...saving of relationship graph complete." << endl;
 }
 
 

@@ -34,7 +34,7 @@ private:
     bool m_bUsingRefHaps = false;
 
     // keep track of relationship graph
-    RelationshipGraph m_oRelGraph();
+    RelationshipGraph m_oRelGraph;
 
     // reference haplotypes
     vector<uint64_t> m_vRefHaps;
@@ -54,6 +54,9 @@ private:
     
 public:
 
+    Insti()
+        : m_oRelGraph() {};
+    
     bool load_refPanel( string legendFile, string hapsFile );
     
     // print out usage
@@ -99,6 +102,8 @@ public:
     int RWSelection( const vector <EMCChain> & rvcChains);
 
     unsigned RJSelection( const vector<unsigned> & vuRetMatNum, const vector<unsigned> & vuRetMatDen, unsigned I, unsigned hn, gsl_rng * rng);
+
+    void save_relationship_graph ( string sOutputFile );
 
 };
 

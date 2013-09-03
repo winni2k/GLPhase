@@ -32,17 +32,38 @@ TEST(Insti, loadBin){
     EXPECT_EQ("GT", lp.site[1023].all);
 
     // prob
+    // making sure prob size is correct
+    EXPECT_EQ(1024*2*lp.in, lp.prob.size());
+        
     EXPECT_EQ(0, lp.prob[0]);
     EXPECT_EQ(1, lp.prob[1]);
-    EXPECT_EQ(1, lp.prob[2]);
+    EXPECT_EQ(0.2f, lp.prob[2]);
     EXPECT_EQ(0, lp.prob[3]);
     EXPECT_EQ(0, lp.prob[4]);
     EXPECT_EQ(0, lp.prob[5]);
-
     EXPECT_EQ(0, lp.prob[6]);
     EXPECT_EQ(1, lp.prob[7]);
     EXPECT_EQ(1, lp.prob[lp.in*6-4]);
 
+    // now initialize lp and see if probs still make sense
+    lp.initialize();
+
+    EXPECT_EQ(1024*3*lp.in, lp.prob.size());
+    EXPECT_EQ(0, lp.prob[0]);
+    EXPECT_EQ(0, lp.prob[1]);
+    EXPECT_EQ(1, lp.prob[2]);
+
+    // 3 = lp.pn
+    EXPECT_EQ(0.8f, lp.prob[0 + lp.mn * 3]);
+    EXPECT_EQ(0.2f, lp.prob[1 + lp.mn * 3]);
+    EXPECT_EQ(0, lp.prob[2 + lp.mn * 3]);
+
+    EXPECT_EQ(1, lp.prob[0 + lp.mn *2 * 3]);
+    EXPECT_EQ(0, lp.prob[1 + lp.mn *2 * 3]);
+    EXPECT_EQ(0, lp.prob[2 + lp.mn *2 * 3]);
+
+    EXPECT_EQ(0, lp.prob[4]);
+    EXPECT_EQ(1, lp.prob[5]);
 }
 
 TEST(Insti, loadHaps){

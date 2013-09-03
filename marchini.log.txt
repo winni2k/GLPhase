@@ -243,3 +243,48 @@ CONVERGE meeting
 accurate
 fast
 scales well in ram and time
+
+###########
+# Thu Aug 29 10:12:40 BST 2013
+
+- Do this right away: send na list of ok bam files that went through bqsr
+- continue backing up - ask na and jessie for help if the hard drives
+  need to be replaced
+- make sure GATK with new print reads is working ok ( same as somtools
+  and then GATK)
+
+###########
+# Thu Aug 29 14:34:38 BST 2013
+# meeting with marchini
+
+- from Jared: do a bit of time doing hamming distance and collecting
+  subsets using clustering
+
+
+# for presentation
+- state of major depression
+  - why is depression important
+  - what do we know about the geneticts?
+    - people in audienc have 
+  - CONVERGE study, what is it, where are we?
+    - data collection
+    - gone for 1x sequencing
+    - not as many established asian reference panels
+  - 100genomes 4x 1000 samples
+    - how much data in bam files?
+    - list of some of available software packages
+    - beagle, snptools impute, shapeit, mach/thunder
+  - results
+    - beagle with and without ref panel
+    - ST with and without ref panel
+  - accuracy
+  - ram/run time
+  - plug for haplotype consortium ?
+  - did we find a hit? no, but we're working on it.
+
+###########
+# Fri Aug 30 10:28:37 BST 2013
+# CONVERGE skype date
+- send Jingchu instructions on how to extract GLs
+- verify bqsr method
+- something else?
