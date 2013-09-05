@@ -30,3 +30,6 @@ bamTracker.pl validateSamJar=~/opt/ValidateSamFile.jar backupBamList=doubleSlash
 # ok, now do this on first 1000 of bamlist.curr
 head -n 1000 /data/BGI/bamlist.curr > bamlist.curr.head1000
 bamTracker.pl validateSamJar=~/opt/ValidateSamFile.jar backupBamList=bamlist.curr.head1000 backupTargetDir=cairparavel:/mnt/extHD1/BGI backupDeviceName=externalhd1 doNotValidate=1 doNotIndex=1
+
+# now backup all files that exist
+bamTracker.pl validateSamJar=~/opt/ValidateSamFile.jar backupBamList=bamlist.curr.exists backupTargetDir=cairparavel:/mnt/extHD1/BGI backupDeviceName=converge4 doNotValidate=1 doNotIndex=1
