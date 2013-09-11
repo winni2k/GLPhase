@@ -20,8 +20,10 @@ void Haplotype::Set(unsigned uSite, bool bAllele){
 bool Haplotype::TestSite(unsigned uSite){
 
     assert(uSite < m_uNumAlleles);
-        
-    return (m_utHap[uSite >> h_WordShift] >> (uSite & h_WordMod)) & static_cast< uint64_t >(1);
+
+    uint64_t uWordNum = uSite >> h_WordShift;
+    return (m_utHap[uWordNum] >> (uSite & h_WordMod)) & static_cast< uint64_t >(1);
+//    return (m_utHap[uSite >> h_WordShift] >> (uSite & h_WordMod)) & static_cast< uint64_t >(1);
 }
 
 unsigned Haplotype::HammingDist(Haplotype &oCompareHap){
