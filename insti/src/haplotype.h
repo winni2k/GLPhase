@@ -41,10 +41,10 @@ public:
     uint64_t GetWord(unsigned uWordNum){ return m_utHap[uWordNum]; };
 
     // using a haplotype object
-    unsigned HammingDist(Haplotype &oCompareHap);
+    unsigned HammingDist(const Haplotype &oCompareHap);
 
     // using a vector pointer
-    unsigned HammingDist(uint64_t *upHap);
+    unsigned HammingDist(const uint64_t *upHap);
 
 };
     
