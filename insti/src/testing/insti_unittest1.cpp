@@ -1,6 +1,7 @@
 
 #include "gtest/gtest.h"
 #include "insti.h"
+#include "haplotype.h"
 
 string sampleDir = "../../samples";
 
@@ -107,6 +108,16 @@ TEST(Insti, loadHaps){
         EXPECT_EQ(1,lp.TestRefHap(3,i));
     }
 
+}
+
+TEST(Haplotype, StoresOK){
+
+    Haplotype simpleA(4);
+    for( unsigned i = 0 ; i < 4; i++){
+        EXPECT_FALSE( simpleA.TestSite(i));
+    }
+    EXPECT_DEATH(simpleA.TestSite(5), "assert");
+    
 }
 
 

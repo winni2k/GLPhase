@@ -15,7 +15,7 @@
 #include "relationshipGraph.h"
 #include <limits>
 #include <cassert>
-#include <cstdint>
+#include <stdint.h>
 #include <utility>
 
 //require c++11

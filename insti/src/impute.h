@@ -32,7 +32,7 @@
 typedef float fast;
 typedef double real;
 typedef unsigned uint;
-typedef std::uint64_t word;
+typedef uint64_t word;
 
 struct Site {
     std::string chr, all;
