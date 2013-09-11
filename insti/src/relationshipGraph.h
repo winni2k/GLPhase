@@ -22,11 +22,15 @@ private:
     unsigned m_uRows;
     unsigned m_uCols;
 
-//    unsigned m_bUsingRefPanel;
-    bool m_bUsingRelMat = true;
-
+    // need these for AMH
+    bool m_bUsingRelMat = false;
     std::vector< std::vector< float > > m_2dRelationshipMatNum;
     std::vector< std::vector< float > > m_2dRelationshipMatDen;
+
+    // need these for clustering
+    bool m_bUsingCluster = false;
+    std::vector< unsigned > m_uHapClusterNum;
+    std::vector< std::vector < uint64_t > > m_uClusterHaps;
 
     // -1 = undefined
     // 0 = sample/sample graph
@@ -64,7 +68,6 @@ public:
 // 1 = sample/haplotype graph
 // 2 = no graph - all samples are equally related
 
-    // m_bUsingRefPanel(uSamples * 2 < uHaplotypes)
     RelationshipGraph(int iGraphType, unsigned uSamples, unsigned uHaplotypes) {
         init(iGraphType, uSamples, uHaplotypes);
     };
