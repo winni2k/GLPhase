@@ -10,47 +10,50 @@ void RelationshipGraph::init(int iGraphType, unsigned uSamples, unsigned uHaplot
     // only allow initialization once. Construct new object otherwise.
     assert(m_bInitialized == false);
     
-    m_bUsingRelMat = (iGraphType != 2);
+    m_bUsingRelMat = (iGraphType < 2);
+    m_bUsingCluster = (iGraphType == 3);
     m_iGraphType = iGraphType;
 
     // make sure we have at least as many haplotypes as samples
     assert(uSamples * 2  <= uHaplotypes);
 
-        // figure out how many rows and columns our matrix is going to have
+    // figure out how many rows and columns our matrix is going to have
 
-        m_uRows = uSamples;
-        m_uCols = 0;
+    m_uRows = uSamples;
+    m_uCols = 0;
 
-        switch (m_iGraphType){
-        case 0:
-            m_uCols = ceil(uHaplotypes/2);
-            m_bUsingHaps = false;
-            break;
-        case 1:
-            m_uCols = uHaplotypes;
-            m_bUsingHaps = true;
-            break;
-        case 2:
-            m_uCols = ceil(uHaplotypes/2);
-            m_bUsingHaps = false;
-            break;
-        default:
-            std::cerr << "Unknown graph type selected: " << m_iGraphType << std::endl;
-            assert(false);
+    switch (m_iGraphType){
+    case 0:
+        m_uCols = ceil(uHaplotypes/2);
+        m_bUsingHaps = false;
+        break;
+    case 1:
+        m_uCols = uHaplotypes;
+        m_bUsingHaps = true;
+        break;
+    case 2:
+        m_uCols = ceil(uHaplotypes/2);
+        m_bUsingHaps = false;
+        break;
+    case 3:
+        break;
+    default:
+        std::cerr << "Unknown graph type selected: " << m_iGraphType << std::endl;
+        assert(false);
+    }
+
+    if(m_bUsingRelMat){
+        // resize the relationship matrixes to the appropriate size
+        // assign all numerators and denominators a count of 1
+        m_2dRelationshipMatNum.resize(m_uRows);
+        m_2dRelationshipMatDen.resize(m_uRows);
+        for(unsigned i = 0; i < m_uRows; i++){
+            m_2dRelationshipMatNum[i].resize(m_uCols,1);
+            m_2dRelationshipMatDen[i].resize(m_uCols,1);
         }
+    }
 
-        if(m_bUsingRelMat){
-            // resize the relationship matrixes to the appropriate size
-            // assign all numerators and denominators a count of 1
-            m_2dRelationshipMatNum.resize(m_uRows);
-            m_2dRelationshipMatDen.resize(m_uRows);
-            for(unsigned i = 0; i < m_uRows; i++){
-                m_2dRelationshipMatNum[i].resize(m_uCols,1);
-                m_2dRelationshipMatDen[i].resize(m_uCols,1);
-            }
-        }
-
-        m_bInitialized = true;
+    m_bInitialized = true;
 }
 
 
