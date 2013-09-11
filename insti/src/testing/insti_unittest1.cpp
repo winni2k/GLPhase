@@ -113,11 +113,26 @@ TEST(Insti, loadHapsErrors){
 
 TEST(Haplotype, StoresOK){
 
+    // testing to see if init and testing works ok
     Haplotype simpleA(4);
     for( unsigned i = 0 ; i < 4; i++){
         EXPECT_FALSE( simpleA.TestSite(i));
     }
     EXPECT_DEATH(simpleA.TestSite(5), "uSite < m_uNumAlleles");
+
+    Haplotype simpleB(4);
+    simpleB.Set(0,1);
+    simpleB.Set(3,1);
+    EXPECT_TRUE(simpleB.TestSite(0));
+    EXPECT_TRUE(simpleB.TestSite(3));
+    EXPECT_FALSE(simpleB.TestSite(2));
+
+    // test hamming distance
+    EXPECT_EQ(2, simpleA.HammingDist(simpleB));
+    EXPECT_EQ(0, simpleA.HammingDist(simpleA));
+
+    
+    
     
 }
 

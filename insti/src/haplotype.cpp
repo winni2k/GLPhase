@@ -26,7 +26,7 @@ bool Haplotype::TestSite(unsigned uSite){
     return (m_utHap[uSite >> h_WordShift] >> (uSite & h_WordMod)) & static_cast< uint64_t >(1);
 }
 
-unsigned Haplotype::HammingDist(Haplotype &oCompareHap){
+unsigned Haplotype::HammingDist(const Haplotype &oCompareHap){
 
     assert(oCompareHap.m_uNumAlleles == m_uNumAlleles);
 
@@ -39,7 +39,7 @@ unsigned Haplotype::HammingDist(Haplotype &oCompareHap){
     return uHammingDist;
 }
 
-unsigned Haplotype::HammingDist(uint64_t *upHap){
+unsigned Haplotype::HammingDist(const uint64_t *upHap){
 
     unsigned uHammingDist = 0;
     for( unsigned uWord; uWord < m_utHap.size(); uWord ++, upHap++){
