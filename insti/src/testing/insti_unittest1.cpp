@@ -117,7 +117,7 @@ TEST(Haplotype, StoresOK){
     for( unsigned i = 0 ; i < 4; i++){
         EXPECT_FALSE( simpleA.TestSite(i));
     }
-    EXPECT_DEATH(simpleA.TestSite(5), "assert");
+    EXPECT_DEATH(simpleA.TestSite(5), "uSite < m_uNumAlleles");
     
 }
 
