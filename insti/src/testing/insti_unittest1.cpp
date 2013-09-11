@@ -78,7 +78,8 @@ TEST(Insti, loadHaps){
 //    cerr << "BLOINC1\n";
     ASSERT_EXIT(lp.load_refPanel( "", sampleHaps), ::testing::ExitedWithCode(1),"Need to define a legend file if defining a reference haplotypes file");
     ASSERT_EXIT(lp.load_refPanel( sampleLegend, ""), ::testing::ExitedWithCode(1),"Need to define a reference haplotypes file if defining a legend file");
-    
+
+    cerr<<sampleLegend <<endl;
     lp.load_refPanel( sampleLegend, sampleHaps);
 
 //    cerr << "BLOINC2\n";
