@@ -26,7 +26,7 @@ public:
 
     // initialize all haps to all 0s
     Haplotype(unsigned uNumAlleles) : m_uNumAlleles(uNumAlleles){
-        unsigned uSize = ceil(uNumAlleles/64);
+        unsigned uSize = ceil(static_cast<float>(uNumAlleles) / static_cast<float>(h_WordMod+1));
         m_utHap.reserve(uSize);
         for(unsigned uWord; uWord < uSize; uWord ++)
             m_utHap.push_back( static_cast< uint64_t >(0) );
