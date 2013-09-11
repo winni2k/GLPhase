@@ -4,11 +4,13 @@
 #include "haplotype.h"
 
 string sampleDir = "../../samples";
+string sampleLegend = sampleDir + "/20_011976121_012173018.bin.onlyThree.legend";
+string sampleHaps = sampleDir + "/20_011976121_012173018.bin.onlyThree.haps";
+string sampleBin = sampleDir + "/20_011976121_012173018.bin.onlyThree.bin";
 
 TEST(Insti, loadBin){
 
     Insti lp;
-    string sampleBin = sampleDir + "/20_011976121_012173018.bin.onlyThree.bin";
     lp.load_bin( sampleBin.c_str());
     
     ASSERT_EQ(3, lp.in);
@@ -65,20 +67,8 @@ TEST(Insti, loadBin){
 
     EXPECT_EQ(0, lp.prob[4]);
     EXPECT_EQ(1, lp.prob[5]);
-}
 
-TEST(Insti, loadHaps){
-
-    Insti lp;
-    string sampleLegend = sampleDir + "/20_011976121_012173018.bin.onlyThree.legend";
-    string sampleHaps = sampleDir + "/20_011976121_012173018.bin.onlyThree.haps";
-    string sampleBin = sampleDir + "/20_011976121_012173018.bin.onlyThree.bin";
-    lp.load_bin( sampleBin.c_str());
-
-//    cerr << "BLOINC1\n";
-    ASSERT_EXIT(lp.load_refPanel( "", sampleHaps), ::testing::ExitedWithCode(1),"Need to define a legend file if defining a reference haplotypes file");
-    ASSERT_EXIT(lp.load_refPanel( sampleLegend, ""), ::testing::ExitedWithCode(1),"Need to define a reference haplotypes file if defining a legend file");
-
+    // now test refpanel loading
     lp.load_refPanel( sampleLegend, sampleHaps);
 
 //    cerr << "BLOINC2\n";
@@ -107,6 +97,17 @@ TEST(Insti, loadHaps){
         EXPECT_EQ(0,lp.TestRefHap(2,i));
         EXPECT_EQ(1,lp.TestRefHap(3,i));
     }
+
+}
+
+TEST(Insti, loadHapsErrors){
+
+    Insti lp;
+    lp.load_bin( sampleBin.c_str());
+
+//    cerr << "BLOINC1\n";
+    ASSERT_EXIT(lp.load_refPanel( "", sampleHaps), ::testing::ExitedWithCode(1),"Need to define a legend file if defining a reference haplotypes file");
+    ASSERT_EXIT(lp.load_refPanel( sampleLegend, ""), ::testing::ExitedWithCode(1),"Need to define a reference haplotypes file if defining a legend file");
 
 }
 
