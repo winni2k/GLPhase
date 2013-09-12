@@ -25,17 +25,14 @@ int main(int ac, char **av) {
     Impute::is_y = false;
     Insti::s_iEstimator = 0; // Metropolis Hastings with Annealing is default
     Insti::s_uParallelChains = 5; // number of parallel chains to use for parallel estimators
-    Insti::s_uCycles = 0; // alternate way of specifying number of sampling steps
-    Insti::s_bKickStartFromRef = false;
-    Insti::s_sLegendFile = "";
-    Insti::s_sRefHapsFile = "";
+
     
 //    uint threads = 0;
     vector <string> file;
     
     string sLogFile;
     int opt;
-    while ((opt = getopt(ac, av, "d:b:l:m:n:v:c:x:e:E:p:C:L:H:k")) >= 0) {
+    while ((opt = getopt(ac, av, "d:b:l:m:n:v:c:x:e:E:p:C:L:H:kK:")) >= 0) {
         switch (opt) {
         case    'd':
             Impute::density = atof(optarg);
@@ -99,7 +96,10 @@ int main(int ac, char **av) {
 /*        case    't':
             threads = atoi(optarg);
             break;
-*/            
+*/
+        case 'K':
+            Insti::s_uNumClusters = atoi(optarg);
+            break;
         default:
             Insti::document();
         }
@@ -168,22 +168,7 @@ int main(int ac, char **av) {
         cerr << "estimating..\n";
 
         // choose which estimation method to use
-        switch (lp.s_iEstimator){
-        case 0: // MH with simulated annealing
-            lp.estimate();
-            break;
-        case 1: // Evolutionary Monte Carlo
-            lp.estimate_EMC();
-            break;
-        case 2:
-            lp.estimate_AMH(0);
-            break;
-        case 3:
-            lp.estimate_AMH(1);
-            break;
-        default:
-            lp.document();
-        }
+        lp.estimate();
 
         // save results of estimation
         lp.save_vcf(file[i].c_str());

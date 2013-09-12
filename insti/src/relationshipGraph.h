@@ -9,7 +9,9 @@
 #include        <cassert>
 #include        <cmath>
 #include        <iostream>
+#include        <stdint.h>
 #include        "utils.h"
+#include        "haplotype.h"
 
 //require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
@@ -29,9 +31,15 @@ private:
 
     // need these for clustering
     bool m_bUsingCluster = false;
-    std::vector< unsigned > m_uHapClusterNum;
-    std::vector< std::vector < uint64_t > > m_uClusterHaps;
+    std::vector< unsigned > m_vuHapMedNum; // keeps track of which medioid each haplotype is closest to
+    std::vector< unsigned > m_vuMedoidHapNum; // keeps track of which haplotype each medoid is
+    std::vector< unsigned > m_vuHapHammingDist; // keeps track of hamming distance between each hap and its medoid
+//    std::vector< Haplotype > m_uClusterHaps;
 
+    // vars for clustering
+    unsigned m_uNumWordsPerHap = 0;
+    unsigned m_uNumSites = 0;
+    
     // -1 = undefined
     // 0 = sample/sample graph
     // 1 = sample/haplotype graph
@@ -68,7 +76,12 @@ public:
 // 1 = sample/haplotype graph
 // 2 = no graph - all samples are equally related
 
-    RelationshipGraph(int iGraphType, unsigned uSamples, unsigned uHaplotypes) {
+    RelationshipGraph(int iGraphType, unsigned uNumClust, const vector< uint64_t > * pvuHaplotypes,
+                      unsigned uNumWordsPerHap, unsigned uNumSites, gsl_rng *rng){
+        init(iGraphType, uNumClust, pvuHaplotypes, uNumWordsPerHap, uNumSites, rng);
+    };
+
+    RelationshipGraph(int iGraphType, unsigned uSamples, unsigned uHaplotypes){
         init(iGraphType, uSamples, uHaplotypes);
     };
 
@@ -76,6 +89,8 @@ public:
     RelationshipGraph(){};
 
     void init(int iGraphType, unsigned uSamples, unsigned uHaplotypes);
+
+    void init(int iGraphType, unsigned uNumClust, const vector< uint64_t > * pvuHaplotypes, unsigned uNumWordsPerHap, unsigned uNumSites, gsl_rng *rng);
 
     // returns a haplotype sampled using the relationship graph
     unsigned SampleHap(unsigned uInd, gsl_rng *rng);
@@ -92,7 +107,13 @@ public:
     // update graph with number fRatio instead of 1
     void UpdateGraph( unsigned *p, bool bAccepted, unsigned uInd, float fRatio);
 
+    void UpdateGraph( const vector< uint64_t > * pvuHaplotypes );
+
     void Save(std::string fileName, const vector<std::string> & name);
+
+    double MedoidLoss(const vector< uint64_t > * pvuHaplotypes );
+    
+    void UpdateMedoids(const vector< uint64_t > * pvuHaplotypes );
 
 };
 
