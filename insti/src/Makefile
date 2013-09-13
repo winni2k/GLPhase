@@ -35,14 +35,14 @@ clean:
 olivier/utils.h.gch: olivier/utils.h
 	$(CXX) $(CXXFLAGS) -x c++-header $^
 
-HEADER_GCH = impute.h.gch insti.h.gch emcchain.h.gch relationshipGraph.h.gch olivier/utils.h.gch haplotype.h.gch
+HEADER_GCH = impute.h.gch insti.h.gch emcchain.h.gch relationshipGraph.h.gch olivier/utils.h.gch haplotype.h.gch version.h.gch
 
 ## object files
-%.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $^ $(LIBS)
+%.o: %.cpp $(HEADER_GCH)
+	$(CXX) $(CXXFLAGS) -c $< $(LIBS)
 
-olivier/utils.o: olivier/utils.cpp
-	$(CXX) -Wno-sign-compare $(CXXFLAGS) -c $^ $(LIBS)
+olivier/utils.o: olivier/utils.cpp $(HEADER_GCH)
+	$(CXX) -Wno-sign-compare $(CXXFLAGS) -c $< $(LIBS)
 
 OBJECT_FILES = main.o impute.o insti.o emcchain.o relationshipGraph.o olivier/utils.o haplotype.o 
 
@@ -50,6 +50,6 @@ insti: $(OBJECT_FILES) $(HEADER_GCH)
 	$(CXX) $(CXXFLAGS) -o insti $(OBJECT_FILES) $(LIBS)
 
 instiO0: $(OBJECT_FILES) $(HEADER_GCH)
-	$(CXX) $(CXXFLAGS) -o instiO0 $^ $(LIBS)
+	$(CXX) $(CXXFLAGS) -o instiO0 $(OBJECT_FILES) $(LIBS)
 
 
