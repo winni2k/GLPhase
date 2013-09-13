@@ -44,7 +44,7 @@ private:
     // so far it only adds logging
     virtual  fast hmm_like(unsigned I, unsigned *P) override;
 
-    fast solve(unsigned I, unsigned    &N, fast pen, RelationshipGraph  &oRelGraph);
+    fast solve(unsigned I, unsigned N, fast pen, RelationshipGraph  &oRelGraph);
     virtual fast solve(unsigned I, unsigned    &N, fast pen) override { cerr << I << N << pen; exit(1); }
 
     fast solve_EMC(unsigned I, unsigned    N, fast S);
@@ -65,6 +65,7 @@ public:
     static unsigned s_uParallelChains; // see main.cpp and document for documentation
     static unsigned s_uCycles; // see main.cpp and document for documentation
     static bool s_bIsLogging; // true if logging
+    static unsigned s_uNumClusters; // number of clusters to use
     
     // bool flag to keep track if we want to phase samples from ref haps only in first round
     static bool s_bKickStartFromRef;

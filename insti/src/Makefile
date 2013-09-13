@@ -28,48 +28,28 @@ clean:
 
 ### normal compilation
 
-## headers
-version.h.gch: version.h
+## precompile headers
+%.h.gch: %.h 
 	$(CXX) $(CXXFLAGS) -x c++-header $^
-insti.h.gch: insti.h
-	$(CXX) $(CXXFLAGS) -x c++-header $^
-impute.h.gch: impute.h
-	$(CXX) $(CXXFLAGS) -x c++-header $^
+
 olivier/utils.h.gch: olivier/utils.h
 	$(CXX) $(CXXFLAGS) -x c++-header $^
-relationshipGraph.h.gch: relationshipGraph.h
-	$(CXX) $(CXXFLAGS) -x c++-header $^
-emcchain.h.gch: emcchain.h
-	$(CXX) $(CXXFLAGS) -x c++-header $^
-haplotype.h.gch: haplotype.h
-	$(CXX) $(CXXFLAGS) -x c++-header $^
+
+HEADER_GCH = impute.h.gch insti.h.gch emcchain.h.gch relationshipGraph.h.gch olivier/utils.h.gch haplotype.h.gch
 
 ## object files
-impute.o: impute.cpp
-	$(CXX) $(CXXFLAGS) -c $^ $(LIBS)
-
-insti.o: insti.cpp
-	$(CXX) $(CXXFLAGS) -c $^ $(LIBS)
-
-relationshipGraph.o: relationshipGraph.cpp 
-	$(CXX) $(CXXFLAGS) -c $^ $(LIBS)
-
-emcchain.o: emcchain.cpp
-	$(CXX) $(CXXFLAGS) -c $^ $(LIBS)
-
-haplotype.o: haplotype.cpp
-	$(CXX) $(CXXFLAGS) -c $^ $(LIBS)
-
-main.o: main.cpp
+%.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $^ $(LIBS)
 
 olivier/utils.o: olivier/utils.cpp
 	$(CXX) -Wno-sign-compare $(CXXFLAGS) -c $^ $(LIBS)
 
-insti: main.o impute.o insti.o emcchain.o relationshipGraph.o olivier/utils.o
-	$(CXX) $(CXXFLAGS) -o insti $^ $(LIBS)
+OBJECT_FILES = main.o impute.o insti.o emcchain.o relationshipGraph.o olivier/utils.o haplotype.o 
 
-instiO0: main.o impute.o insti.o emcchain.o relationshipGraph.o olivier/utils.o
+insti: $(OBJECT_FILES) $(HEADER_GCH)
+	$(CXX) $(CXXFLAGS) -o insti $(OBJECT_FILES) $(LIBS)
+
+instiO0: $(OBJECT_FILES) $(HEADER_GCH)
 	$(CXX) $(CXXFLAGS) -o instiO0 $^ $(LIBS)
 
 
