@@ -771,10 +771,10 @@ void Insti::save_relationship_graph ( string sOutputFile ){
 }
 
 void    Insti::document(void) {
-    cerr << "author   Warren W. Kretzschmar @ Marchini Group @ Universiy of Oxford - Statistics";
+    cerr << "Author\tWarren W. Kretzschmar @ Marchini Group @ Universiy of Oxford - Statistics";
     cerr << "\n\nThis code is based on SNPTools impute:";
     cerr << "\nhaplotype imputation by cFDSL distribution";
-    cerr << "\nauthor   Yi Wang @ Fuli Yu' Group @ BCM-HGSC";
+    cerr << "\nAuthor\tYi Wang @ Fuli Yu' Group @ BCM-HGSC";
     cerr << "\n\nusage\timpute [options] 1.bin 2.bin ...";
     cerr << "\n\t-d <density>    relative SNP density to Sanger sequencing (1)";
     cerr << "\n\t-b <burn>       burn-in generations (56)";
