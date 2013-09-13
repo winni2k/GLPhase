@@ -94,12 +94,15 @@ void RelationshipGraph::init(int iGraphType, unsigned uNumClust, const vector< u
 
 void RelationshipGraph::UpdateMedoids(const vector< uint64_t > * pvuHaplotypes ){
 
+    cerr << "\tUpdating medoids..\n";
+        
     assert(m_bInitialized == true);
     assert(m_bUsingCluster == true);
     assert( (*pvuHaplotypes).size() % m_uNumWordsPerHap == 0 );
     assert( (*pvuHaplotypes).size() % m_vuHapMedNum.size() == 0 );
 
     // first figure out which medoid is closest to each haplotype
+    cerr << "\t    Assigning haplotypes to medoids..\n";
     Haplotype hTester(m_uNumSites);
     for( unsigned uHapNum = 0; uHapNum < m_vuHapMedNum.size(); uHapNum++){
 
@@ -127,6 +130,7 @@ void RelationshipGraph::UpdateMedoids(const vector< uint64_t > * pvuHaplotypes )
     //// permute medoid locations
     // pick a medoid
     for( unsigned uMedNum = 0; uMedNum < m_vuMedoidHapNum.size(); uMedNum ++){
+        cerr << "\t    Permuting medoid locations for medoid:\t" << uMedNum << "\r";
 
         // pick a haplotype
         unsigned uOrigMedHapNum = m_vuMedoidHapNum[uMedNum];
@@ -149,6 +153,7 @@ void RelationshipGraph::UpdateMedoids(const vector< uint64_t > * pvuHaplotypes )
                 dBestLoss = dLoss;
         }
     }
+    cerr << "\tUpdating complete.\n";
 }
 
 
