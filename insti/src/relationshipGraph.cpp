@@ -198,35 +198,31 @@ double RelationshipGraph::MedoidLoss(const vector< uint64_t > * pvuHaplotypes ){
 unsigned RelationshipGraph::Hap2Col(unsigned uHap){
 
     assert(m_bInitialized == true);
-    
-    switch (m_iGraphType){
-    case 0:
-        return(uHap/2);
-    case 1:
+
+    if(m_iGraphType == 1)
         return(uHap);
-    case 2:
+    else if(m_iGraphType < 4)
         return(uHap/2);
-    default:
+    else {
         cerr << "Unknown graph type selected: " << m_iGraphType << endl;
         assert(false);
     }
+
 }
 
 unsigned RelationshipGraph::Col2Hap(unsigned uCol){
 
     assert(m_bInitialized == true);
-    
-    switch (m_iGraphType){
-    case 0:
-        return(uCol * 2);
-    case 1:
+
+    if(m_iGraphType == 1)
         return(uCol);
-    case 2:
+    else if(m_iGraphType < 4)
         return(uCol * 2);
-    default:
+    else {
         cerr << "Unknown graph type selected: " << m_iGraphType << endl;
         assert(false);
     }
+    
 }
 
 // update graph medoids
@@ -417,7 +413,7 @@ void    RelationshipGraph::Save(string fileName, const vector<string> & name) {
     assert(m_bInitialized == true);
     
     // don't print graph if we don't have one...
-    if(m_iGraphType == 2) return;
+    if(m_iGraphType == 2 || m_iGraphType == 3) return;
 
     cerr << "Saving Relationship graph to prefix " << fileName << " ..." << endl;
     
