@@ -118,7 +118,7 @@ TEST(Haplotype, StoresOK){
     for( unsigned i = 0 ; i < 4; i++){
         EXPECT_FALSE( simpleA.TestSite(i));
     }
-    EXPECT_DEATH(simpleA.TestSite(5), "uSite < m_uNumAlleles");
+    EXPECT_DEATH(simpleA.TestSite(4), "uSite < m_uNumAlleles");
 
     Haplotype simpleB(4);
     simpleB.Set(0,1);
@@ -131,8 +131,18 @@ TEST(Haplotype, StoresOK){
     EXPECT_EQ(2, simpleA.HammingDist(simpleB));
     EXPECT_EQ(0, simpleA.HammingDist(simpleA));
 
+    Haplotype longA(128);
+    Haplotype longB(128);
+
+    EXPECT_DEATH(simpleA.Set(128,1), "uSite < m_uNumAlleles");
+    EXPECT_DEATH(simpleA.TestSite(128), "uSite < m_uNumAlleles");
     
-    
+    longA.Set(127,1);
+    longA.Set(1,1);
+    EXPECT_EQ(2, longA.HammingDist(longB));
+    EXPECT_EQ(2, longB.HammingDist(longA));
+    longB.Set(120,1);
+    EXPECT_EQ(3, longB.HammingDist(longA));
     
 }
 

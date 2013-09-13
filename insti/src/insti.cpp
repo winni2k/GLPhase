@@ -32,13 +32,14 @@ using namespace std;
 #endif
 
 //initializyng static member variables
-int Insti::s_iEstimator;
-uint Insti::s_uParallelChains;
-uint Insti::s_uCycles;
+int Insti::s_iEstimator = 0;
+uint Insti::s_uParallelChains = 0;
+uint Insti::s_uCycles = 0;
 bool Insti::s_bIsLogging = false;
 bool Insti::s_bKickStartFromRef = false;
 string Insti::s_sLegendFile = "";
 string Insti::s_sRefHapsFile = "";
+unsigned Insti::s_uNumClusters = 0;
 
 // return the probability of the model given the input haplotypes P and
 // emission and transition matrices of individual I
@@ -317,7 +318,7 @@ void Insti::initialize(){
 */
 
 // solve(individual, number of cycles, penalty, burnin?)
-fast Insti::solve(uint I, uint    &N, fast pen, RelationshipGraph &oRelGraph) {
+fast Insti::solve(uint I, uint N, fast pen, RelationshipGraph &oRelGraph) {
 
     // write log header
     stringstream message;
@@ -387,11 +388,32 @@ fast Insti::solve(uint I, uint    &N, fast pen, RelationshipGraph &oRelGraph) {
 */
 
 void    Insti::estimate() {
+
+    if(s_iEstimator == 0)
+        m_oRelGraph.init(2, in, hn + m_uNumRefHaps);
+    else if(s_iEstimator == 1){
+        estimate_EMC();
+        return;
+    }
+    else if(s_iEstimator == 2){
+        estimate_AMH(0);
+        return;
+    }
+    else if(s_iEstimator == 3){
+        estimate_AMH(1);
+        return;
+    }
+    else if(s_iEstimator == 4){
+        if( Insti::s_uNumClusters == 0)
+            document();
+        m_oRelGraph.init(3, Insti::s_uNumClusters, &haps, wn, mn, rng);
+    }
+    else
+        document();
+    
     cerr.setf(ios::fixed);
     cerr.precision(3);
     cerr << "iter\tpress\tlike\tfold\trunTime\texpectedRunTime" << endl;
-
-    m_oRelGraph.init(2, in, hn + m_uNumRefHaps);
     
     // n is number of cycles = burnin + sampling cycles
     // increase penalty from 2/bn to 1 as we go through burnin
@@ -406,6 +428,8 @@ void    Insti::estimate() {
         }
         swap(hnew, haps);
         if (n >= bn) for (uint i = 0; i < in; i++) replace(i);  // call replace
+
+        m_oRelGraph.UpdateGraph(&haps);
         cerr << n << '\t' << pen << '\t' << sum / in / mn << '\t' << iter / in / in << endl;
     }
     cerr << endl;

@@ -28,7 +28,7 @@ public:
     Haplotype(unsigned uNumAlleles) : m_uNumAlleles(uNumAlleles){
         unsigned uSize = ceil(static_cast<float>(uNumAlleles) / static_cast<float>(h_WordMod+1));
         m_utHap.reserve(uSize);
-        for(unsigned uWord; uWord < uSize; uWord ++)
+        for(unsigned uWord = 0; uWord < uSize; uWord ++)
             m_utHap.push_back( static_cast< uint64_t >(0) );
     }
 
@@ -36,15 +36,17 @@ public:
     // allele is either 1 or 0 and is the bit to set the site to
     void Set(unsigned uSite, bool bAllele) ;
     
-    bool TestSite(unsigned uSite) ;
+    bool TestSite(unsigned uSite) const;
     
-    uint64_t GetWord(unsigned uWordNum){ return m_utHap[uWordNum]; };
+    uint64_t GetWord(unsigned uWordNum) const { return m_utHap[uWordNum]; };
 
     // using a haplotype object
-    unsigned HammingDist(const Haplotype &oCompareHap);
+    unsigned HammingDist(const Haplotype &oCompareHap) const;
 
     // using a vector pointer
-    unsigned HammingDist(const uint64_t *upHap);
+    unsigned HammingDist(const uint64_t *upHap) const;
+
+    unsigned HammingDist(const  uint64_t  *upHap1, const uint64_t  *upHap2) const;
 
 };
     
