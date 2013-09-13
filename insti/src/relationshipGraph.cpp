@@ -65,7 +65,7 @@ void RelationshipGraph::init(int iGraphType, unsigned uNumClust, const vector< u
     m_uNumSites = uNumSites;
     
     // dereferencing the vector pointer
-    assert((*pvuHaplotypes).size() % (h_WordMod + 1) == 0);
+    assert((*pvuHaplotypes).size() % uNumWordsPerHap == 0);
     unsigned uNumHaps = (*pvuHaplotypes).size() / uNumWordsPerHap;
     m_uNumWordsPerHap = uNumWordsPerHap;
     
