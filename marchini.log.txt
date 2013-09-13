@@ -262,8 +262,8 @@ scales well in ram and time
 
 
 # for presentation
-- state of major depression
-  - why is depression important
+  - state of major depression
+    - why is depression important
   - what do we know about the geneticts?
     - people in audienc have 
   - CONVERGE study, what is it, where are we?
@@ -288,3 +288,11 @@ scales well in ram and time
 - send Jingchu instructions on how to extract GLs
 - verify bqsr method
 - something else?
+
+
+###########
+# Fri Sep 06 13:41:52 BST 2013
+# add to slides
+- STImpute
+- insti with tgp ref panel
+- insti quick
