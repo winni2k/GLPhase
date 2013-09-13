@@ -227,7 +227,7 @@ bool Insti::load_refPanel(string legendFile, string hapsFile){
     }
 
     assert(site.size() == uLineNum -1 && "Number of Positions in legend file needs to match current data");
-
+    
     // given that the legend looks good, read in the haps file
     ifile hapsFD(hapsFile);
     uLineNum = 0;

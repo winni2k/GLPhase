@@ -45,10 +45,10 @@ GTEST_SRCS_ = $(GTEST_DIR)/src/*.cc $(GTEST_DIR)/src/*.h $(GTEST_HEADERS)
 # conservative and not optimized.  This is fine as Google Test
 # compiles fast and for ordinary users its source rarely changes.
 gtest-all.o : $(GTEST_SRCS_)
-	$(CC) $(CXXFLAGS) -c $(GTEST_DIR)/src/gtest-all.cc
+	$(CXX) $(CXXFLAGS) -c $(GTEST_DIR)/src/gtest-all.cc
 
 gtest_main.o : $(GTEST_SRCS_)
-	$(CC) $(CXXFLAGS) -c $(GTEST_DIR)/src/gtest_main.cc
+	$(CXX) $(CXXFLAGS) -c $(GTEST_DIR)/src/gtest_main.cc
 
 gtest.a : gtest-all.o
 	$(AR) $(ARFLAGS) $@ $^
@@ -60,11 +60,11 @@ gtest_main.a : gtest-all.o gtest_main.o
 # gtest_main.a, depending on whether it defines its own main()
 # function.
 
-insti_unittest1.o : insti_unittest1.cpp $(SRC_DIR)/insti.h $(GTEST_HEADERS)
-	$(CC) $(CXXFLAGS) -c insti_unittest1.cpp
+insti_unittest1.o : insti_unittest1.cpp $(SRC_DIR)/insti.h $(SRC_DIR)/haplotype.h $(GTEST_HEADERS)
+	$(CXX) $(CXXFLAGS) -c insti_unittest1.cpp
 
-insti_unittest1 : $(SRC_DIR)/insti.o $(SRC_DIR)/impute.o $(SRC_DIR)/emcchain.o insti_unittest1.o gtest_main.a $(SRC_DIR)/olivier/utils.o $(SRC_DIR)/relationshipGraph.o
-	$(CC) $(CXXFLAGS) -lpthread $^ -o $@ $(LIBS) && ./$@
+insti_unittest1 : $(SRC_DIR)/insti.o $(SRC_DIR)/impute.o $(SRC_DIR)/emcchain.o insti_unittest1.o gtest_main.a $(SRC_DIR)/olivier/utils.o $(SRC_DIR)/relationshipGraph.o $(SRC_DIR)/haplotype.o
+	$(CXX) $(CXXFLAGS) -lpthread $^ -o $@ $(LIBS) && ./$@
 
 
 
