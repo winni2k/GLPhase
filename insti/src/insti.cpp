@@ -389,8 +389,12 @@ fast Insti::solve(uint I, uint N, fast pen, RelationshipGraph &oRelGraph) {
 
 void    Insti::estimate() {
 
-    if(s_iEstimator == 0)
-        m_oRelGraph.init(2, in, hn + m_uNumRefHaps);
+    if(s_iEstimator == 0){
+        if( Insti::s_uNumClusters > 0)
+            m_oRelGraph.init(3, Insti::s_uNumClusters, &haps, wn, mn, rng);
+        else
+            m_oRelGraph.init(2, in, hn + m_uNumRefHaps);
+    }
     else if(s_iEstimator == 1){
         estimate_EMC();
         return;
@@ -404,9 +408,6 @@ void    Insti::estimate() {
         return;
     }
     else if(s_iEstimator == 4){
-        if( Insti::s_uNumClusters == 0)
-            document();
-        m_oRelGraph.init(3, Insti::s_uNumClusters, &haps, wn, mn, rng);
     }
     else
         document();
