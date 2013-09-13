@@ -42,7 +42,7 @@ HEADER_GCH = impute.h.gch insti.h.gch emcchain.h.gch relationshipGraph.h.gch oli
 	$(CXX) $(CXXFLAGS) -c $< $(LIBS)
 
 olivier/utils.o: olivier/utils.cpp $(HEADER_GCH)
-	$(CXX) $(CXXFLAGS) -Wno-sign-compare -c $< $(LIBS)
+	$(CXX) $(CXXFLAGS) -Wno-sign-compare -c $< -o $@ $(LIBS)
 
 OBJECT_FILES = main.o impute.o insti.o emcchain.o relationshipGraph.o olivier/utils.o haplotype.o 
 
