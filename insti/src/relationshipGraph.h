@@ -21,8 +21,8 @@ class RelationshipGraph{
 private:
 
     // 1 based number of rows and columns
-    unsigned m_uRows;
-    unsigned m_uCols;
+    unsigned m_uRows = 0;
+    unsigned m_uCols = 0;
 
     // need these for AMH
     bool m_bUsingRelMat = false;
@@ -46,7 +46,9 @@ private:
     // 2 = no graph - all samples are equally related
     int m_iGraphType = -1;
     bool m_bUsingHaps = false;
-
+    unsigned m_uColHapFactor = 0;
+    unsigned m_uNumHaps = 0;
+    
     // hap to column index converter
     unsigned Hap2Col(unsigned uHap);
 
@@ -107,6 +109,7 @@ public:
     // update graph with number fRatio instead of 1
     void UpdateGraph( unsigned *p, bool bAccepted, unsigned uInd, float fRatio);
 
+    // update medoids
     void UpdateGraph( const vector< uint64_t > * pvuHaplotypes );
 
     void Save(std::string fileName, const vector<std::string> & name);

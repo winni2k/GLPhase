@@ -21,20 +21,13 @@ void RelationshipGraph::init(int iGraphType, unsigned uSamples, unsigned uHaplot
     m_uRows = uSamples;
     m_uCols = 0;
 
-    switch (m_iGraphType){
-    case 0:
-        m_uCols = ceil(uHaplotypes/2);
-        m_bUsingHaps = false;
-        break;
-    case 1:
-        m_uCols = uHaplotypes;
+    m_uColHapFactor = 2;
+    m_uCols = ceil(static_cast<float>(uHaplotypes)/static_cast<float>(m_uColHapFactor));
+    if (m_iGraphType == 1)
         m_bUsingHaps = true;
-        break;
-    case 2:
-        m_uCols = ceil(uHaplotypes/2);
+    else if(m_iGraphType < 3)
         m_bUsingHaps = false;
-        break;
-    default:
+    else {
         std::cerr << "Unknown graph type selected: " << m_iGraphType << std::endl;
         assert(false);
     }
@@ -66,7 +59,7 @@ void RelationshipGraph::init(int iGraphType, unsigned uNumClust, const vector< u
     
     // dereferencing the vector pointer
     assert((*pvuHaplotypes).size() % uNumWordsPerHap == 0);
-    unsigned uNumHaps = (*pvuHaplotypes).size() / uNumWordsPerHap;
+    m_uNumHaps = (*pvuHaplotypes).size() / uNumWordsPerHap;
     m_uNumWordsPerHap = uNumWordsPerHap;
     
     m_bUsingCluster = true;
@@ -75,10 +68,10 @@ void RelationshipGraph::init(int iGraphType, unsigned uNumClust, const vector< u
     // actually using the k-medoids algorithm for clustering
     // initialize with random medoids -- they may be the same haplotype
     m_vuMedoidHapNum.resize(uNumClust, 0);
-    m_vuHapMedNum.resize(uNumHaps, 0);
-    m_vuHapHammingDist.resize(uNumHaps, 0);
+    m_vuHapMedNum.resize(m_uNumHaps, 0);
+    m_vuHapHammingDist.resize(m_uNumHaps, 0);
     for( unsigned uClustNum = 0; uClustNum < uNumClust; uClustNum ++){
-        m_vuMedoidHapNum[uClustNum] = gsl_rng_uniform_int(rng, uNumHaps);
+        m_vuMedoidHapNum[uClustNum] = gsl_rng_uniform_int(rng, m_uNumHaps);
     }
 
     // initialize all haplotypes as being closest to the first medoid
@@ -198,31 +191,14 @@ double RelationshipGraph::MedoidLoss(const vector< uint64_t > * pvuHaplotypes ){
 unsigned RelationshipGraph::Hap2Col(unsigned uHap){
 
     assert(m_bInitialized == true);
-
-    if(m_iGraphType == 1)
-        return(uHap);
-    else if(m_iGraphType < 4)
-        return(uHap/2);
-    else {
-        cerr << "Unknown graph type selected: " << m_iGraphType << endl;
-        assert(false);
-    }
+    return(uHap / m_uColHapFactor);
 
 }
 
 unsigned RelationshipGraph::Col2Hap(unsigned uCol){
 
     assert(m_bInitialized == true);
-
-    if(m_iGraphType == 1)
-        return(uCol);
-    else if(m_iGraphType < 4)
-        return(uCol * 2);
-    else {
-        cerr << "Unknown graph type selected: " << m_iGraphType << endl;
-        assert(false);
-    }
-    
+    return uCol * m_uColHapFactor;    
 }
 
 // update graph medoids
@@ -365,8 +341,12 @@ unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng){
 
         while(1){
             uPropHap = gsl_rng_uniform_int(rng, vuHapsOfInterest.size());
-            if ( Hap2Col(vuHapsOfInterest[uPropHap]) != uInd ) break;
+            if ( vuHapsOfInterest[uPropHap] / 2 != uInd ) break;
         }
+        // make sure the return value is sensible
+        assert(uPropHap < m_uNumHaps);
+        return uPropHap;
+
     }
 
     
@@ -397,11 +377,12 @@ unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng){
             if( gsl_rng_uniform(rng) <= vuRelRowNum[uProp] / vuRelRowDen[uProp] )
                 break;
         }
-    }
+        // make sure the return value is sensible
+        assert(uPropHap < Col2Hap(m_uCols));
+        return uPropHap;
 
-    // make sure the return value is sensible
-    assert(uPropHap < Col2Hap(m_uCols));
-    return uPropHap;
+    }
+    return 0;
 }
 
 
