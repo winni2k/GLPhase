@@ -771,10 +771,11 @@ void Insti::save_relationship_graph ( string sOutputFile ){
 }
 
 void    Insti::document(void) {
-    cerr << "\nimpute";
+    cerr << "author   Warren W. Kretzschmar @ Marchini Group @ Universiy of Oxford - Statistics";
+    cerr << "\n\nThis code is based on SNPTools impute:";
     cerr << "\nhaplotype imputation by cFDSL distribution";
     cerr << "\nauthor   Yi Wang @ Fuli Yu' Group @ BCM-HGSC";
-    cerr << "\nusage    impute [options] 1.bin 2.bin ...";
+    cerr << "\n\nusage\timpute [options] 1.bin 2.bin ...";
     cerr << "\n\t-d <density>    relative SNP density to Sanger sequencing (1)";
     cerr << "\n\t-b <burn>       burn-in generations (56)";
     cerr << "\n\t-l <file>       list of input files";
@@ -793,8 +794,10 @@ void    Insti::document(void) {
     cerr << "\n\t-p <integer>    number of parallel chains to use in parallel estimation algorithms";
     cerr << "\n\t                (at least 2, default 5)";
     cerr << "\n\t-C <integer>    number of cycles to estimate an individual's parents before updating";
+    cerr << "\n\t-K <integer>    Cluster haplotypes (0 = option is off) Number of clusters to use while";
+    cerr << "\n\t                clustering haplotypes. Does not currently work with -k option";
 
-    cerr << "\n\nREFERENCE PANEL OPTIONS";
+    cerr << "\n\n    REFERENCE PANEL OPTIONS";
     cerr << "\n\t-H <file>       Impute2 style haplotypes file";
     cerr << "\n\t-L <file>       Impute2 style legend file";
     cerr << "\n\t-C <integer>    number of cycles to estimate an individual's parents before updating";    
