@@ -85,11 +85,11 @@ void RelationshipGraph::init(int iGraphType, unsigned uNumClust, const vector< u
     for( unsigned uHapNum = 0; uHapNum < m_vuHapMedNum.size(); uHapNum++)
         m_vuHapMedNum[uHapNum] = m_vuMedoidHapNum[0];
 
+    m_bInitialized = true;
 
     // assign each haplotype to the closest medoid
     UpdateMedoids(pvuHaplotypes);
 
-    m_bInitialized = true;
 }
 
 void RelationshipGraph::UpdateMedoids(const vector< uint64_t > * pvuHaplotypes ){
