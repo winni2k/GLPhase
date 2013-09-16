@@ -37,28 +37,49 @@ public:
     
     // sample from cluster graph
     unsigned SampleHap(unsigned uInd, gsl_rng *rng){
-        if(m_iGraphType == 3)
+        return SampleHap(uInd, rng, false);
+    }
+
+    // returns a haplotype sampled using the relationship graph, but only from the reference haplotypes
+    unsigned SampleHap(unsigned uInd, gsl_rng *rng, bool bOnlyFromRef){
+        if(bOnlyFromRef){
+            assert(m_iGraphType != 3);
+            return m_oRelGraph.SampleHap(uInd, rng, bOnlyFromRef);
+        }
+        else if(m_iGraphType == 3)
             return m_oKMedoids.SampleHap(uInd, rng);
         else
             return m_oRelGraph.SampleHap(uInd, rng);
     }
 
-    // returns a haplotype sampled using the relationship graph, but only from the reference haplotypes
-    unsigned SampleHap(unsigned uInd, gsl_rng *rng, bool bOnlyFromRef){ return m_oRelGraph.SampleHap(uInd, rng, bOnlyFromRef); }
-
     // update graph with proposal
-    void UpdateGraph( unsigned * p, bool bAccepted, unsigned uInd){ m_oRelGraph.UpdateGraph(p, bAccepted, uInd); };
+    void UpdateGraph( unsigned * p, bool bAccepted, unsigned uInd){ UpdateGraph(p, bAccepted, uInd, 1.0f); };
 
     // update graph with probability dUpdateProb
-    void UpdateGraph( unsigned *p, bool bAccepted, unsigned uInd, float dUpdateProb, gsl_rng *rng){ m_oRelGraph.UpdateGraph(p, bAccepted, uInd, dUpdateProb, rng); };
+//    void UpdateGraph( unsigned *p, bool bAccepted, unsigned uInd, float dUpdateProb, gsl_rng *rng){ m_oRelGraph.UpdateGraph(p, bAccepted, uInd, dUpdateProb, rng); };
 
     // update graph with number fRatio instead of 1
-    void UpdateGraph( unsigned *p, bool bAccepted, unsigned uInd, float fRatio){ m_oRelGraph.UpdateGraph(p, bAccepted, uInd, fRatio); };
+    void UpdateGraph( unsigned *p, bool bAccepted, unsigned uInd, float fRatio){
+        if(m_iGraphType == 3)
+            return;
+        else
+            m_oRelGraph.UpdateGraph(p, bAccepted, uInd, fRatio);
+    };
         
     // update medoids
-    void UpdateGraph( const vector< uint64_t > * pvuHaplotypes ){ m_oKMedoids.UpdateMedoids(pvuHaplotypes); };
+    void UpdateGraph( const vector< uint64_t > * pvuHaplotypes ){
+        if(m_iGraphType == 3)
+            m_oKMedoids.UpdateMedoids(pvuHaplotypes);
+        else
+            return;
+    };
 
-    void Save(std::string fileName, const vector<std::string> & name){ m_oRelGraph.Save(fileName, name); };
+    void Save(std::string fileName, const vector<std::string> & name){
+        if(m_iGraphType == 3)
+            return;
+        else
+            m_oRelGraph.Save(fileName, name);
+    };
     
 };
 
