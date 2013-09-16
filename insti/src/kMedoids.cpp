@@ -24,11 +24,11 @@ void KMedoids::init(const vector< uint64_t > * pvuHaplotypes, unsigned uNumWords
         m_vuMedoidHapNum[uClustNum] = gsl_rng_uniform_int(rng, m_uNumHaps);
     }
 
+    m_bInitialized = true;
+
     // find closest medoid for each haplotype
     for( unsigned uHapNum = 0; uHapNum < m_vuHapMedNum.size(); uHapNum++)
         AssignHapsToBestMedoids(pvuHaplotypes);
-
-    m_bInitialized = true;
 
     // Now update medoids to best place;
     UpdateMedoids(pvuHaplotypes);
