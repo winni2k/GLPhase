@@ -93,6 +93,9 @@ void KMedoids::UpdateMedoids(const vector< uint64_t > * pvuHaplotypes ){
             else if(m_uClusterType == 1)
                 dBestLoss = UpdateMedoidParkJun(pvuHaplotypes, dBestLoss, uMedNum);
         }
+
+        // let's see difference between cluster and actual loss
+        cerr << "\n\t      Best loss: " << dBestLoss << "; Last loss: " << dLastLoss << endl;
     }
     cerr << "\n\tUpdating complete.\n";
 }
