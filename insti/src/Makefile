@@ -35,13 +35,17 @@ clean:
 olivier/utils.h.gch: olivier/utils.h
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
-relationshipGraph.h.gch: relationshipGraph.h olivier/utils.h.gch haplotype.h.gch
+kMedoids.h.gch: kMedoids.h haplotype.h.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
-insti.h.gch: insti.h emcchain.h.gch olivier/utils.h.gch relationshipGraph.h.gch
+relationshipGraph.h.gch: relationshipGraph.h olivier/utils.h.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
-HEADER_GCH = impute.h.gch insti.h.gch emcchain.h.gch relationshipGraph.h.gch olivier/utils.h.gch haplotype.h.gch version.h.gch
+relationship.h.gch: relationship.h relationshipGraph.h.gch kMedoids.h.gch
+	$(CXX) $(CXXFLAGS) -x c++-header $<
+
+insti.h.gch: insti.h impute.h.gch emcchain.h.gch olivier/utils.h.gch relationship.h.gch 
+	$(CXX) $(CXXFLAGS) -x c++-header $<
 
 ## object files
 %.o: %.cpp %.h.gch
@@ -53,12 +57,12 @@ olivier/utils.o: olivier/utils.cpp olivier/utils.h.gch
 main.o: main.cpp version.h.gch impute.h.gch insti.h.gch
 	$(CXX) $(CXXFLAGS) -c $< $(LIBS)
 
-OBJECT_FILES = main.o impute.o insti.o emcchain.o relationshipGraph.o olivier/utils.o haplotype.o 
+OBJECT_FILES = main.o impute.o insti.o emcchain.o relationshipGraph.o olivier/utils.o haplotype.o kMedoids.o
 
-insti: $(OBJECT_FILES) $(HEADER_GCH)
+insti: $(OBJECT_FILES)
 	$(CXX) $(CXXFLAGS) -o insti $(OBJECT_FILES) $(LIBS)
 
-instiO0: $(OBJECT_FILES) $(HEADER_GCH)
+instiO0: $(OBJECT_FILES)
 	$(CXX) $(CXXFLAGS) -o instiO0 $(OBJECT_FILES) $(LIBS)
 
 

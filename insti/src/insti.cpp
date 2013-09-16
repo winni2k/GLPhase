@@ -40,6 +40,7 @@ bool Insti::s_bKickStartFromRef = false;
 string Insti::s_sLegendFile = "";
 string Insti::s_sRefHapsFile = "";
 unsigned Insti::s_uNumClusters = 0;
+unsigned Insti::s_uClusterType = 0;
 
 // return the probability of the model given the input haplotypes P and
 // emission and transition matrices of individual I
@@ -318,7 +319,7 @@ void Insti::initialize(){
 */
 
 // solve(individual, number of cycles, penalty, burnin?)
-fast Insti::solve(uint I, uint N, fast pen, RelationshipGraph &oRelGraph) {
+fast Insti::solve(uint I, uint N, fast pen, Relationship &oRel) {
 
     // write log header
     stringstream message;
@@ -328,7 +329,7 @@ fast Insti::solve(uint I, uint N, fast pen, RelationshipGraph &oRelGraph) {
     // pick 4 haplotype indices at random not from individual
     uint p[4];
     for (uint j = 0; j < 4; j++) {
-        p[j] = oRelGraph.SampleHap(I, rng);
+        p[j] = oRel.SampleHap(I, rng);
     }
 
     // get a probability of the model for individual I given p
@@ -346,10 +347,10 @@ fast Insti::solve(uint I, uint N, fast pen, RelationshipGraph &oRelGraph) {
         // kickstart phasing and imputation by only sampling haps
         // from ref panel in first round
         if(s_bKickStartFromRef && n == 0){
-            p[rp] = oRelGraph.SampleHap(I, rng, true);
+            p[rp] = oRel.SampleHap(I, rng, true);
         }
         else{
-            p[rp] = oRelGraph.SampleHap(I, rng);
+            p[rp] = oRel.SampleHap(I, rng);
         }
         
         fast prop = hmm_like(I, p);
@@ -361,7 +362,7 @@ fast Insti::solve(uint I, uint N, fast pen, RelationshipGraph &oRelGraph) {
         else p[rp] = oh;
 
         // Update relationship graph with proportion pen
-        oRelGraph.UpdateGraph(p, bAccepted, I, pen);
+        oRel.UpdateGraph(p, bAccepted, I, pen);
                 
         // log accepted proposals
         if(bAccepted){
@@ -391,9 +392,9 @@ void    Insti::estimate() {
 
     if(s_iEstimator == 0){
         if( Insti::s_uNumClusters > 0)
-            m_oRelGraph.init(3, Insti::s_uNumClusters, &haps, wn, mn, rng);
+            m_oRelationship.init(3, &haps, wn, mn, rng);
         else
-            m_oRelGraph.init(2, in, hn + m_uNumRefHaps);
+            m_oRelationship.init(2, in, hn + m_uNumRefHaps);
     }
     else if(s_iEstimator == 1){
         estimate_EMC();
@@ -424,13 +425,13 @@ void    Insti::estimate() {
         fast sum = 0, pen = min<fast>(2 * (n + 1.0f) / bn, 1), iter = 0;
         pen *= pen;  // pen = 1 after bn/2 iterations
         for (uint i = 0; i < in; i++) {
-            sum += solve(i, m_uCycles, pen, m_oRelGraph);  // call solve=> inputs the sample number,
+            sum += solve(i, m_uCycles, pen, m_oRelationship);  // call solve=> inputs the sample number,
             iter += m_uCycles;
         }
         swap(hnew, haps);
         if (n >= bn) for (uint i = 0; i < in; i++) replace(i);  // call replace
 
-        m_oRelGraph.UpdateGraph(&haps);
+        m_oRelationship.UpdateGraph(&haps);
         cerr << n << '\t' << pen << '\t' << sum / in / mn << '\t' << iter / in / in << endl;
     }
     cerr << endl;
@@ -737,7 +738,7 @@ void    Insti::estimate_AMH(unsigned uRelMatType) {
     // create a relationshipGraph object
     // initialize relationship matrix
     // create an in x uSamplingInds matrix
-    m_oRelGraph.init(uRelMatType, in, hn + m_uNumRefHaps);
+    m_oRelationship.init(uRelMatType, in, hn + m_uNumRefHaps);
 
     // n is number of cycles = burnin + sampling cycles
     // increase penalty from 2/bn to 1 as we go through burnin
@@ -753,7 +754,7 @@ void    Insti::estimate_AMH(unsigned uRelMatType) {
         for (uint i = 0; i < in; i++) {
 //            if( i % 1000 == 0)
 //                cerr << "cycle\t" << i << endl;
-            sum += solve(i, m_uCycles, pen, m_oRelGraph);
+            sum += solve(i, m_uCycles, pen, m_oRelationship);
             iter += m_uCycles;
         }
         swap(hnew, haps);
@@ -768,7 +769,7 @@ void Insti::save_relationship_graph ( string sOutputFile ){
     vector<string> vsSampNames;
     vsSampNames.insert(vsSampNames.end(), name.begin(), name.end());
     for(uint i = 0; i < ceil(m_uNumRefHaps/2); i++)  vsSampNames.push_back(string("refSamp") + sutils::uint2str(i));
-    m_oRelGraph.Save(sOutputFile, vsSampNames);
+    m_oRelationship.Save(sOutputFile, vsSampNames);
 }
 
 void    Insti::document(void) {
@@ -797,6 +798,9 @@ void    Insti::document(void) {
     cerr << "\n\t-C <integer>    number of cycles to estimate an individual's parents before updating";
     cerr << "\n\t-K <integer>    Cluster haplotypes (0 = option is off) Number of clusters to use while";
     cerr << "\n\t                clustering haplotypes. Does not currently work with -k option";
+    cerr << "\n\t-t <integer>    Cluster type (0)";
+    cerr << "\n\t                0 - PAM";
+    cerr << "\n\t                1 - Park and Jun 2008";
 
     cerr << "\n\n    REFERENCE PANEL OPTIONS";
     cerr << "\n\t-H <file>       Impute2 style haplotypes file";
