@@ -11,7 +11,6 @@
 #include        <iostream>
 #include        <stdint.h>
 #include        "utils.h"
-#include        "haplotype.h"
 
 //require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
@@ -28,17 +27,6 @@ private:
     bool m_bUsingRelMat = false;
     std::vector< std::vector< float > > m_2dRelationshipMatNum;
     std::vector< std::vector< float > > m_2dRelationshipMatDen;
-
-    // need these for clustering
-    bool m_bUsingCluster = false;
-    std::vector< unsigned > m_vuHapMedNum; // keeps track of which medioid each haplotype is closest to
-    std::vector< unsigned > m_vuMedoidHapNum; // keeps track of which haplotype each medoid is
-    std::vector< unsigned > m_vuHapHammingDist; // keeps track of hamming distance between each hap and its medoid
-//    std::vector< Haplotype > m_uClusterHaps;
-
-    // vars for clustering
-    unsigned m_uNumWordsPerHap = 0;
-    unsigned m_uNumSites = 0;
     
     // -1 = undefined
     // 0 = sample/sample graph
@@ -47,7 +35,6 @@ private:
     int m_iGraphType = -1;
     bool m_bUsingHaps = false;
     unsigned m_uColHapFactor = 0;
-    unsigned m_uNumHaps = 0;
     
     // hap to column index converter
     unsigned Hap2Col(unsigned uHap);
@@ -77,11 +64,6 @@ public:
 // 0 = sample/sample graph
 // 1 = sample/haplotype graph
 // 2 = no graph - all samples are equally related
-
-    RelationshipGraph(int iGraphType, unsigned uNumClust, const vector< uint64_t > * pvuHaplotypes,
-                      unsigned uNumWordsPerHap, unsigned uNumSites, gsl_rng *rng){
-        init(iGraphType, uNumClust, pvuHaplotypes, uNumWordsPerHap, uNumSites, rng);
-    };
 
     RelationshipGraph(int iGraphType, unsigned uSamples, unsigned uHaplotypes){
         init(iGraphType, uSamples, uHaplotypes);
@@ -113,10 +95,6 @@ public:
     void UpdateGraph( const vector< uint64_t > * pvuHaplotypes );
 
     void Save(std::string fileName, const vector<std::string> & name);
-
-    double MedoidLoss(const vector< uint64_t > * pvuHaplotypes );
-    
-    void UpdateMedoids(const vector< uint64_t > * pvuHaplotypes );
 
 };
 

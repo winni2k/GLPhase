@@ -32,7 +32,7 @@ int main(int ac, char **av) {
     
     string sLogFile;
     int opt;
-    while ((opt = getopt(ac, av, "d:b:l:m:n:v:c:x:e:E:p:C:L:H:kK:")) >= 0) {
+    while ((opt = getopt(ac, av, "d:b:l:m:n:v:c:x:e:E:p:C:L:H:kK:t:")) >= 0) {
         switch (opt) {
         case    'd':
             Impute::density = atof(optarg);
@@ -99,6 +99,9 @@ int main(int ac, char **av) {
 */
         case 'K':
             Insti::s_uNumClusters = atoi(optarg);
+            break;
+        case 't':
+            Insti::s_uClusterType = atoi(optarg);
             break;
         default:
             Insti::document();
