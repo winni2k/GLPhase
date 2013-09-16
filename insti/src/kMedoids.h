@@ -40,11 +40,17 @@ private:
     unsigned m_uClusterType;
     double m_dDelta = DBL_MIN * 10;
     
+    double MedoidLoss(const std::vector< uint64_t > * pvuHaplotypes, double dPower ) {
+        std::vector< unsigned > vuMedHaps;
+        return MedoidLoss(pvuHaplotypes, vuMedHaps, dPower);
+    };
     double MedoidLoss(const std::vector< uint64_t > * pvuHaplotypes ) {
         std::vector< unsigned > vuMedHaps;
         return MedoidLoss(pvuHaplotypes, vuMedHaps);
     };
-    double MedoidLoss(const std::vector< uint64_t > * pvuHaplotypes, const std::vector< unsigned > & vuMedHaps );
+    double MedoidLoss(const std::vector< uint64_t > * pvuHaplotypes, const std::vector< unsigned > & vuMedHaps )
+        { return MedoidLoss(pvuHaplotypes,vuMedHaps, 2.0); };
+    double MedoidLoss(const std::vector< uint64_t > * pvuHaplotypes, const std::vector< unsigned > & vuMedHaps, double dPower );
     double UpdateMedoidPAM(const std::vector< uint64_t > * pvuHaplotypes, double dBestLoss, unsigned uMedNum );
     double UpdateMedoidParkJun(const std::vector< uint64_t > * pvuHaplotypes, unsigned uMedNum );
     void InputTesting(const std::vector< uint64_t > * pvuHaplotypes);

@@ -76,7 +76,12 @@ void KMedoids::UpdateMedoids(const vector< uint64_t > * pvuHaplotypes ){
     // first figure out which medoid is closest to each haplotype
     AssignHapsToBestMedoids(pvuHaplotypes);
 
-    double dBestLoss = MedoidLoss(pvuHaplotypes);
+    
+    double dBestLoss;
+    if(m_uClusterType==1)
+        dBestLoss = MedoidLoss(pvuHaplotypes, 1.0);
+    else
+        dBestLoss = MedoidLoss(pvuHaplotypes, 2.0);
     double dLastLoss = dBestLoss+1;
     
     //// permute medoid locations until loss change is smaller than m_dDelta    
@@ -91,10 +96,10 @@ void KMedoids::UpdateMedoids(const vector< uint64_t > * pvuHaplotypes ){
             if(m_uClusterType == 0)
                 dBestLoss = UpdateMedoidPAM(pvuHaplotypes, dBestLoss, uMedNum);
             else if(m_uClusterType == 1)
-                UpdateMedoidParkJun(pvuHaplotypes, uMedNum);
+                UpdateMedoidParkJun(pvuHaplotypes, 1.0);
         }
         if(m_uClusterType == 1)
-            dBestLoss = MedoidLoss(pvuHaplotypes);
+            dBestLoss = MedoidLoss(pvuHaplotypes, 1.0);
 
         // let's see difference between cluster and actual loss
         cerr << "\n\t    Best loss: " << dBestLoss << "; Last loss: " << dLastLoss << endl;
@@ -115,7 +120,7 @@ double KMedoids::UpdateMedoidPAM(const vector< uint64_t > * pvuHaplotypes, doubl
         // try moving medoid to new hap
         unsigned uPrevMedHapNum = m_vuMedoidHapNum[uMedNum];            
         m_vuMedoidHapNum[uMedNum] = uHapNum;
-        double dLoss = MedoidLoss(pvuHaplotypes);
+        double dLoss = MedoidLoss(pvuHaplotypes, 2.0);
 
         // update loss if successful
         // revert to previous configuration if not
@@ -142,7 +147,7 @@ double KMedoids::UpdateMedoidParkJun(const vector< uint64_t > * pvuHaplotypes, u
     }
 
     // figure out what current loss is
-    double dBestLoss = MedoidLoss(pvuHaplotypes, vuMedHaps);
+    double dBestLoss = MedoidLoss(pvuHaplotypes, vuMedHaps, 1.0);
     
     // only look at haps around medoid
     for ( auto iMedHap : vuMedHaps){
@@ -154,7 +159,7 @@ double KMedoids::UpdateMedoidParkJun(const vector< uint64_t > * pvuHaplotypes, u
         // try moving medoid to new hap
         unsigned uPrevMedHapNum = m_vuMedoidHapNum[uMedNum];            
         m_vuMedoidHapNum[uMedNum] = iMedHap;
-        double dLoss = MedoidLoss(pvuHaplotypes, vuMedHaps);
+        double dLoss = MedoidLoss(pvuHaplotypes, vuMedHaps, 1.0);
 
         // update loss if successful
         // revert to previous configuration if not
@@ -167,7 +172,7 @@ double KMedoids::UpdateMedoidParkJun(const vector< uint64_t > * pvuHaplotypes, u
 
 }
 
-double KMedoids::MedoidLoss(const vector< uint64_t > * pvuHaplotypes,const std::vector< unsigned > & vuMedHaps  ){
+double KMedoids::MedoidLoss(const vector< uint64_t > * pvuHaplotypes,const std::vector< unsigned > & vuMedHaps, double dPower ){
 
     // compute squared hamming distance between every haplotype and its medoid
     Haplotype hTester(m_uNumSites);
@@ -181,7 +186,7 @@ double KMedoids::MedoidLoss(const vector< uint64_t > * pvuHaplotypes,const std::
                     &( *pvuHaplotypes)[uHapNum * m_uNumWordsPerHap],
                     &( *pvuHaplotypes)[m_vuMedoidHapNum[m_vuHapMedNum[uHapNum]] * m_uNumWordsPerHap]
                     ),
-                2.0);
+                dPower);
     else{
         unsigned uMedoidHapNum = m_vuMedoidHapNum[m_vuHapMedNum[vuMedHaps[0]]];
         for(auto uHapNum : vuMedHaps)
@@ -190,7 +195,7 @@ double KMedoids::MedoidLoss(const vector< uint64_t > * pvuHaplotypes,const std::
                     &( *pvuHaplotypes)[uHapNum * m_uNumWordsPerHap],
                     &( *pvuHaplotypes)[uMedoidHapNum * m_uNumWordsPerHap]
                     ),
-                2.0);
+                dPower);
     }
 
     return dLoss;
