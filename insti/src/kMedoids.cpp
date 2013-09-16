@@ -91,7 +91,7 @@ void KMedoids::UpdateMedoids(const vector< uint64_t > * pvuHaplotypes ){
         
         // update all medoids once
         for( unsigned uMedNum = 0; uMedNum < m_vuMedoidHapNum.size(); uMedNum ++){
-            cerr << "\t    Permuting medoid locations for medoid:\t" << uMedNum << "\r";
+//            cerr << "\t    Permuting medoid locations for medoid:\t" << uMedNum << "\r";
 
             if(m_uClusterType == 0)
                 dBestLoss = UpdateMedoidPAM(pvuHaplotypes, dBestLoss, uMedNum);
