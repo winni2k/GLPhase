@@ -24,15 +24,14 @@ void KMedoids::init(const vector< uint64_t > * pvuHaplotypes, unsigned uNumWords
         m_vuMedoidHapNum[uClustNum] = gsl_rng_uniform_int(rng, m_uNumHaps);
     }
 
-    // initialize all haplotypes as being closest to the first medoid
+    // find closest medoid for each haplotype
     for( unsigned uHapNum = 0; uHapNum < m_vuHapMedNum.size(); uHapNum++)
-        m_vuHapMedNum[uHapNum] = m_vuMedoidHapNum[0];
+        AssignHapsToBestMedoids(pvuHaplotypes);
 
     m_bInitialized = true;
 
-    // assign each haplotype to the closest medoid
+    // Now update medoids to best place;
     UpdateMedoids(pvuHaplotypes);
-
 }
 
 void KMedoids::InputTesting(const vector< uint64_t > * pvuHaplotypes ){
@@ -98,8 +97,15 @@ void KMedoids::UpdateMedoids(const vector< uint64_t > * pvuHaplotypes ){
             else if(m_uClusterType == 1)
                 UpdateMedoidParkJun(pvuHaplotypes, 1.0);
         }
+
+        // reassign haps to medoids
+        AssignHapsToBestMedoids(pvuHaplotypes);
+
+        // calculate total loss
         if(m_uClusterType == 1)
             dBestLoss = MedoidLoss(pvuHaplotypes, 1.0);
+        else
+            dBestLoss = MedoidLoss(pvuHaplotypes, 2.0);
 
         // let's see difference between cluster and actual loss
         cerr << "\t    Best loss: " << dBestLoss << "; Last loss: " << dLastLoss << endl;
