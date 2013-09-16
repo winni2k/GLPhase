@@ -80,22 +80,24 @@ void KMedoids::UpdateMedoids(const vector< uint64_t > * pvuHaplotypes ){
     double dLastLoss = dBestLoss+1;
     
     //// permute medoid locations until loss change is smaller than m_dDelta    
-    while(dLastLoss - dBestLoss > m_dDelta){
+    while(abs(dLastLoss - dBestLoss) > m_dDelta){
 
         dLastLoss = dBestLoss;
         
-        // pick a medoid
+        // update all medoids once
         for( unsigned uMedNum = 0; uMedNum < m_vuMedoidHapNum.size(); uMedNum ++){
             cerr << "\t    Permuting medoid locations for medoid:\t" << uMedNum << "\r";
 
             if(m_uClusterType == 0)
                 dBestLoss = UpdateMedoidPAM(pvuHaplotypes, dBestLoss, uMedNum);
             else if(m_uClusterType == 1)
-                dBestLoss = UpdateMedoidParkJun(pvuHaplotypes, dBestLoss, uMedNum);
+                UpdateMedoidParkJun(pvuHaplotypes, uMedNum);
         }
+        if(m_uClusterType == 1)
+            dBestLoss = MedoidLoss(pvuHaplotypes);
 
         // let's see difference between cluster and actual loss
-        cerr << "\n\t      Best loss: " << dBestLoss << "; Last loss: " << dLastLoss << endl;
+        cerr << "\n\t    Best loss: " << dBestLoss << "; Last loss: " << dLastLoss << endl;
     }
     cerr << "\n\tUpdating complete.\n";
 }
@@ -125,7 +127,8 @@ double KMedoids::UpdateMedoidPAM(const vector< uint64_t > * pvuHaplotypes, doubl
     return dBestLoss;
 }
 
-double KMedoids::UpdateMedoidParkJun(const vector< uint64_t > * pvuHaplotypes, double dBestLoss, unsigned uMedNum ){
+double KMedoids::UpdateMedoidParkJun(const vector< uint64_t > * pvuHaplotypes, unsigned uMedNum ){
+
     // pick a haplotype
     unsigned uOrigMedHapNum = m_vuMedoidHapNum[uMedNum];
     vector< unsigned > vuMedHaps;
@@ -138,6 +141,9 @@ double KMedoids::UpdateMedoidParkJun(const vector< uint64_t > * pvuHaplotypes, d
         uHapNum ++;
     }
 
+    // figure out what current loss is
+    double dBestLoss = MedoidLoss(pvuHaplotypes, vuMedHaps);
+    
     // only look at haps around medoid
     for ( auto iMedHap : vuMedHaps){
             
@@ -148,7 +154,7 @@ double KMedoids::UpdateMedoidParkJun(const vector< uint64_t > * pvuHaplotypes, d
         // try moving medoid to new hap
         unsigned uPrevMedHapNum = m_vuMedoidHapNum[uMedNum];            
         m_vuMedoidHapNum[uMedNum] = iMedHap;
-        double dLoss = MedoidLoss(pvuHaplotypes);
+        double dLoss = MedoidLoss(pvuHaplotypes, vuMedHaps);
 
         // update loss if successful
         // revert to previous configuration if not
@@ -161,18 +167,31 @@ double KMedoids::UpdateMedoidParkJun(const vector< uint64_t > * pvuHaplotypes, d
 
 }
 
-double KMedoids::MedoidLoss(const vector< uint64_t > * pvuHaplotypes ){
+double KMedoids::MedoidLoss(const vector< uint64_t > * pvuHaplotypes,const std::vector< unsigned > & vuMedHaps  ){
 
     // compute squared hamming distance between every haplotype and its medoid
     Haplotype hTester(m_uNumSites);
     double dLoss = 0;
-    for( unsigned uHapNum = 0; uHapNum < m_vuHapMedNum.size(); uHapNum ++)
-        dLoss += pow(
-            hTester.HammingDist(
-                &( *pvuHaplotypes)[uHapNum * m_uNumWordsPerHap],
-                &( *pvuHaplotypes)[m_vuMedoidHapNum[m_vuHapMedNum[uHapNum]] * m_uNumWordsPerHap]
-                ),
-            2.0);
+
+    // perform loss across all medoids
+    if(vuMedHaps.size() == 0)
+        for( unsigned uHapNum = 0; uHapNum < m_vuHapMedNum.size(); uHapNum ++)
+            dLoss += pow(
+                hTester.HammingDist(
+                    &( *pvuHaplotypes)[uHapNum * m_uNumWordsPerHap],
+                    &( *pvuHaplotypes)[m_vuMedoidHapNum[m_vuHapMedNum[uHapNum]] * m_uNumWordsPerHap]
+                    ),
+                2.0);
+    else{
+        unsigned uMedoidHapNum = m_vuMedoidHapNum[m_vuHapMedNum[vuMedHaps[0]]];
+        for(auto uHapNum : vuMedHaps)
+            dLoss += pow(
+                hTester.HammingDist(
+                    &( *pvuHaplotypes)[uHapNum * m_uNumWordsPerHap],
+                    &( *pvuHaplotypes)[uMedoidHapNum * m_uNumWordsPerHap]
+                    ),
+                2.0);
+    }
 
     return dLoss;
 }
