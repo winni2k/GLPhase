@@ -71,10 +71,6 @@ void KMedoids::UpdateMedoids(const vector< uint64_t > * pvuHaplotypes ){
     cerr << "\tUpdating medoids..\n";
     InputTesting(pvuHaplotypes);        
 
-    // first figure out which medoid is closest to each haplotype
-    AssignHapsToBestMedoids(pvuHaplotypes);
-
-    
     double dBestLoss;
     if(m_uClusterType==1)
         dBestLoss = MedoidLoss(pvuHaplotypes, 1.0);
