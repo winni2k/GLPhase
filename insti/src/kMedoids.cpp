@@ -102,7 +102,7 @@ void KMedoids::UpdateMedoids(const vector< uint64_t > * pvuHaplotypes ){
             dBestLoss = MedoidLoss(pvuHaplotypes, 1.0);
 
         // let's see difference between cluster and actual loss
-        cerr << "\n\t    Best loss: " << dBestLoss << "; Last loss: " << dLastLoss << endl;
+        cerr << "\t    Best loss: " << dBestLoss << "; Last loss: " << dLastLoss << endl;
     }
     cerr << "\n\tUpdating complete.\n";
 }
