@@ -793,13 +793,22 @@ void    Insti::document(void) {
     cerr << "\n\t-d <density>    relative SNP density to Sanger sequencing (1)";
 //    cerr << "\n\t-b <burn>       burn-in generations (56)";
     cerr << "\n\t-l <file>       list of input files";
-    cerr << "\n\t-m <mcmc>       sampling generations (200)";
     cerr << "\n\t-n <fold>       sample size*fold of nested MH sampler iteration (2)";
 //    cerr << "\n\t-t <thread>     number of threads (0=MAX)";
     cerr << "\n\t-v <vcf>        integrate known genotype in VCF format";
     cerr << "\n\t-c <conf>       confidence of known genotype (0.9998)";
     cerr << "\n\t-x <gender>     impute x chromosome data";
     cerr << "\n\t-e <file>       write log to file";
+
+    cerr << "\n\n    GENERATION OPTIONS";
+    cerr << "\n\t-m <mcmc>       sampling generations (200)";
+    cerr << "\n\t-C <integer>    number of cycles to estimate an individual's parents before updating";
+    cerr << "\n\t-B <integer>    number of simulated annealing generations (23)";
+    cerr << "\n\t-i <integer>    number of non-simulated annealing burnin generations (23)";
+    cerr << "\n\t-M <integer>    generation number at which to start clustering, 0-based (23)";
+
+    
+    cerr << "\n\n    HAPLOTYPE ESTIMATION OPTIONS";
     cerr << "\n\t-E <integer>    choice of estimation algorithm (0)";
     cerr << "\n\t                0 - Metropolis Hastings with simulated annealing";
     cerr << "\n\t                1 - Evolutionary Monte Carlo with -p parallel chains";
@@ -807,10 +816,6 @@ void    Insti::document(void) {
     cerr << "\n\t                3 - Adaptive Metropolis Hastings - sample/haplotype matrix";
     cerr << "\n\t-p <integer>    number of parallel chains to use in parallel estimation algorithms";
     cerr << "\n\t                (at least 2, default 5)";
-    cerr << "\n\t-C <integer>    number of cycles to estimate an individual's parents before updating";
-    cerr << "\n\t-B <integer>    number of simulated annealing generations (23)";
-    cerr << "\n\t-i <integer>    number of non-simulated annealing burnin generations (23)";
-    cerr << "\n\t-M <integer>    generation number at which to start clustering, 0-based (23)";
     cerr << "\n\t-K <integer>    number of clusters to use for haplotypes clustering (0 = option is off).";
     cerr << "\n\t                Does not currently work with -k option";
     cerr << "\n\t-t <integer>    Cluster type (0)";
@@ -820,7 +825,6 @@ void    Insti::document(void) {
     cerr << "\n\n    REFERENCE PANEL OPTIONS";
     cerr << "\n\t-H <file>       Impute2 style haplotypes file";
     cerr << "\n\t-L <file>       Impute2 style legend file";
-    cerr << "\n\t-C <integer>    number of cycles to estimate an individual's parents before updating";    
     cerr << "\n\t-k              Kickstart phasing by using only ref panel in first iteration";
     cerr << "\n\n";
     exit(1);
