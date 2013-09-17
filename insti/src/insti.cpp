@@ -434,6 +434,10 @@ void    Insti::estimate() {
 
         // Phase each individual based on the rest of the individuals
         for (uint i = 0; i < in; i++) {
+
+            // re-update graph based on current haplotypes
+            if(n == Insti::s_uStartClusterGen)
+                m_oRelationship.UpdateGraph(&haps);
             if(n < Insti::s_uStartClusterGen)
                 sum += solve(i, m_uCycles, pen, oUniformRel);
             else
