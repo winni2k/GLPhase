@@ -28,7 +28,7 @@ $cmd .= "gzip -dc "    if $useGz;
 $cmd .= "dd bs=1M if=" if !$useGz;
 
 $cmd .= "$args{v}";
-$cmd .= q( | grep '^#');
+$cmd .= q( | grep -v '^#');
 $cmd .= q( | awk '{print $1, $2,$3,$4,$5}');
 $cmd .= " | ";
 
