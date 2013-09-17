@@ -32,14 +32,14 @@ int main(int ac, char **av) {
     
     string sLogFile;
     int opt;
-    while ((opt = getopt(ac, av, "d:b:l:m:n:v:c:x:e:E:p:C:L:H:kK:t:")) >= 0) {
+    while ((opt = getopt(ac, av, "d:l:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:")) >= 0) {
         switch (opt) {
         case    'd':
             Impute::density = atof(optarg);
             break;
-        case    'b':
+/*        case 'b':
             Impute::bn = atoi(optarg);
-            break;
+            break; */
         case    'm':
             Impute::sn = atoi(optarg);
             break;
@@ -103,10 +103,22 @@ int main(int ac, char **av) {
         case 't':
             Insti::s_uClusterType = atoi(optarg);
             break;
+        case 'B':
+            Insti::s_uSABurninGen = atoi(optarg);
+            break;
+        case 'i':
+            Insti::s_uNonSABurninGen = atoi(optarg);
+            break;
+        case 'M':
+            Insti::s_uStartClusterGen = atoi(optarg);
+            break;
         default:
             Insti::document();
         }
     }
+
+    // need to specify burnin generations as sum of SA and non-SA gens
+    Impute::bn = Insti::s_uSABurninGen + Insti::s_uNonSABurninGen;
     
     // need to specify ref panel if kickstarting
     if(Insti::s_bKickStartFromRef){
@@ -117,11 +129,13 @@ int main(int ac, char **av) {
     }
     
 //    if (threads) omp_set_num_threads(threads);
+    // read in files
     for (int i = optind; i < ac; i++) file.push_back(av[i]);
     sort(file.begin(), file.end());
     uint fn = unique(file.begin(), file.end()) - file.begin();
     if (!fn) Insti::document();
 
+    // Die if more than one file was specified on command line
     if(fn != 1){
         cerr << endl << "INSTI only accepts one input .bin file" << endl << endl;
         Insti::document();

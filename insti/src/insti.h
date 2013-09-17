@@ -67,7 +67,10 @@ public:
     static bool s_bIsLogging; // true if logging
     static unsigned s_uNumClusters; // number of clusters to use
     static unsigned s_uClusterType; // what type of clustering
-    
+    static unsigned s_uSABurninGen; // number of simulated annealing burnin generations
+    static unsigned s_uNonSABurninGen; // number of non-SA burning generations
+    static unsigned s_uStartClusterGen; // 0-based generation number at which to start clustering
+        
     // bool flag to keep track if we want to phase samples from ref haps only in first round
     static bool s_bKickStartFromRef;
 

@@ -41,6 +41,9 @@ string Insti::s_sLegendFile = "";
 string Insti::s_sRefHapsFile = "";
 unsigned Insti::s_uNumClusters = 0;
 unsigned Insti::s_uClusterType = 0;
+unsigned Insti::s_uSABurninGen = 23;
+unsigned Insti::s_uNonSABurninGen = 23;
+unsigned Insti::s_uStartClusterGen = 23;
 
 // return the probability of the model given the input haplotypes P and
 // emission and transition matrices of individual I
@@ -390,6 +393,9 @@ fast Insti::solve(uint I, uint N, fast pen, Relationship &oRel) {
 
 void    Insti::estimate() {
 
+    // the uniform relationship "graph" will be used until
+    // -M option says not to.
+    Relationship oUniformRel(2, in, hn + m_uNumRefHaps);
     if(s_iEstimator == 0){
         if( Insti::s_uNumClusters > 0)
             m_oRelationship.init(3, &haps, wn, mn, rng);
@@ -422,10 +428,16 @@ void    Insti::estimate() {
     // iterations.
     for (uint n = 0; n < bn + sn; n++) {
         m_nIteration = n;
-        fast sum = 0, pen = min<fast>(2 * (n + 1.0f) / bn, 1), iter = 0;
+        fast sum = 0, iter = 0;
+        fast pen = min<fast>( (n + 1.0f) / Insti::s_uSABurninGen, 1);
         pen *= pen;  // pen = 1 after bn/2 iterations
+
+        // Phase each individual based on the rest of the individuals
         for (uint i = 0; i < in; i++) {
-            sum += solve(i, m_uCycles, pen, m_oRelationship);  // call solve=> inputs the sample number,
+            if(n < Insti::s_uStartClusterGen)
+                sum += solve(i, m_uCycles, pen, oUniformRel);
+            else
+                sum += solve(i, m_uCycles, pen, m_oRelationship);
             iter += m_uCycles;
         }
         swap(hnew, haps);
@@ -444,7 +456,7 @@ void    Insti::estimate() {
    running a parallel chain evolutionary monte carlo scheme.
 
    The reference for this implementation is
-   "Advanced Markov Choin Monte Carlo Methods" by Liang, Liu and Carroll
+   "Advanced Markov Chain Monte Carlo Methods" by Liang, Liu and Carroll
    first edition?, 2010, pp. 128-132
 */
 
@@ -779,7 +791,7 @@ void    Insti::document(void) {
     cerr << "\nAuthor\tYi Wang @ Fuli Yu' Group @ BCM-HGSC";
     cerr << "\n\nusage\timpute [options] 1.bin 2.bin ...";
     cerr << "\n\t-d <density>    relative SNP density to Sanger sequencing (1)";
-    cerr << "\n\t-b <burn>       burn-in generations (56)";
+//    cerr << "\n\t-b <burn>       burn-in generations (56)";
     cerr << "\n\t-l <file>       list of input files";
     cerr << "\n\t-m <mcmc>       sampling generations (200)";
     cerr << "\n\t-n <fold>       sample size*fold of nested MH sampler iteration (2)";
@@ -796,8 +808,11 @@ void    Insti::document(void) {
     cerr << "\n\t-p <integer>    number of parallel chains to use in parallel estimation algorithms";
     cerr << "\n\t                (at least 2, default 5)";
     cerr << "\n\t-C <integer>    number of cycles to estimate an individual's parents before updating";
-    cerr << "\n\t-K <integer>    Cluster haplotypes (0 = option is off) Number of clusters to use while";
-    cerr << "\n\t                clustering haplotypes. Does not currently work with -k option";
+    cerr << "\n\t-B <integer>    number of simulated annealing generations (23)";
+    cerr << "\n\t-i <integer>    number of non-simulated annealing burnin generations (23)";
+    cerr << "\n\t-M <integer>    generation number at which to start clustering, 0-based (23)";
+    cerr << "\n\t-K <integer>    number of clusters to use for haplotypes clustering (0 = option is off).";
+    cerr << "\n\t                Does not currently work with -k option";
     cerr << "\n\t-t <integer>    Cluster type (0)";
     cerr << "\n\t                0 - PAM";
     cerr << "\n\t                1 - Park and Jun 2008";

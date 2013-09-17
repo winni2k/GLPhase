@@ -511,6 +511,8 @@ void    Impute::estimate(void) {
     result();    // call result
 }
 
+// keep a count of the number of 1s at each site for each haplotype
+// ha will always have more or as many 1 alleles as hb
 void    Impute::replace(uint I) {
     word *oa = &haps[I * 2 * wn], *ob = oa + wn;  // observations?
     uint *ha = &hsum[I * 2 * mn], *hb = ha + mn;

@@ -26,6 +26,11 @@ public:
     Relationship(unsigned uNumClusters, unsigned uClusterType)
         : m_oKMedoids(uClusterType, uNumClusters), m_oRelGraph() {};
 
+    Relationship(int iGraphType, unsigned uSamples, unsigned uHaplotypes)
+        : m_oKMedoids(0, 0), m_oRelGraph() {
+        m_oRelGraph.init(iGraphType, uSamples, uHaplotypes);
+    }
+    
     Relationship()
         : m_oKMedoids(0, 0), m_oRelGraph() {};
 
