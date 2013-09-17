@@ -27,3 +27,6 @@ After filtering, kept 428131 out of a possible 428131 Sites
 Run Time = 220.00 seconds
 @fenghuang sanger$ 
 EOF
+
+# starting work on phasing pipeline
+cd /homes/kretzsch/feng/marchini/haplotypeConsortium/chr20_pilot/results/2013-09-17_run_insti_on_sanger_GLs
