@@ -11,7 +11,7 @@ use File::Path qw(make_path);
 use File::Basename;
 use Env qw(HOME);
 use Carp;
-use ListUtil qw/sum/;
+use List::Util qw/sum/;
 
 use Getopt::Std;
 my %args;
