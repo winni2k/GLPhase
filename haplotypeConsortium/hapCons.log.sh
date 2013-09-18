@@ -30,3 +30,32 @@ EOF
 
 # starting work on phasing pipeline
 cd /homes/kretzsch/feng/marchini/haplotypeConsortium/chr20_pilot/results/2013-09-17_run_insti_on_sanger_GLs
+
+###########
+# Wed Sep 18 10:21:39 BST 2013
+echo <<EOF
+
+1. assumption all missing data is homozygous reference allele
+2. SHAPEIT2 with missing data
+3. run on intersect
+
+Measure imputation performance of haplotypes
+
+4. Impute from phase 3 haplotypes as baseline
+Impute from haplotype consortium
+
++ GL data
+
+take a look at all sites
+alignment issues: 
+
+1 remove all sites that arennt in any reference panel
+
+ tools:
+ gtool
+ impute2 for imputation
+
+measure imputation accuracy:
+   Brian Howie's script
+
+EOF
