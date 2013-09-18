@@ -38,7 +38,7 @@ $cmd .= " | ";
 # write the rest of the lines
 my $lineNum = 0;
 open( my $fh,    $cmd );
-open( my $fhOut, " | gzip -c > $name.bin" );
+open( my $fhOut, " | gzip -c > $path/$name.bin" );
 my $headerWritten = 0;
 LINE: while (<$fh>) {
     $lineNum++;
