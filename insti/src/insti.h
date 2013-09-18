@@ -17,6 +17,7 @@
 #include "emcchain.h"
 #include "utils.h"
 #include "relationship.h"
+#include "version.h"
 
 //require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
@@ -109,6 +110,7 @@ public:
     unsigned RJSelection( const vector<unsigned> & vuRetMatNum, const vector<unsigned> & vuRetMatDen, unsigned I, unsigned hn, gsl_rng * rng);
 
     void save_relationship_graph ( string sOutputFile );
+    void save_vcf(const char *F);
 
 };
 
