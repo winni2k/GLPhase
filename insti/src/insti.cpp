@@ -786,6 +786,39 @@ void Insti::save_relationship_graph ( string sOutputFile ){
     m_oRelationship.Save(sOutputFile, vsSampNames);
 }
 
+void    Insti::save_vcf(const char *F) {
+    string temp = F;
+    temp += ".vcf.gz";
+    gzFile f = gzopen(temp.c_str(), "wt");
+    gzprintf(f, "##fileformat=VCFv4.0\n");
+    stringstream source;
+    source <<  "##source=WTCHG:INSTIv" <<  VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_REVISION << "\n";
+    gzprintf(f, source.str().c_str());
+    gzprintf(f, "##reference=1000Genomes-NCBI37\n");
+    gzprintf(f, "##iteration=%u\n", sn);
+    gzprintf(f, "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n");
+    gzprintf(f, "##FORMAT=<ID=AP,Number=2,Type=Float,Description=\"Allelic Probability, P(Allele=1|Haplotype)\">\n");
+    gzprintf(f, "#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT");
+    for (uint i = 0; i < in; i++) gzprintf(f, "\t%s", name[i].c_str());
+    for (uint m = 0; m < mn; m++) {
+        gzprintf(f, "\n%s\t%u\t.\t%c\t%c\t100\tPASS\t.\tGT:AP",
+                site[m].chr.c_str(), site[m].pos, site[m].all[0], site[m].all[1]);
+        fast *p = &prob[m * hn];
+        for (uint i = 0; i < in; i++, p += 2) {
+            fast prr = (1 - p[0]) * (1 - p[1]), pra = (1 - p[0]) * p[1] + p[0] * (1 - p[1]), paa = p[0] * p[1];
+            if (prr >= pra && prr >= paa) gzprintf(f, "\t0|0:%.3f,%.3f", p[0], p[1]);  // aren't these probabilities being printed wrong
+            else if (pra >= prr && pra >= paa) {
+                if (p[0] > p[1]) gzprintf(f, "\t1|0:%.3f,%.3f", p[0], p[1]);
+                else gzprintf(f, "\t0|1:%.3f,%.3f", p[0], p[1]);
+            }
+            else gzprintf(f, "\t1|1:%.3f,%.3f", p[0], p[1]);
+        }
+    }
+    gzprintf(f, "\n");
+    gzclose(f);
+}
+
+
 void    Insti::document(void) {
     cerr << "Author\tWarren W. Kretzschmar @ Marchini Group @ Universiy of Oxford - Statistics";
     cerr << "\n\nThis code is based on SNPTools impute:";

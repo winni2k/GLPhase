@@ -44,7 +44,7 @@ relationshipGraph.h.gch: relationshipGraph.h olivier/utils.h.gch
 relationship.h.gch: relationship.h relationshipGraph.h.gch kMedoids.h.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
-insti.h.gch: insti.h impute.h.gch emcchain.h.gch olivier/utils.h.gch relationship.h.gch 
+insti.h.gch: insti.h impute.h.gch emcchain.h.gch olivier/utils.h.gch relationship.h.gch version.h.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
 ## object files
