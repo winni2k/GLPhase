@@ -90,7 +90,7 @@ LINE: while (<$fh>) {
         # only keep het and homo alt
         printf $fhOut "\t%.5f %.5f", @gls[ 1 .. 2 ];
     }
-    print "\n";
+    print $fhOut "\n";
 }
 
 __END__
