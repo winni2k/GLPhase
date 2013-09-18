@@ -88,7 +88,7 @@ LINE: while (<$fh>) {
         @gls = map { $_ / $sum } @gls;
 
         # only keep het and homo alt
-        print "\t" . join( ' ', @gls[ 1 .. 2 ] );
+        printf $fhOut "\t%.5f %.5f", @gls[ 1 .. 2 ];
     }
     print "\n";
 }
