@@ -7,7 +7,6 @@ export CPATH := snptools.cpp.gold/samtools-0.1.16:snptools.cpp.gold/tabix-0.2.5:
 export LIBRARY_PATH := snptools.cpp.gold/samtools-0.1.16:snptools.cpp.gold/tabix-0.2.5
 export LD_LIBRARY_PATH := $(LIBRARY_PATH)
 
-
 all: insti
 
 insti: CXXFLAGS += -O3

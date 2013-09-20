@@ -17,9 +17,8 @@
 #include	<tabix.h>
 #include	<cfloat>
 #include	<cstdio>
-#include	<vector>
-#include	<zlib.h>
 #include	<cmath>
+#include	<vector>
 #include	<ctime>
 //#include	<omp.h>
 #include	<set>
