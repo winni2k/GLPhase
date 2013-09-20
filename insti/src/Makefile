@@ -1,10 +1,11 @@
 export CXX= g++-4.7+
 export DEBUGFLAGS= -ggdb
 export CXXFLAGS= -Wall -Wextra -std=c++11 -std=gnu++11 -mpopcnt $(DEBUGFLAGS)
-export LIBS += -lgsl -lz -lbam -ltabix -lbz2 -lstdc++ -lboost_iostreams-mt 	
-export CPATH := snptools.cpp/samtools-0.1.16:snptools.cpp/tabix-0.2.5:olivier
-export LIBRARY_PATH := snptools.cpp/samtools-0.1.16:snptools.cpp/tabix-0.2.5
-export LD_LIBRARY_PATH := snptools.cpp/samtools-0.1.16:snptools.cpp/tabix-0.2.5
+BOOSTLIB=-lboost_iostreams-mt
+export LIBS += -lpthread -lgsl -lgslcblas -lbam -ltabix -lbz2 $(BOOSTLIB) -lm -lstdc++ -lz
+export CPATH := snptools.cpp.gold/samtools-0.1.16:snptools.cpp.gold/tabix-0.2.5:olivier
+export LIBRARY_PATH := snptools.cpp.gold/samtools-0.1.16:snptools.cpp.gold/tabix-0.2.5
+export LD_LIBRARY_PATH := $(LIBRARY_PATH)
 
 all: insti
 
@@ -60,9 +61,9 @@ main.o: main.cpp version.hpp.gch impute.hpp.gch insti.hpp.gch
 OBJECT_FILES = main.o impute.o insti.o emcchain.o relationshipGraph.o olivier/utils.o haplotype.o kMedoids.o
 
 insti: $(OBJECT_FILES)
-	$(CXX) $(CXXFLAGS) -o insti $(OBJECT_FILES) $(LIBS)
+	$(CXX) $(CXXFLAGS) $(OBJECT_FILES)  -o $@ $(LIBS)
 
 instiO0: $(OBJECT_FILES)
-	$(CXX) $(CXXFLAGS) -o instiO0 $(OBJECT_FILES) $(LIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJECT_FILES) $(LIBS)
 
 

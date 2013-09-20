@@ -59,3 +59,11 @@ measure imputation accuracy:
    Brian Howie's script
 
 EOF
+
+###########
+# Thu Sep 19 13:51:43 BST 2013
+# copied bin files to /well
+# then ran command from cluster3
+ssh cluster3
+cd /well/marchini/winni/proj/marchini/haplotypeConsortium/chr20_pilot/results/2013-09-17_run_insti_on_sanger_GLs
+./runall.pl -m /well/marchini/winni/proj/marchini
