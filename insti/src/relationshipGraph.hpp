@@ -10,7 +10,7 @@
 #include        <cmath>
 #include        <iostream>
 #include        <stdint.h>
-#include        "utils.h"
+#include        "utils.hpp"
 
 //require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");

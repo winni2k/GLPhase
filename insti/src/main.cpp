@@ -8,9 +8,9 @@
 
 // 
 
-#include "version.h"
-#include "impute.h"
-#include "insti.h"
+#include "version.hpp"
+#include "impute.hpp"
+#include "insti.hpp"
 #include <chrono>
 
 int main(int ac, char **av) {
