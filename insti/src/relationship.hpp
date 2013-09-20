@@ -5,8 +5,8 @@
 #define _RELATIONSHIP_H 1
 
 #include        <vector>
-#include        "relationshipGraph.h"
-#include        "kMedoids.h"
+#include        "relationshipGraph.hpp"
+#include        "kMedoids.hpp"
 
 
 //require c++11

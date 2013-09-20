@@ -1,6 +1,6 @@
 //$Id: utils.cpp 615 2012-08-01 10:16:46Z koskos $
 
-#include "utils.h"
+#include "utils.hpp"
 
 /******************************************************/
 /*                  UTILS STATISTICS                  */

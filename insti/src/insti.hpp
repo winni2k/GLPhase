@@ -13,11 +13,11 @@
 #include <cassert>
 #include <stdint.h>
 #include <utility>
-#include "impute.h"
-#include "emcchain.h"
-#include "utils.h"
-#include "relationship.h"
-#include "version.h"
+#include "impute.hpp"
+#include "emcchain.hpp"
+#include "utils.hpp"
+#include "relationship.hpp"
+#include "version.hpp"
 
 //require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
