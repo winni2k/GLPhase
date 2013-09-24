@@ -5,26 +5,7 @@
 @date	04/01/2011
 */
 
-#include	<gsl/gsl_rng.h>
-#include	<sys/time.h>
-#include	<algorithm>
-#include	<iostream>
-#include	<stdint.h>
-#include	<unistd.h>
-#include	<cstdlib>
-#include	<cstring>
-#include	<fstream>
-#include	<sstream>
-#include	<tabix.h>
-#include	<cfloat>
-#include	<cstdio>
-#include	<vector>
-#include	<zlib.h>
-#include	<cmath>
-#include	<ctime>
-#include	<omp.h>
-#include	<set>
-#include        "impute.h"
+#include        "impute.hpp"
 
 using    namespace    std;
 const fast norm = powf(FLT_MIN, 2.0f / 3.0f);   // basically avoid singularity or floating point error

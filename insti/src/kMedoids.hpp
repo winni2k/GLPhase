@@ -8,8 +8,8 @@
 #include        <vector>
 #include        <cassert>
 #include <iostream>
-#include        "haplotype.h"
 #include <float.h>
+#include        "haplotype.hpp"
 
 
 //require c++11
