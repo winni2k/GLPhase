@@ -9,14 +9,15 @@
   #include <iostream>
 */
 #include <memory>
-#include "impute.h"
-#include "emcchain.h"
-#include "utils.h"
-#include "relationshipGraph.h"
 #include <limits>
 #include <cassert>
 #include <stdint.h>
 #include <utility>
+#include "impute.h"
+#include "emcchain.h"
+#include "utils.h"
+#include "relationship.h"
+#include "version.h"
 
 //require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
@@ -34,7 +35,7 @@ private:
     bool m_bUsingRefHaps = false;
 
     // keep track of relationship graph
-    RelationshipGraph m_oRelGraph;
+    Relationship m_oRelationship;
 
     // reference haplotypes
     vector<uint64_t> m_vRefHaps;
@@ -44,7 +45,7 @@ private:
     // so far it only adds logging
     virtual  fast hmm_like(unsigned I, unsigned *P) override;
 
-    fast solve(unsigned I, unsigned N, fast pen, RelationshipGraph  &oRelGraph);
+    fast solve(unsigned I, unsigned N, fast pen, Relationship  &oRelationship);
     virtual fast solve(unsigned I, unsigned    &N, fast pen) override { cerr << I << N << pen; exit(1); }
 
     fast solve_EMC(unsigned I, unsigned    N, fast S);
@@ -55,7 +56,7 @@ private:
 public:
 
     Insti()
-        : m_oRelGraph() {};
+        : m_oRelationship(Insti::s_uNumClusters, Insti::s_uClusterType) {};
     
     bool load_refPanel( string legendFile, string hapsFile );
     
@@ -66,7 +67,11 @@ public:
     static unsigned s_uCycles; // see main.cpp and document for documentation
     static bool s_bIsLogging; // true if logging
     static unsigned s_uNumClusters; // number of clusters to use
-    
+    static unsigned s_uClusterType; // what type of clustering
+    static unsigned s_uSABurninGen; // number of simulated annealing burnin generations
+    static unsigned s_uNonSABurninGen; // number of non-SA burning generations
+    static unsigned s_uStartClusterGen; // 0-based generation number at which to start clustering
+        
     // bool flag to keep track if we want to phase samples from ref haps only in first round
     static bool s_bKickStartFromRef;
 
@@ -105,6 +110,7 @@ public:
     unsigned RJSelection( const vector<unsigned> & vuRetMatNum, const vector<unsigned> & vuRetMatDen, unsigned I, unsigned hn, gsl_rng * rng);
 
     void save_relationship_graph ( string sOutputFile );
+    void save_vcf(const char *F);
 
 };
 

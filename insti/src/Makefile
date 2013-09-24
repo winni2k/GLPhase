@@ -20,7 +20,7 @@ test : insti.o impute.o emcchain.o olivier/utils.o
 	cd testing && make
 
 clean:
-	rm -f *.o *.h.gch insti
+	rm -f *.o *.h.gch insti instiO0 olivier/utils.h.gch
 
 .PHONY: clean
 
@@ -30,26 +30,39 @@ clean:
 
 ## precompile headers
 %.h.gch: %.h 
-	$(CXX) $(CXXFLAGS) -x c++-header $^
+	$(CXX) $(CXXFLAGS) -x c++-header $<
 
 olivier/utils.h.gch: olivier/utils.h
-	$(CXX) $(CXXFLAGS) -x c++-header $^
+	$(CXX) $(CXXFLAGS) -x c++-header $<
 
-HEADER_GCH = impute.h.gch insti.h.gch emcchain.h.gch relationshipGraph.h.gch olivier/utils.h.gch haplotype.h.gch
+kMedoids.h.gch: kMedoids.h haplotype.h.gch
+	$(CXX) $(CXXFLAGS) -x c++-header $<
+
+relationshipGraph.h.gch: relationshipGraph.h olivier/utils.h.gch
+	$(CXX) $(CXXFLAGS) -x c++-header $<
+
+relationship.h.gch: relationship.h relationshipGraph.h.gch kMedoids.h.gch
+	$(CXX) $(CXXFLAGS) -x c++-header $<
+
+insti.h.gch: insti.h impute.h.gch emcchain.h.gch olivier/utils.h.gch relationship.h.gch version.h.gch
+	$(CXX) $(CXXFLAGS) -x c++-header $<
 
 ## object files
-%.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $^ $(LIBS)
+%.o: %.cpp %.h.gch
+	$(CXX) $(CXXFLAGS) -c $< $(LIBS)
 
-olivier/utils.o: olivier/utils.cpp
-	$(CXX) -Wno-sign-compare $(CXXFLAGS) -c $^ $(LIBS)
+olivier/utils.o: olivier/utils.cpp olivier/utils.h.gch
+	$(CXX) $(CXXFLAGS) -Wno-sign-compare -c $< -o $@ $(LIBS)
 
-OBJECT_FILES = main.o impute.o insti.o emcchain.o relationshipGraph.o olivier/utils.o haplotype.o 
+main.o: main.cpp version.h.gch impute.h.gch insti.h.gch
+	$(CXX) $(CXXFLAGS) -c $< $(LIBS)
 
-insti: $(OBJECT_FILES) $(HEADER_GCH)
+OBJECT_FILES = main.o impute.o insti.o emcchain.o relationshipGraph.o olivier/utils.o haplotype.o kMedoids.o
+
+insti: $(OBJECT_FILES)
 	$(CXX) $(CXXFLAGS) -o insti $(OBJECT_FILES) $(LIBS)
 
-instiO0: $(OBJECT_FILES) $(HEADER_GCH)
-	$(CXX) $(CXXFLAGS) -o instiO0 $^ $(LIBS)
+instiO0: $(OBJECT_FILES)
+	$(CXX) $(CXXFLAGS) -o instiO0 $(OBJECT_FILES) $(LIBS)
 
 

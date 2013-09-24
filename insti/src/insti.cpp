@@ -40,6 +40,10 @@ bool Insti::s_bKickStartFromRef = false;
 string Insti::s_sLegendFile = "";
 string Insti::s_sRefHapsFile = "";
 unsigned Insti::s_uNumClusters = 0;
+unsigned Insti::s_uClusterType = 0;
+unsigned Insti::s_uSABurninGen = 23;
+unsigned Insti::s_uNonSABurninGen = 23;
+unsigned Insti::s_uStartClusterGen = 23;
 
 // return the probability of the model given the input haplotypes P and
 // emission and transition matrices of individual I
@@ -318,7 +322,7 @@ void Insti::initialize(){
 */
 
 // solve(individual, number of cycles, penalty, burnin?)
-fast Insti::solve(uint I, uint N, fast pen, RelationshipGraph &oRelGraph) {
+fast Insti::solve(uint I, uint N, fast pen, Relationship &oRel) {
 
     // write log header
     stringstream message;
@@ -328,7 +332,7 @@ fast Insti::solve(uint I, uint N, fast pen, RelationshipGraph &oRelGraph) {
     // pick 4 haplotype indices at random not from individual
     uint p[4];
     for (uint j = 0; j < 4; j++) {
-        p[j] = oRelGraph.SampleHap(I, rng);
+        p[j] = oRel.SampleHap(I, rng);
     }
 
     // get a probability of the model for individual I given p
@@ -346,10 +350,10 @@ fast Insti::solve(uint I, uint N, fast pen, RelationshipGraph &oRelGraph) {
         // kickstart phasing and imputation by only sampling haps
         // from ref panel in first round
         if(s_bKickStartFromRef && n == 0){
-            p[rp] = oRelGraph.SampleHap(I, rng, true);
+            p[rp] = oRel.SampleHap(I, rng, true);
         }
         else{
-            p[rp] = oRelGraph.SampleHap(I, rng);
+            p[rp] = oRel.SampleHap(I, rng);
         }
         
         fast prop = hmm_like(I, p);
@@ -361,7 +365,7 @@ fast Insti::solve(uint I, uint N, fast pen, RelationshipGraph &oRelGraph) {
         else p[rp] = oh;
 
         // Update relationship graph with proportion pen
-        oRelGraph.UpdateGraph(p, bAccepted, I, pen);
+        oRel.UpdateGraph(p, bAccepted, I, pen);
                 
         // log accepted proposals
         if(bAccepted){
@@ -389,8 +393,15 @@ fast Insti::solve(uint I, uint N, fast pen, RelationshipGraph &oRelGraph) {
 
 void    Insti::estimate() {
 
-    if(s_iEstimator == 0)
-        m_oRelGraph.init(2, in, hn + m_uNumRefHaps);
+    // the uniform relationship "graph" will be used until
+    // -M option says not to.
+    Relationship oUniformRel(2, in, hn + m_uNumRefHaps);
+    if(s_iEstimator == 0){
+        if( Insti::s_uNumClusters > 0)
+            m_oRelationship.init(3, &haps, wn, mn, rng);
+        else
+            m_oRelationship.init(2, in, hn + m_uNumRefHaps);
+    }
     else if(s_iEstimator == 1){
         estimate_EMC();
         return;
@@ -404,9 +415,6 @@ void    Insti::estimate() {
         return;
     }
     else if(s_iEstimator == 4){
-        if( Insti::s_uNumClusters == 0)
-            document();
-        m_oRelGraph.init(3, Insti::s_uNumClusters, &haps, wn, mn, rng);
     }
     else
         document();
@@ -420,16 +428,24 @@ void    Insti::estimate() {
     // iterations.
     for (uint n = 0; n < bn + sn; n++) {
         m_nIteration = n;
-        fast sum = 0, pen = min<fast>(2 * (n + 1.0f) / bn, 1), iter = 0;
+        fast sum = 0, iter = 0;
+        fast pen = min<fast>( (n + 1.0f) / Insti::s_uSABurninGen, 1);
         pen *= pen;  // pen = 1 after bn/2 iterations
+
+        // Phase each individual based on the rest of the individuals
         for (uint i = 0; i < in; i++) {
-            sum += solve(i, m_uCycles, pen, m_oRelGraph);  // call solve=> inputs the sample number,
+
+            // re-update graph based on current haplotypes
+            if(n < Insti::s_uStartClusterGen)
+                sum += solve(i, m_uCycles, pen, oUniformRel);
+            else
+                sum += solve(i, m_uCycles, pen, m_oRelationship);
             iter += m_uCycles;
         }
         swap(hnew, haps);
         if (n >= bn) for (uint i = 0; i < in; i++) replace(i);  // call replace
 
-        m_oRelGraph.UpdateGraph(&haps);
+        m_oRelationship.UpdateGraph(&haps);
         cerr << n << '\t' << pen << '\t' << sum / in / mn << '\t' << iter / in / in << endl;
     }
     cerr << endl;
@@ -442,7 +458,7 @@ void    Insti::estimate() {
    running a parallel chain evolutionary monte carlo scheme.
 
    The reference for this implementation is
-   "Advanced Markov Choin Monte Carlo Methods" by Liang, Liu and Carroll
+   "Advanced Markov Chain Monte Carlo Methods" by Liang, Liu and Carroll
    first edition?, 2010, pp. 128-132
 */
 
@@ -736,7 +752,7 @@ void    Insti::estimate_AMH(unsigned uRelMatType) {
     // create a relationshipGraph object
     // initialize relationship matrix
     // create an in x uSamplingInds matrix
-    m_oRelGraph.init(uRelMatType, in, hn + m_uNumRefHaps);
+    m_oRelationship.init(uRelMatType, in, hn + m_uNumRefHaps);
 
     // n is number of cycles = burnin + sampling cycles
     // increase penalty from 2/bn to 1 as we go through burnin
@@ -752,7 +768,7 @@ void    Insti::estimate_AMH(unsigned uRelMatType) {
         for (uint i = 0; i < in; i++) {
 //            if( i % 1000 == 0)
 //                cerr << "cycle\t" << i << endl;
-            sum += solve(i, m_uCycles, pen, m_oRelGraph);
+            sum += solve(i, m_uCycles, pen, m_oRelationship);
             iter += m_uCycles;
         }
         swap(hnew, haps);
@@ -767,24 +783,67 @@ void Insti::save_relationship_graph ( string sOutputFile ){
     vector<string> vsSampNames;
     vsSampNames.insert(vsSampNames.end(), name.begin(), name.end());
     for(uint i = 0; i < ceil(m_uNumRefHaps/2); i++)  vsSampNames.push_back(string("refSamp") + sutils::uint2str(i));
-    m_oRelGraph.Save(sOutputFile, vsSampNames);
+    m_oRelationship.Save(sOutputFile, vsSampNames);
 }
 
+void    Insti::save_vcf(const char *F) {
+    string temp = F;
+    temp += ".vcf.gz";
+    gzFile f = gzopen(temp.c_str(), "wt");
+    gzprintf(f, "##fileformat=VCFv4.0\n");
+    stringstream source;
+    source <<  "##source=WTCHG:INSTIv" <<  VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_REVISION << "\n";
+    gzprintf(f, source.str().c_str());
+    gzprintf(f, "##reference=1000Genomes-NCBI37\n");
+    gzprintf(f, "##iteration=%u\n", sn);
+    gzprintf(f, "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n");
+    gzprintf(f, "##FORMAT=<ID=AP,Number=2,Type=Float,Description=\"Allelic Probability, P(Allele=1|Haplotype)\">\n");
+    gzprintf(f, "#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT");
+    for (uint i = 0; i < in; i++) gzprintf(f, "\t%s", name[i].c_str());
+    for (uint m = 0; m < mn; m++) {
+        gzprintf(f, "\n%s\t%u\t.\t%c\t%c\t100\tPASS\t.\tGT:AP",
+                site[m].chr.c_str(), site[m].pos, site[m].all[0], site[m].all[1]);
+        fast *p = &prob[m * hn];
+        for (uint i = 0; i < in; i++, p += 2) {
+            fast prr = (1 - p[0]) * (1 - p[1]), pra = (1 - p[0]) * p[1] + p[0] * (1 - p[1]), paa = p[0] * p[1];
+            if (prr >= pra && prr >= paa) gzprintf(f, "\t0|0:%.3f,%.3f", p[0], p[1]);  // aren't these probabilities being printed wrong
+            else if (pra >= prr && pra >= paa) {
+                if (p[0] > p[1]) gzprintf(f, "\t1|0:%.3f,%.3f", p[0], p[1]);
+                else gzprintf(f, "\t0|1:%.3f,%.3f", p[0], p[1]);
+            }
+            else gzprintf(f, "\t1|1:%.3f,%.3f", p[0], p[1]);
+        }
+    }
+    gzprintf(f, "\n");
+    gzclose(f);
+}
+
+
 void    Insti::document(void) {
-    cerr << "\nimpute";
+    cerr << "Author\tWarren W. Kretzschmar @ Marchini Group @ Universiy of Oxford - Statistics";
+    cerr << "\n\nThis code is based on SNPTools impute:";
     cerr << "\nhaplotype imputation by cFDSL distribution";
-    cerr << "\nauthor   Yi Wang @ Fuli Yu' Group @ BCM-HGSC";
-    cerr << "\nusage    impute [options] 1.bin 2.bin ...";
+    cerr << "\nAuthor\tYi Wang @ Fuli Yu' Group @ BCM-HGSC";
+    cerr << "\n\nusage\timpute [options] 1.bin 2.bin ...";
     cerr << "\n\t-d <density>    relative SNP density to Sanger sequencing (1)";
-    cerr << "\n\t-b <burn>       burn-in generations (56)";
+//    cerr << "\n\t-b <burn>       burn-in generations (56)";
     cerr << "\n\t-l <file>       list of input files";
-    cerr << "\n\t-m <mcmc>       sampling generations (200)";
     cerr << "\n\t-n <fold>       sample size*fold of nested MH sampler iteration (2)";
 //    cerr << "\n\t-t <thread>     number of threads (0=MAX)";
     cerr << "\n\t-v <vcf>        integrate known genotype in VCF format";
     cerr << "\n\t-c <conf>       confidence of known genotype (0.9998)";
     cerr << "\n\t-x <gender>     impute x chromosome data";
     cerr << "\n\t-e <file>       write log to file";
+
+    cerr << "\n\n    GENERATION OPTIONS";
+    cerr << "\n\t-m <mcmc>       sampling generations (200)";
+    cerr << "\n\t-C <integer>    number of cycles to estimate an individual's parents before updating";
+    cerr << "\n\t-B <integer>    number of simulated annealing generations (23)";
+    cerr << "\n\t-i <integer>    number of non-simulated annealing burnin generations (23)";
+    cerr << "\n\t-M <integer>    generation number at which to start clustering, 0-based (23)";
+
+    
+    cerr << "\n\n    HAPLOTYPE ESTIMATION OPTIONS";
     cerr << "\n\t-E <integer>    choice of estimation algorithm (0)";
     cerr << "\n\t                0 - Metropolis Hastings with simulated annealing";
     cerr << "\n\t                1 - Evolutionary Monte Carlo with -p parallel chains";
@@ -792,12 +851,15 @@ void    Insti::document(void) {
     cerr << "\n\t                3 - Adaptive Metropolis Hastings - sample/haplotype matrix";
     cerr << "\n\t-p <integer>    number of parallel chains to use in parallel estimation algorithms";
     cerr << "\n\t                (at least 2, default 5)";
-    cerr << "\n\t-C <integer>    number of cycles to estimate an individual's parents before updating";
+    cerr << "\n\t-K <integer>    number of clusters to use for haplotypes clustering (0 = option is off).";
+    cerr << "\n\t                Does not currently work with -k option";
+    cerr << "\n\t-t <integer>    Cluster type (0)";
+    cerr << "\n\t                0 - PAM";
+    cerr << "\n\t                1 - Park and Jun 2008";
 
-    cerr << "\n\nREFERENCE PANEL OPTIONS";
+    cerr << "\n\n    REFERENCE PANEL OPTIONS";
     cerr << "\n\t-H <file>       Impute2 style haplotypes file";
     cerr << "\n\t-L <file>       Impute2 style legend file";
-    cerr << "\n\t-C <integer>    number of cycles to estimate an individual's parents before updating";    
     cerr << "\n\t-k              Kickstart phasing by using only ref panel in first iteration";
     cerr << "\n\n";
     exit(1);

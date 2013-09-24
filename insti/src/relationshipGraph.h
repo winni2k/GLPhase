@@ -11,7 +11,6 @@
 #include        <iostream>
 #include        <stdint.h>
 #include        "utils.h"
-#include        "haplotype.h"
 
 //require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
@@ -21,24 +20,13 @@ class RelationshipGraph{
 private:
 
     // 1 based number of rows and columns
-    unsigned m_uRows;
-    unsigned m_uCols;
+    unsigned m_uRows = 0;
+    unsigned m_uCols = 0;
 
     // need these for AMH
     bool m_bUsingRelMat = false;
     std::vector< std::vector< float > > m_2dRelationshipMatNum;
     std::vector< std::vector< float > > m_2dRelationshipMatDen;
-
-    // need these for clustering
-    bool m_bUsingCluster = false;
-    std::vector< unsigned > m_vuHapMedNum; // keeps track of which medioid each haplotype is closest to
-    std::vector< unsigned > m_vuMedoidHapNum; // keeps track of which haplotype each medoid is
-    std::vector< unsigned > m_vuHapHammingDist; // keeps track of hamming distance between each hap and its medoid
-//    std::vector< Haplotype > m_uClusterHaps;
-
-    // vars for clustering
-    unsigned m_uNumWordsPerHap = 0;
-    unsigned m_uNumSites = 0;
     
     // -1 = undefined
     // 0 = sample/sample graph
@@ -46,7 +34,8 @@ private:
     // 2 = no graph - all samples are equally related
     int m_iGraphType = -1;
     bool m_bUsingHaps = false;
-
+    unsigned m_uColHapFactor = 0;
+    
     // hap to column index converter
     unsigned Hap2Col(unsigned uHap);
 
@@ -76,11 +65,6 @@ public:
 // 1 = sample/haplotype graph
 // 2 = no graph - all samples are equally related
 
-    RelationshipGraph(int iGraphType, unsigned uNumClust, const vector< uint64_t > * pvuHaplotypes,
-                      unsigned uNumWordsPerHap, unsigned uNumSites, gsl_rng *rng){
-        init(iGraphType, uNumClust, pvuHaplotypes, uNumWordsPerHap, uNumSites, rng);
-    };
-
     RelationshipGraph(int iGraphType, unsigned uSamples, unsigned uHaplotypes){
         init(iGraphType, uSamples, uHaplotypes);
     };
@@ -107,13 +91,10 @@ public:
     // update graph with number fRatio instead of 1
     void UpdateGraph( unsigned *p, bool bAccepted, unsigned uInd, float fRatio);
 
+    // update medoids
     void UpdateGraph( const vector< uint64_t > * pvuHaplotypes );
 
     void Save(std::string fileName, const vector<std::string> & name);
-
-    double MedoidLoss(const vector< uint64_t > * pvuHaplotypes );
-    
-    void UpdateMedoids(const vector< uint64_t > * pvuHaplotypes );
 
 };
 
