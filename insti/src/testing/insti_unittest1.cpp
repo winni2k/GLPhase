@@ -1,7 +1,7 @@
 
 #include "gtest/gtest.h"
-#include "insti.h"
-#include "haplotype.h"
+#include "insti.hpp"
+#include "haplotype.hpp"
 
 string sampleDir = "../../samples";
 string sampleLegend = sampleDir + "/20_011976121_012173018.bin.onlyThree.legend";

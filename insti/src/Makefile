@@ -1,10 +1,11 @@
 export CXX= g++-4.7+
 export DEBUGFLAGS= -ggdb
 export CXXFLAGS= -Wall -Wextra -std=c++11 -std=gnu++11 -mpopcnt $(DEBUGFLAGS)
-export LIBS += -lpthread -lgsl -lgslcblas -lz -lbam -ltabix -lbz2 -lboost_iostreams-mt -lm -lstdc++
-export CPATH := snptools.cpp/samtools-0.1.16:snptools.cpp/tabix-0.2.5:olivier
-export LIBRARY_PATH := snptools.cpp/samtools-0.1.16:snptools.cpp/tabix-0.2.5
-export LD_LIBRARY_PATH := snptools.cpp/samtools-0.1.16:snptools.cpp/tabix-0.2.5
+BOOSTLIB=-lboost_iostreams-mt
+export LIBS += -lpthread -lgsl -lgslcblas -lbam -ltabix -lbz2 $(BOOSTLIB) -lm -lstdc++ -lz
+export CPATH := snptools.cpp.gold/samtools-0.1.16:snptools.cpp.gold/tabix-0.2.5:olivier
+export LIBRARY_PATH := snptools.cpp.gold/samtools-0.1.16:snptools.cpp.gold/tabix-0.2.5
+export LD_LIBRARY_PATH := $(LIBRARY_PATH)
 
 all: insti
 
@@ -20,7 +21,7 @@ test : insti.o impute.o emcchain.o olivier/utils.o
 	cd testing && make
 
 clean:
-	rm -f *.o *.h.gch insti instiO0 olivier/utils.h.gch
+	rm -f *.o *.hpp.gch insti instiO0 olivier/utils.hpp.gch
 
 .PHONY: clean
 
@@ -29,40 +30,40 @@ clean:
 ### normal compilation
 
 ## precompile headers
-%.h.gch: %.h 
+%.hpp.gch: %.hpp
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
-olivier/utils.h.gch: olivier/utils.h
+olivier/utils.hpp.gch: olivier/utils.hpp
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
-kMedoids.h.gch: kMedoids.h haplotype.h.gch
+kMedoids.hpp.gch: kMedoids.hpp haplotype.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
-relationshipGraph.h.gch: relationshipGraph.h olivier/utils.h.gch
+relationshipGraph.hpp.gch: relationshipGraph.hpp olivier/utils.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
-relationship.h.gch: relationship.h relationshipGraph.h.gch kMedoids.h.gch
+relationship.hpp.gch: relationship.hpp relationshipGraph.hpp.gch kMedoids.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
-insti.h.gch: insti.h impute.h.gch emcchain.h.gch olivier/utils.h.gch relationship.h.gch version.h.gch
+insti.hpp.gch: insti.hpp impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch relationship.hpp.gch version.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
 ## object files
-%.o: %.cpp %.h.gch
+%.o: %.cpp %.hpp.gch
 	$(CXX) $(CXXFLAGS) -c $< $(LIBS)
 
-olivier/utils.o: olivier/utils.cpp olivier/utils.h.gch
+olivier/utils.o: olivier/utils.cpp olivier/utils.hpp.gch
 	$(CXX) $(CXXFLAGS) -Wno-sign-compare -c $< -o $@ $(LIBS)
 
-main.o: main.cpp version.h.gch impute.h.gch insti.h.gch
+main.o: main.cpp version.hpp.gch impute.hpp.gch insti.hpp.gch
 	$(CXX) $(CXXFLAGS) -c $< $(LIBS)
 
 OBJECT_FILES = main.o impute.o insti.o emcchain.o relationshipGraph.o olivier/utils.o haplotype.o kMedoids.o
 
 insti: $(OBJECT_FILES)
-	$(CXX) $(CXXFLAGS) -o insti $(OBJECT_FILES) $(LIBS)
+	$(CXX) $(CXXFLAGS) $(OBJECT_FILES)  -o $@ $(LIBS)
 
 instiO0: $(OBJECT_FILES)
-	$(CXX) $(CXXFLAGS) -o instiO0 $(OBJECT_FILES) $(LIBS)
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJECT_FILES) $(LIBS)
 
 
