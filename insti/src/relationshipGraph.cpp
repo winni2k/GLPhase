@@ -21,20 +21,13 @@ void RelationshipGraph::init(int iGraphType, unsigned uSamples, unsigned uHaplot
     m_uRows = uSamples;
     m_uCols = 0;
 
-    switch (m_iGraphType){
-    case 0:
-        m_uCols = ceil(uHaplotypes/2);
-        m_bUsingHaps = false;
-        break;
-    case 1:
-        m_uCols = uHaplotypes;
+    m_uColHapFactor = 2;
+    m_uCols = ceil(static_cast<float>(uHaplotypes)/static_cast<float>(m_uColHapFactor));
+    if (m_iGraphType == 1)
         m_bUsingHaps = true;
-        break;
-    case 2:
-        m_uCols = ceil(uHaplotypes/2);
+    else if(m_iGraphType < 3)
         m_bUsingHaps = false;
-        break;
-    default:
+    else {
         std::cerr << "Unknown graph type selected: " << m_iGraphType << std::endl;
         assert(false);
     }
@@ -52,125 +45,6 @@ void RelationshipGraph::init(int iGraphType, unsigned uSamples, unsigned uHaplot
 
     m_bInitialized = true;
 }
-
-// initialization for medoids clustering
-void RelationshipGraph::init(int iGraphType, unsigned uNumClust, const vector< uint64_t > * pvuHaplotypes, unsigned uNumWordsPerHap, unsigned uNumSites, gsl_rng *rng) {
-
-    assert(m_bInitialized == false);
-    assert(iGraphType == 3);
-    assert(uNumClust > 0);
-    assert(uNumWordsPerHap > 0);
-
-    assert(uNumSites > 0);
-    m_uNumSites = uNumSites;
-    
-    // dereferencing the vector pointer
-    assert((*pvuHaplotypes).size() % (h_WordMod + 1) == 0);
-    unsigned uNumHaps = (*pvuHaplotypes).size() / uNumWordsPerHap;
-    m_uNumWordsPerHap = uNumWordsPerHap;
-    
-    m_bUsingCluster = true;
-    m_iGraphType = iGraphType;
-
-    // actually using the k-medoids algorithm for clustering
-    // initialize with random medoids -- they may be the same haplotype
-    m_vuMedoidHapNum.resize(uNumClust, 0);
-    m_vuHapMedNum.resize(uNumHaps, 0);
-    m_vuHapHammingDist.resize(uNumHaps, 0);
-    for( unsigned uClustNum = 0; uClustNum < uNumClust; uClustNum ++){
-        m_vuMedoidHapNum[uClustNum] = gsl_rng_uniform_int(rng, uNumHaps);
-    }
-
-    // initialize all haplotypes as being closest to the first medoid
-    for( unsigned uHapNum = 0; uHapNum < m_vuHapMedNum.size(); uHapNum++)
-        m_vuHapMedNum[uHapNum] = m_vuMedoidHapNum[0];
-
-
-    // assign each haplotype to the closest medoid
-    UpdateMedoids(pvuHaplotypes);
-
-    m_bInitialized = true;
-}
-
-void RelationshipGraph::UpdateMedoids(const vector< uint64_t > * pvuHaplotypes ){
-
-    assert(m_bInitialized == true);
-    assert(m_bUsingCluster == true);
-    assert( (*pvuHaplotypes).size() % m_uNumWordsPerHap == 0 );
-    assert( (*pvuHaplotypes).size() % m_vuHapMedNum.size() == 0 );
-
-    // first figure out which medoid is closest to each haplotype
-    Haplotype hTester(m_uNumSites);
-    for( unsigned uHapNum = 0; uHapNum < m_vuHapMedNum.size(); uHapNum++){
-
-        // initialize to first medoid
-        unsigned uBestMedoidNum = 0;
-        unsigned uHamming = hTester.HammingDist(&( *pvuHaplotypes)[uHapNum], &( *pvuHaplotypes)[m_vuMedoidHapNum[uBestMedoidNum] * m_uNumWordsPerHap]);
-
-        // also skip first medoid, cause we already did that
-        for( unsigned uMedNum = 1; uMedNum < m_vuMedoidHapNum.size(); uMedNum ++){
-
-            // check to see if this medoid is closer to hap. If so, keep it as the best guess
-            unsigned uNewHamming = hTester.HammingDist(&( *pvuHaplotypes)[uHapNum], &( *pvuHaplotypes)[m_vuMedoidHapNum[uMedNum] * m_uNumWordsPerHap]);
-            if(uNewHamming < uHamming){
-                uHamming = uNewHamming;
-                uBestMedoidNum = uMedNum;
-            }
-        }
-
-        m_vuHapMedNum[uHapNum] = uBestMedoidNum;
-        m_vuHapHammingDist[uHapNum] = uHamming;
-    }
-
-    auto dBestLoss = MedoidLoss(pvuHaplotypes);
-
-    //// permute medoid locations
-    // pick a medoid
-    for( unsigned uMedNum = 0; uMedNum < m_vuMedoidHapNum.size(); uMedNum ++){
-
-        // pick a haplotype
-        unsigned uOrigMedHapNum = m_vuMedoidHapNum[uMedNum];
-        for ( unsigned uHapNum = 0; uHapNum < m_vuHapMedNum.size(); uHapNum ++){
-            
-            // only look at moves where the original medoid hap
-            // and target hap are not the same
-            if ( uOrigMedHapNum == uHapNum ) continue;
-
-            // try moving medoid to new hap
-            unsigned uPrevMedHapNum = m_vuMedoidHapNum[uMedNum];            
-            m_vuMedoidHapNum[uMedNum] = uHapNum;
-            double dLoss = MedoidLoss(pvuHaplotypes);
-
-            // update loss if successful
-            // revert to previous configuration if not
-            if(dLoss <= dBestLoss)
-                m_vuMedoidHapNum[uMedNum] = uPrevMedHapNum;
-            else
-                dBestLoss = dLoss;
-        }
-    }
-}
-
-
-double RelationshipGraph::MedoidLoss(const vector< uint64_t > * pvuHaplotypes ){
-
-    assert(m_bInitialized == true);
-    assert(m_bUsingCluster == true);
-
-    // compute squared hamming distance between every haplotype and its medoid
-    Haplotype hTester(m_uNumSites);
-    double dLoss = 0;
-    for( unsigned uHapNum = 0; uHapNum < m_vuHapMedNum.size(); uHapNum ++)
-        dLoss += pow(
-            hTester.HammingDist(
-                &( *pvuHaplotypes)[uHapNum * m_uNumWordsPerHap],
-                &( *pvuHaplotypes)[m_vuMedoidHapNum[m_vuHapMedNum[uHapNum]] * m_uNumWordsPerHap]
-                ),
-            2.0);
-
-    return dLoss;
-}
-
     
 
 // takes sample num and haplotype num as well as graph type
@@ -193,42 +67,14 @@ double RelationshipGraph::MedoidLoss(const vector< uint64_t > * pvuHaplotypes ){
 unsigned RelationshipGraph::Hap2Col(unsigned uHap){
 
     assert(m_bInitialized == true);
-    
-    switch (m_iGraphType){
-    case 0:
-        return(uHap/2);
-    case 1:
-        return(uHap);
-    case 2:
-        return(uHap/2);
-    default:
-        cerr << "Unknown graph type selected: " << m_iGraphType << endl;
-        assert(false);
-    }
+    return(uHap / m_uColHapFactor);
+
 }
 
 unsigned RelationshipGraph::Col2Hap(unsigned uCol){
 
     assert(m_bInitialized == true);
-    
-    switch (m_iGraphType){
-    case 0:
-        return(uCol * 2);
-    case 1:
-        return(uCol);
-    case 2:
-        return(uCol * 2);
-    default:
-        cerr << "Unknown graph type selected: " << m_iGraphType << endl;
-        assert(false);
-    }
-}
-
-// update graph medoids
-void RelationshipGraph::UpdateGraph(const vector< uint64_t > * pvuHaplotypes ){
-
-    UpdateMedoids(pvuHaplotypes);
-    
+    return uCol * m_uColHapFactor;    
 }
 
 // update graph probabilistically
@@ -308,15 +154,10 @@ unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng, bool bOnlyFro
 
         // no guarantees that cluster will work with kickstart,
         // so I'm backing away from that for now
-        if( ! m_bUsingCluster){
-            while(1){
+        while(1){
                 uRetHap = RelationshipGraph::SampleHap( uInd, rng);
                 if(uRetHap >= m_uRows * 2)
                     break;
-            }
-        }
-        else {
-            uRetHap = RelationshipGraph::SampleHap( uInd, rng);
         }
         return(uRetHap);
     }
@@ -345,29 +186,6 @@ unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng){
             if ( Hap2Col(uPropHap) != uInd) break;
         }
     }
-
-    // sample uniformly from subset out of clustering
-    else if(m_iGraphType == 3){
-        
-        // constrain cols by using clustering
-        vector < unsigned > vuHapsOfInterest;
-
-        unsigned uIndHap1Medoid = m_vuHapMedNum[uInd * 2];
-        unsigned uIndHap2Medoid = m_vuHapMedNum[uInd * 2 + 1];
-        unsigned uHapCounter = 0;
-        for(auto iHapMedNum: m_vuHapMedNum){
-            if( iHapMedNum == uIndHap1Medoid || iHapMedNum == uIndHap2Medoid)
-                vuHapsOfInterest.push_back(uHapCounter);
-            uHapCounter ++;
-        }
-        assert(vuHapsOfInterest.size() > 2); // this avoids nasty business of only sampling haps from the individual of interest
-
-        while(1){
-            uPropHap = gsl_rng_uniform_int(rng, vuHapsOfInterest.size());
-            if ( Hap2Col(vuHapsOfInterest[uPropHap]) != uInd ) break;
-        }
-    }
-
     
     // otherwise use the relationship graph
     else{
@@ -396,11 +214,12 @@ unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng){
             if( gsl_rng_uniform(rng) <= vuRelRowNum[uProp] / vuRelRowDen[uProp] )
                 break;
         }
-    }
+        // make sure the return value is sensible
+        assert(uPropHap < Col2Hap(m_uCols));
+        return uPropHap;
 
-    // make sure the return value is sensible
-    assert(uPropHap < Col2Hap(m_uCols));
-    return uPropHap;
+    }
+    return 0;
 }
 
 
@@ -412,7 +231,7 @@ void    RelationshipGraph::Save(string fileName, const vector<string> & name) {
     assert(m_bInitialized == true);
     
     // don't print graph if we don't have one...
-    if(m_iGraphType == 2) return;
+    if(m_iGraphType == 2 || m_iGraphType == 3) return;
 
     cerr << "Saving Relationship graph to prefix " << fileName << " ..." << endl;
     
