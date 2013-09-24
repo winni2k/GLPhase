@@ -1,4 +1,4 @@
-#include "kMedoids.h"
+#include "kMedoids.hpp"
 
 using namespace std;
 // initialization for medoids clustering
