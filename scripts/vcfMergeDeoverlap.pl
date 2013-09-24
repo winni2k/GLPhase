@@ -3,6 +3,7 @@
 use strict;
 use Getopt::Std;
 use autodie;
+use Carp;
 
 =head1 Name
 
@@ -38,8 +39,10 @@ while (<$fh_bed>) {
     chomp;
     my @bed_line = split( /\t/, $_ );
     my $vcf_file = $bed_line[$fileCol];
-    my $vcf_open = "dd ibs=1G if=$vcf_file | ";
+    my $vcf_open = "dd bs=100M if=$vcf_file | ";
     if ( $vcf_file =~ m/\.gz$/ ) { $vcf_open .= 'gzip -dc | ' }
+
+    print STDERR $vcf_file."\n";
     open( my $fh_in, "$vcf_open" )
       or die "Can't open $vcf_file; $!";
 
@@ -57,6 +60,8 @@ while (<$fh_bed>) {
         my @in_line = split( /\t/, $_ );
 
         unless (@header) {
+            $printLine = 1 unless @general_header;
+
             croak "no header in vcf file $vcf_file" unless $in_line =~ m/^#/;
             if ( $in_line =~ m/^##/ ) {
                 push @otherHeaders, $in_line;
@@ -70,19 +75,16 @@ while (<$fh_bed>) {
                 for my $index ( 0 .. $#general_header ) {
                     croak
 "$vcf_file: headers don't match at column $index (0-based)."
-                      if $header[$index] != $general_header[$index];
+                      if $header[$index] ne $general_header[$index];
                 }
                 croak "$vcf_file: headers don't match: "
                   . @otherHeaders . " "
                   . @general_otherHeaders
                   if @otherHeaders != @general_otherHeaders;
-
-                last;
             }
             else {
                 croak "Unexpected header line:\n$in_line";
             }
-            $printLine = 1 unless @general_header;
         }
 
         # otherwise decide if we want to keep this line
@@ -92,7 +94,7 @@ while (<$fh_bed>) {
               || croak "position not available Unexpectedly";
 
             # print line if it is in the bed interval
-            if ( $position > $bed_line[0] && $position <= $bed_line[1] ) {
+            if ( $position > $bed_line[1] && $position <= $bed_line[2] ) {
                 $printLine = 1;
             }
         }
