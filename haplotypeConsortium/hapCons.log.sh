@@ -51,14 +51,40 @@ alignment issues:
 
 1 remove all sites that arennt in any reference panel
 
- tools:
+tools:
  gtool
  impute2 for imputation
 
 measure imputation accuracy:
    Brian Howie's script
 
+from GLs
+BEAGLE -> posteriors + haplotypes
+fix posteriors 
+use haplotypes to initialize mcmc machinery
+
+-> genotypes from Shapeit compare to CG data overlaps with 1kg
+
+
+calibration
+1. compare haplotypes in down-stream 
+2. given threshold on posteriors, what amount of data is called and what is error rate.
+
+CG data
+two samples
+- half sequenced in 1kg project, use for concordance measurements
+- half not in 1kg, use for imputation experiments
+
 EOF
+
+###########
+# Thu Sep 19 12:27:24 BST 2013
+# got first set of bin files from chr20 on 7000 samples by running
+ssh feng
+cd /homes/kretzsch/feng/marchini/haplotypeConsortium/chr20_pilot/results/2013-09-17_run_insti_on_sanger_GLs/runall.pl -r -j 10
+
+# then copied all bin files to well using git annex
+# on well had to retouch prereqs
 
 ###########
 # Thu Sep 19 13:51:43 BST 2013
@@ -67,3 +93,4 @@ EOF
 ssh cluster3
 cd /well/marchini/winni/proj/marchini/haplotypeConsortium/chr20_pilot/results/2013-09-17_run_insti_on_sanger_GLs
 ./runall.pl -m /well/marchini/winni/proj/marchini
+
