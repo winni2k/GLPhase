@@ -81,7 +81,8 @@ EOF
 # Thu Sep 19 12:27:24 BST 2013
 # got first set of bin files from chr20 on 7000 samples by running
 ssh feng
-cd /homes/kretzsch/feng/marchini/haplotypeConsortium/chr20_pilot/results/2013-09-17_run_insti_on_sanger_GLs/runall.pl -r -j 10
+cd /homes/kretzsch/feng/marchini/haplotypeConsortium/chr20_pilot/results/2013-09-17_run_insti_on_sanger_GLs/
+./runall.pl -r -j 10
 
 # then copied all bin files to well using git annex
 # on well had to retouch prereqs
@@ -89,8 +90,14 @@ cd /homes/kretzsch/feng/marchini/haplotypeConsortium/chr20_pilot/results/2013-09
 ###########
 # Thu Sep 19 13:51:43 BST 2013
 # copied bin files to /well
+rsync -navP ./regions/7213.427589/chr20/*.bin\
+ dense:/well/marchini/winni/proj/marchini/haplotypeConsortium/chr20_pilot/results/2013-09-17_run_insti_on_sanger_GLs/regions/7213.427589/chr20/
+
 # then ran command from cluster3
 ssh cluster3
 cd /well/marchini/winni/proj/marchini/haplotypeConsortium/chr20_pilot/results/2013-09-17_run_insti_on_sanger_GLs
-./runall.pl -m /well/marchini/winni/proj/marchini
+./runall.pl -m /well/marchini/winni/proj/marchini -t -c 'localhost' 
+./runall.pl -m /well/marchini/winni/proj/marchini -i -q 'short.qb' -P 'marchini.prjb'
+
+# then copied concatenated vcf back to fenghuang for analysis
 
