@@ -83,7 +83,7 @@ LINE: while (<$fh>) {
     for my $sampField (@line) {
         my @field = split( /:/, $sampField );
         my @pls   = split( /,/, $field[$PLFieldNum] );
-        my @gls = map { 10 ^ ( ( -$_ ) / 10 ) } @pls;
+        my @gls = map { 10 ** ( ( -$_ ) / 10 ) } @pls;
         my $sum = sum @gls;
         @gls = map { $_ / $sum } @gls;
 
