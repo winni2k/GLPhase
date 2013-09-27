@@ -1,11 +1,12 @@
 #!/usr/bin/perl
 # vcf2STbin.pl                   wkretzsch@gmail.com
 #                                18 Sep 2013
+our $VERSION = '1.002';
+$VERSION = eval $VERSION;
 
 use warnings;
 use strict;
 $| = 1;
-use Data::Dumper;
 
 use File::Path qw(make_path);
 use File::Basename;
@@ -83,7 +84,7 @@ LINE: while (<$fh>) {
     for my $sampField (@line) {
         my @field = split( /:/, $sampField );
         my @pls   = split( /,/, $field[$PLFieldNum] );
-        my @gls = map { 10 ^ ( ( -$_ ) / 10 ) } @pls;
+        my @gls = map { 10 ** ( ( -$_ ) / 10 ) } @pls;
         my $sum = sum @gls;
         @gls = map { $_ / $sum } @gls;
 
