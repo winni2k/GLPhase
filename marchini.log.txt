@@ -296,3 +296,24 @@ scales well in ram and time
 - STImpute
 - insti with tgp ref panel
 - insti quick
+
+
+###########
+# Fri Sep 27 13:33:45 BST 2013
+- 13,000 samples
+  - includes GoNL parents
+i) what is switch error based on GoNL parent trio phased haplotypes
+ii) what is the switch error when phasing the GoNL alone
+
+
+remind JM that we need to consider MAF
+
+- use only CG2 data
+
+using Omni 1M and 2.5M
+- ask olivier
+
+- run shapeit2 on gprobs t oget haplotypes
+- window for haplotype imputation perhaps
+
+ 
