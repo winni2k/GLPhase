@@ -100,4 +100,6 @@ cd /well/marchini/winni/proj/marchini/haplotypeConsortium/results/chr20_pilot/20
 ./runall.pl -m /well/marchini/winni/proj/marchini -i -q 'short.qb' -P 'marchini.prjb'
 
 # then copied concatenated vcf back to fenghuang for analysis
-
+ssh feng
+cd /homes/kretzsch/feng/marchini/haplotypeConsortium/chr20_pilot/results/2013-09-17_run_insti_on_sanger_GLs/
+rsync -avP cluster3:/well/marchini/winni/proj/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-17_run_insti_on_sanger_GLs/merged/7213.427589.519/chr20.concat.vcf.gz ./merged/7213.427589.519/
