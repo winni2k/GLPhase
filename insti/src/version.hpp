@@ -1,4 +1,4 @@
-/* @(#)version.h
+/* @(#)version.hpp
  */
 
 #ifndef _VERSION_H
@@ -6,7 +6,7 @@
 
 #define VERSION_MAJOR 1
 #define VERSION_MINOR 1
-#define VERSION_REVISION 17
+#define VERSION_REVISION 18
 
 #endif /* _VERSION_H */
 
