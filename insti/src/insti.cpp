@@ -32,18 +32,20 @@ using namespace std;
 #endif
 
 //initializyng static member variables
-int Insti::s_iEstimator = 0;
-uint Insti::s_uParallelChains = 0;
-uint Insti::s_uCycles = 0;
+int Insti::s_iEstimator = 0; // Metropolis Hastings with Annealing is default
+unsigned Insti::s_uParallelChains = 5; // number of parallel chains to use for parallel estimators
+unsigned Insti::s_uCycles = 0;
 bool Insti::s_bIsLogging = false;
 bool Insti::s_bKickStartFromRef = false;
 string Insti::s_sLegendFile = "";
 string Insti::s_sRefHapsFile = "";
 unsigned Insti::s_uNumClusters = 0;
 unsigned Insti::s_uClusterType = 0;
-unsigned Insti::s_uSABurninGen = 23;
-unsigned Insti::s_uNonSABurninGen = 23;
-unsigned Insti::s_uStartClusterGen = 23;
+unsigned Insti::s_uSABurninGen = 28;
+unsigned Insti::s_uNonSABurninGen = 28;
+
+// start clustering after simulated annealing burnin
+unsigned Insti::s_uStartClusterGen = Insti::s_uNonSABurninGen;
 
 // return the probability of the model given the input haplotypes P and
 // emission and transition matrices of individual I
@@ -964,9 +966,9 @@ void    Insti::document(void) {
     cerr << "\n\n    GENERATION OPTIONS";
     cerr << "\n\t-m <mcmc>       sampling generations (200)";
     cerr << "\n\t-C <integer>    number of cycles to estimate an individual's parents before updating";
-    cerr << "\n\t-B <integer>    number of simulated annealing generations (23)";
-    cerr << "\n\t-i <integer>    number of non-simulated annealing burnin generations (23)";
-    cerr << "\n\t-M <integer>    generation number at which to start clustering, 0-based (23)";
+    cerr << "\n\t-B <integer>    number of simulated annealing generations (28)";
+    cerr << "\n\t-i <integer>    number of non-simulated annealing burnin generations (28)";
+    cerr << "\n\t-M <integer>    generation number at which to start clustering, 0-based (28)";
 
     
     cerr << "\n\n    HAPLOTYPE ESTIMATION OPTIONS";

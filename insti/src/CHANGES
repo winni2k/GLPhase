@@ -1,4 +1,7 @@
 
+1.1.19  Sun Sep 29 13:34:26 BST 2013
+        fixed bug where default number of burnin iterations was 46 instead of 56
+
 1.1.18  Sun Sep 29 12:25:48 BST 2013
         haps are now initialized according to GLs with flat prior
 
