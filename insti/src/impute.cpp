@@ -233,8 +233,9 @@ void    Impute::initialize(void) {
     pc[0][1] = pc[0][2] = pc[1][0] = pc[1][3] = pc[2][0] = pc[2][3] = pc[3][1] = pc[3][2] = mu * (1 - mu);  //	  probability of mutating one position for each parental haplotype
     pc[0][3] = pc[1][2] = pc[2][1] = pc[3][0] = mu * mu;  //	  probability of mutating both positions for each parental haplotype
 
-    //
+    // initialize individual haplotypes
     for (uint i = 0; i < in; i++) {
+        
         // define pointers to an individual's two haplotypes: ha and hb
         word *ha = &haps[i * 2 * wn], *hb = ha + wn;
                 
