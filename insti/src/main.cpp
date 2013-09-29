@@ -16,16 +16,13 @@
 int main(int ac, char **av) {
 
     cerr<< "INSTI -- v" << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_REVISION << endl;
-    Impute::bn = 56;
+    Impute::bn = Insti::s_uSABurninGen + Insti::s_uNonSABurninGen;
     Impute::sn = 200;
     Impute::nn = 2;
     Impute::density = 1.0;
     Impute::conf = 0.9998;
     Impute::is_x = false;
     Impute::is_y = false;
-    Insti::s_iEstimator = 0; // Metropolis Hastings with Annealing is default
-    Insti::s_uParallelChains = 5; // number of parallel chains to use for parallel estimators
-
     
 //    uint threads = 0;
     vector <string> file;
