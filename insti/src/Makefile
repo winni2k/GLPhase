@@ -3,8 +3,8 @@ export DEBUGFLAGS= -ggdb
 export CXXFLAGS= -Wall -Wextra -std=c++11 -std=gnu++11 -mpopcnt $(DEBUGFLAGS)
 BOOSTLIB=-lboost_iostreams-mt
 export LIBS += -lpthread -lgsl -lgslcblas -lbam -ltabix -lbz2 $(BOOSTLIB) -lm -lstdc++ -lz
-export CPATH := snptools.cpp.gold/samtools-0.1.16:snptools.cpp.gold/tabix-0.2.5:olivier
-export LIBRARY_PATH := snptools.cpp.gold/samtools-0.1.16:snptools.cpp.gold/tabix-0.2.5
+export CPATH := u-wkretzsch-snptools/samtools-0.1.16:u-wkretzsch-snptools/tabix-0.2.5:olivier
+export LIBRARY_PATH := u-wkretzsch-snptools/samtools-0.1.16:u-wkretzsch-snptools/tabix-0.2.5
 export LD_LIBRARY_PATH := $(LIBRARY_PATH)
 
 all: insti
