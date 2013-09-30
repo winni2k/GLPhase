@@ -16,7 +16,6 @@
 int main(int ac, char **av) {
 
     cerr<< "INSTI -- v" << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_REVISION << endl;
-    Impute::bn = Insti::s_uSABurninGen + Insti::s_uNonSABurninGen;
     Impute::sn = 200;
     Impute::nn = 2;
     Impute::density = 1.0;
