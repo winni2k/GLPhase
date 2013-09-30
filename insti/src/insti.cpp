@@ -925,21 +925,23 @@ void    Insti::save_vcf(const char *F) {
     gzprintf(f, "##reference=1000Genomes-NCBI37\n");
     gzprintf(f, "##iteration=%u\n", sn);
     gzprintf(f, "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n");
-    gzprintf(f, "##FORMAT=<ID=AP,Number=2,Type=Float,Description=\"Allelic Probability, P(Allele=1|Haplotype)\">\n");
+//    gzprintf(f, "##FORMAT=<ID=AP,Number=2,Type=Float,Description=\"Allelic Probability, P(Allele=1|Haplotype)\">\n");
+    gzprintf(f, "##FORMAT=<ID=GP,Number=3,Type=Float,Description=\"Phred-scaled genotype posterior probability\">\n");
     gzprintf(f, "#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT");
     for (uint i = 0; i < in; i++) gzprintf(f, "\t%s", name[i].c_str());
     for (uint m = 0; m < mn; m++) {
-        gzprintf(f, "\n%s\t%u\t.\t%c\t%c\t100\tPASS\t.\tGT:AP",
+        gzprintf(f, "\n%s\t%u\t.\t%c\t%c\t100\tPASS\t.\tGT:GP",
                 site[m].chr.c_str(), site[m].pos, site[m].all[0], site[m].all[1]);
         fast *p = &prob[m * hn];
         for (uint i = 0; i < in; i++, p += 2) {
             fast prr = (1 - p[0]) * (1 - p[1]), pra = (1 - p[0]) * p[1] + p[0] * (1 - p[1]), paa = p[0] * p[1];
-            if (prr >= pra && prr >= paa) gzprintf(f, "\t0|0:%.3f,%.3f", p[0], p[1]);  // aren't these probabilities being printed wrong
+            if (prr >= pra && prr >= paa) gzprintf(f, "\t0|0");
             else if (pra >= prr && pra >= paa) {
-                if (p[0] > p[1]) gzprintf(f, "\t1|0:%.3f,%.3f", p[0], p[1]);
-                else gzprintf(f, "\t0|1:%.3f,%.3f", p[0], p[1]);
+                if (p[0] > p[1]) gzprintf(f, "\t1|0");
+                else gzprintf(f, "\t0|1");
             }
-            else gzprintf(f, "\t1|1:%.3f,%.3f", p[0], p[1]);
+            else gzprintf(f, "\t1|1");
+            gzprintf(f,":%.3f,%.3f,%.3f", -10 * log10(prr), -10 * log10(pra), -10 * log10(paa));
         }
     }
     gzprintf(f, "\n");
