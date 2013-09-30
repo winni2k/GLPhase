@@ -1,1 +1,0 @@
-/Users/winni/dev/u-wkretzsch-snptools/perl/vcf2STbin.pl
