@@ -112,3 +112,15 @@ rsync -navP ./regions/14513.427589.519/chr20/*.bin  dense:/well/marchini/winni/p
 cd /well/marchini/winni/proj/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-30_run_insti_on_combined_GLs
 ./runall.pl -m /well/marchini/winni/proj/marchini -t -c 'localhost' 
 ./runall.pl -m /well/marchini/winni/proj/marchini -i -q 'short.qb' -P 'marchini.prjb'
+
+# then copied concatenated vcf back to fenghuang for analysis
+ssh feng
+cd /homes/kretzsch/feng/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-30_run_insti_on_combined_GLs/
+rsync -navP cluster3:/well/marchini/winni/proj/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-30_run_insti_on_combined_GLs/merged/14513.427589.519/chr20.concat.vcf.gz ./merged/14513.427589.519/
+
+# touch up the missing files
+./runall.pl -m /well/marchini/winni/proj/marchini -i -t
+
+# run shapeit
+./runall.pl -m /well/marchini/winni/proj/marchini -i -s
+
