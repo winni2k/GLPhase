@@ -1,3 +1,5 @@
+1.1.20  Mon Sep 30 17:36:54 BST 2013
+        Output VCFs now use GP instead of non-standard AP field
 
 1.1.19  Sun Sep 29 13:34:26 BST 2013
         fixed bug where default number of burnin iterations was 46 instead of 56
