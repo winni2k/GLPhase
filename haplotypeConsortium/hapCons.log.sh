@@ -124,3 +124,8 @@ rsync -navP cluster3:/well/marchini/winni/proj/marchini/haplotypeConsortium/resu
 # run shapeit
 ./runall.pl -m /well/marchini/winni/proj/marchini -i -s
 
+###########
+# Wed Oct 02 14:29:35 BST 2013
+# started implementing the down-stream imputation 
+# downloaded Omni1MQuad-v1.0-H to the data dir
+# see the README.sh in feng:/homes/kretzsch/feng/marchini/haplotypeConsortium/data/2013-10-02_omni_chip_data/README.sh
