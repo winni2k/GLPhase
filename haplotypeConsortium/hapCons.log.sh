@@ -90,8 +90,7 @@ cd /homes/kretzsch/feng/marchini/haplotypeConsortium/chr20_pilot/results/2013-09
 ###########
 # Thu Sep 19 13:51:43 BST 2013
 # copied bin files to /well
-rsync -navP ./regions/7213.427589/chr20/*.bin\
- dense:/well/marchini/winni/proj/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-17_run_insti_on_sanger_GLs/regions/7213.427589/chr20/
+rsync -navP ./regions/7213.427589.519/chr20/*.bin  dense:/well/marchini/winni/proj/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-17_run_insti_on_sanger_GLs/regions/7213.427589.519/chr20/
 
 # then ran command from cluster3
 ssh cluster3
@@ -103,3 +102,13 @@ cd /well/marchini/winni/proj/marchini/haplotypeConsortium/results/chr20_pilot/20
 ssh feng
 cd /homes/kretzsch/feng/marchini/haplotypeConsortium/chr20_pilot/results/2013-09-17_run_insti_on_sanger_GLs/
 rsync -avP cluster3:/well/marchini/winni/proj/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-17_run_insti_on_sanger_GLs/merged/7213.427589.519/chr20.concat.vcf.gz ./merged/7213.427589.519/
+
+###########
+# Sun Sep 29 20:24:17 BST 2013
+# did the same for completely merged GLs
+
+rsync -navP ./regions/14513.427589.519/chr20/*.bin  dense:/well/marchini/winni/proj/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-30_run_insti_on_combined_GLs/regions/14513.427589.519/chr20/
+
+cd /well/marchini/winni/proj/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-30_run_insti_on_combined_GLs
+./runall.pl -m /well/marchini/winni/proj/marchini -t -c 'localhost' 
+./runall.pl -m /well/marchini/winni/proj/marchini -i -q 'short.qb' -P 'marchini.prjb'
