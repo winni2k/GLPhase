@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-our $VERSION = 1.006;
+our $VERSION = 1.007;
 $VERSION = eval $VERSION;
 
 use strict;
@@ -11,6 +11,7 @@ use Carp;
 use Scalar::Util::Numeric qw(isint);
 
 use Memoize;
+
 #memoize('toDose');
 #memoize('get_geno_probs');
 
@@ -38,6 +39,8 @@ Use -h to create hard called genotypes instead of doses
 Use -n for no sanity checking on output (speeds things up)
 
 =head2 Changelog
+
+v1.007 - added functionality for converting AP to gprobs using -g
 
 v1.006 - added some optimizations to increase speed (-n most notably)
 
@@ -132,7 +135,7 @@ else {
     print STDERR "Creating dose estimate from $preferred_id field\n";
 }
 print STDERR "Outputting hard calls\n" if $args{h};
-print STDERR "No sanity checks\n" if $args{n};
+print STDERR "No sanity checks\n"      if $args{n};
 
 # print header
 chomp($new_line);
@@ -312,6 +315,15 @@ sub GLToGP {
     return @probs;
 }
 
+sub AP2GP {
+    my ( $a1, $a2 ) = @_;
+    return (
+        ( 1 - $a1 ) * ( 1 - $a2 ),
+        ( $a1 * ( 1 - $a2 ) + $a2 * ( 1 - $a1 ) ),
+        ( $a1 * $a2 )
+    );
+}
+
 # convert to dose if not GT field used
 sub toDose {
 
@@ -328,7 +340,12 @@ sub toDose {
         if ( $preferred_id eq 'GT' ) {
             confess "-g option can't work with GT field";
         }
-        @print_val = @gprobs;
+        elsif ( $preferred_id eq 'AP' ) {
+            @print_val = AP2GP(@gprobs);
+        }
+        else {
+            @print_val = @gprobs;
+        }
     }
 
     # convert from prob/like to dose otherwise
@@ -352,13 +369,8 @@ sub toDose {
                 if ($gHC) {
 
                     # convert AP to GP
-                    my ( $a1, $a2 ) = @gprobs;
-                    my @rGProbs = (
-                        ( 1 - $a1 ) * ( 1 - $a2 ),
-                        ( $a1 * ( 1 - $a2 ) + $a2 * ( 1 - $a1 ) ),
-                        ( $a1 * $a2 )
-                    );
-                    my $idxMax = 0;
+                    my @rGProbs = AP2GP(@gprobs);
+                    my $idxMax  = 0;
                     $rGProbs[$idxMax] > $rGProbs[$_]
                       or $idxMax = $_
                       for 1 .. $#rGProbs;
