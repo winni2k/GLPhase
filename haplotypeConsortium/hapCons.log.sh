@@ -132,5 +132,6 @@ rsync -navP cluster3:/well/marchini/winni/proj/marchini/haplotypeConsortium/resu
 
 
 ###########
-# Thu Oct 03 12:16:04 BST 2013
-# kicked off 
+# Thu Oct 03 15:25:11 BST 2013
+# results from 14500 samples were still disappointing
+# reverted to pre GoCD insti version 1.0.11 and am running with -C1000
