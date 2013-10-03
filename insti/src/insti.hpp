@@ -1,4 +1,4 @@
-/* @(#)insti.h
+/* @(#)insti.hpp
  */
 
 #ifndef _INSTI_H
