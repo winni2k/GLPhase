@@ -12,18 +12,19 @@ SRC_DIR= ..
 # Remember to tweak this if you move this file.
 GTEST_DIR = $(SRC_DIR)/gtest-1.6.0
 
-export CPLUS_INCLUDE_PATH := $(GTEST_DIR)/include:$(SRC_DIR)/snptools.cpp/samtools-0.1.16:$(SRC_DIR)/snptools.cpp/tabix-0.2.5:$(SRC_DIR):$(SRC_DIR)/olivier:$(GTEST_DIR)
-export LIBRARY_PATH := $(SRC_DIR)/snptools.cpp/samtools-0.1.16:$(SRC_DIR)/snptools.cpp/tabix-0.2.5
+export CPLUS_INCLUDE_PATH := $(GTEST_DIR)/include:$(SRC_DIR)/u-wkretzsch-snptools/samtools-0.1.16:$(SRC_DIR)/u-wkretzsch-snptools/tabix-0.2.5:$(SRC_DIR):$(SRC_DIR)/olivier:$(GTEST_DIR)
+export LIBRARY_PATH := $(SRC_DIR)/u-wkretzsch-snptools/samtools-0.1.16:$(SRC_DIR)/u-wkretzsch-snptools/tabix-0.2.5
 AR= ar
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
 TESTS = insti_unittest1
 
+INSTI_O_FILES= $(SRC_DIR)/insti.o $(SRC_DIR)/impute.o $(SRC_DIR)/emcchain.o $(SRC_DIR)/kMedoids.o $(SRC_DIR)/relationshipGraph.o $(SRC_DIR)/haplotype.o
 test: $(TESTS)
 
 clean:
-	rm -f $(TESTS) gtest.a gtest_main.a *.o *.h.gch insti
+	rm -f $(TESTS) gtest.a gtest_main.a *.o *.hpp.gch *.h.gch insti
 
 .PHONY: clean $(TESTS)
 
@@ -60,10 +61,10 @@ gtest_main.a : gtest-all.o gtest_main.o
 # gtest_main.a, depending on whether it defines its own main()
 # function.
 
-insti_unittest1.o : insti_unittest1.cpp $(SRC_DIR)/insti.h $(SRC_DIR)/haplotype.h $(GTEST_HEADERS)
-	$(CXX) $(CXXFLAGS) -c insti_unittest1.cpp
+insti_unittest1.o : insti_unittest1.cpp $(SRC_DIR)/insti.hpp.gch $(SRC_DIR)/haplotype.hpp.gch $(GTEST_HEADERS)
+	$(CXX) $(CXXFLAGS) -c $<
 
-insti_unittest1 : $(SRC_DIR)/insti.o $(SRC_DIR)/impute.o $(SRC_DIR)/emcchain.o insti_unittest1.o gtest_main.a $(SRC_DIR)/olivier/utils.o $(SRC_DIR)/relationshipGraph.o $(SRC_DIR)/haplotype.o
+insti_unittest1 : $(INSTI_O_FILES) insti_unittest1.o gtest_main.a $(SRC_DIR)/olivier/utils.o 
 	$(CXX) $(CXXFLAGS) -lpthread $^ -o $@ $(LIBS) && ./$@
 
 

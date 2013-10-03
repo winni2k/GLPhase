@@ -316,4 +316,14 @@ using Omni 1M and 2.5M
 - run shapeit2 on gprobs t oget haplotypes
 - window for haplotype imputation perhaps
 
+
+###########
+# Thu Oct 03 11:57:53 BST 2013
+# hapcons notes
+- get rid of error bars
+- find snptools bug
+- try with vanilla snptools
+- take another close look at concordance
+- take allele frequencies from VCF file ALL-145...
+- rewrite as discordance in percentages
  
