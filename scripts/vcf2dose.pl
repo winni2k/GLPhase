@@ -1,7 +1,10 @@
 #!/usr/bin/perl -w
-our $VERSION = 1.007;
+our $VERSION = 1.008;
 $VERSION = eval $VERSION;
 
+use threads;
+use Thread::Queue 3.02;
+use Thread::Semaphore;
 use strict;
 use 5.010;
 use feature 'switch';
@@ -38,7 +41,12 @@ Use -h to create hard called genotypes instead of doses
 
 Use -n for no sanity checking on output (speeds things up)
 
+-t [integer] Number of threads to run. 
+-b [integer] Max number of lines to buffer from STDIN (default is infinite);
+
 =head2 Changelog
+
+v1.008 - added multithreading
 
 v1.007 - added functionality for converting AP to gprobs using -g
 
@@ -50,11 +58,8 @@ v1.002 - Added support for SNPtools AP field
 
 =cut
 
-# skip comments
-my $new_line = 1;
-
 my %args;
-getopts( 'np:ugf:h', \%args );
+getopts( 'np:ugf:ht:b:', \%args );
 
 our $gHC       = $args{h};
 our $gGProbs   = $args{g};
@@ -67,6 +72,11 @@ my $hVaraf;
 if ( $args{f} ) {
     $hVaraf = getVarAFs( f => $args{f} );
 }
+
+my $numThreads = $args{t} || 1;
+$numThreads = 1 unless $numThreads =~ m/^\d+$/;
+croak "-t option must be an integer greater 0" unless $numThreads > 0;
+print STDERR "Running in multithreaded mode with $numThreads threads.\n";
 
 =head1 FORMAT Fields Used
 
@@ -98,6 +108,7 @@ if ( defined $preferredField ) {
 }
 
 # skipping comments
+my $new_line = 1;
 while ($new_line) {
     $new_line = <>;
     if ( $new_line =~ m/^##/ ) {
@@ -149,46 +160,179 @@ if ( $args{g} ) {
 else {
     print STDOUT join( ' ', @header_line[ 9 .. $#header_line ] ) . "\n";
 }
+
+# to guarantee serialized output
+my $sSTDOUT = Thread::Semaphore->new();
+
+# figure out format ordering and print first line
 $new_line = <>;
+my $raOut = [];
+my ( $chromLoc, $raLine ) = preProcessLine( $new_line, $raOut );
+my @format = split( /\:/, $raLine->[8] );
+foreach my $field_num ( 0 .. $#format ) {
+    my $fieldID = $format[$field_num];
+    if ( defined $supported_flags{$fieldID} ) {
+
+        # check for missing header
+        if ( !$supported_flags{$fieldID}->{included} ) {
+            confess "$fieldID does not have a header line";
+        }
+
+        # save location of field
+        $supported_flags{$fieldID}->{field} = $field_num;
+    }
+}
+
+my $qOut       = Thread::Queue->new();
+my $inLineNum  = 1;
+my $outLineNum = 0;
+processIndLine( $raLine, $supported_flags{$preferred_id}->{field},
+    \%args, $sSTDOUT, $raOut, $qOut, $inLineNum );
+
+my %lineCache;
+$outLineNum = emptyOutInOrder( $qOut, $inLineNum, $outLineNum, \%lineCache );
+
+# create input queue
+my $qLines = Thread::Queue->new();
+
+# kick off worker threads
+my @threads;
+for ( 1 .. $numThreads ) {
+    push @threads,
+      threads->create( 'processLinesWorker', \%supported_flags, $sSTDOUT,
+        $qLines, \%args, $qOut );
+}
 
 # print body
-my $lineNum    = 0;
-my $first_line = 1;
-while ($new_line) {
-    $lineNum++;
-    print STDERR "Line number $lineNum\r" unless $lineNum % 1000;
-    chomp($new_line);
-    my @line = split( /\t/, $new_line );
-    my $chromLoc = join( q/:/, @line[ 0 .. 1 ] );
-    print STDOUT $chromLoc . ' ' . join( q/ /, @line[ 3 .. 4 ] );
+while ( $new_line = <> ) {
+    $inLineNum++;
 
-    if ($first_line) {
-        $first_line = 0;
+    # Only read next line in to queue if less than three times the
+    # number of threads of lines are in the queue.
+    # Otherwise sleep for a second.
+    while ( defined $args{b} && $qLines->pending() > $args{b} ) {
+        sleep 1;
+    }
+    $qLines->enqueue( $inLineNum, $new_line );
 
-        # figure out format ordering
-        my @format = split( /\:/, $line[8] );
-        foreach my $field_num ( 0 .. $#format ) {
-            my $fieldID = $format[$field_num];
-            if ( defined $supported_flags{$fieldID} ) {
+    # empty output queue
+    $outLineNum =
+      emptyOutInOrder( $qOut, $inLineNum, $outLineNum, \%lineCache );
+    print STDERR "Processing line number $outLineNum/$inLineNum\r";
+}
 
-                # check for missing header
-                if ( !$supported_flags{$fieldID}->{included} ) {
-                    confess "$fieldID does not have a header line";
-                }
+# finish queue
+$qLines->end();
 
-                # save location of field
-                $supported_flags{$fieldID}->{field} = $field_num;
-            }
+# continue to empty output queue
+while ( $outLineNum < $inLineNum ) {
+    $outLineNum =
+      emptyOutInOrder( $qOut, $inLineNum, $outLineNum, \%lineCache );
+    print STDERR "Processing line number $outLineNum/$inLineNum\r";
+}
+
+# wait for all threads to finish
+print STDERR "Waiting on worker queues to finish...";
+map { $_->join() } @threads;
+print STDERR "done.\n";
+
+exit 0;
+
+sub emptyOutInOrder {
+    my $qOut        = shift;
+    my $inLineNum   = shift;
+    my $outLineNum  = shift;
+    my $rhLineCache = shift;
+
+    while ( $qOut->pending() > 1 ) {
+        my ( $lineNum, $out ) = $qOut->dequeue(2);
+
+        # this is the next line to print
+        if ( $lineNum + 1 == $outLineNum ) {
+            print STDOUT $out;
+            $outLineNum++;
+        }
+
+        # otherwise put the line in cache
+        else {
+            $rhLineCache->{$lineNum} = $out;
         }
     }
 
-    # parsing individual specific fields
-    foreach my $col ( @line[ 9 .. $#line ] ) {
+    # check cache for line with the correct line number
+  KEY: for my $key ( sort keys %{$rhLineCache} ) {
+        my $searchLineNum = $outLineNum + 1;
+
+        # if the correct line number exists,
+        # then pull it out of cache, print it and go to the next key
+        if ( exists $rhLineCache->{$searchLineNum} ) {
+            print STDOUT $rhLineCache->{$searchLineNum};
+            delete $rhLineCache->{$searchLineNum};
+            $outLineNum++;
+        }
+
+        # if the current key was not the searched for one
+        # then none of the subsequent keys will be either.
+        else {
+            last KEY;
+        }
+    }
+
+    confess "outLineNum > inLineNum; coding error" if $outLineNum > $inLineNum;
+    return $outLineNum;
+}
+
+sub processLinesWorker {
+
+    my $rhFlags = shift;
+    my $sSTDOUT = shift;
+    my $qLines  = shift;
+    my $rhArgs  = shift;
+    my $qOut    = shift;
+
+    my ( $lineNum, $new_line ) = $qLines->dequeue(2);
+    while ( defined $lineNum ) {
+        my $raOut = [];
+        my ( $chromLoc, $raLine ) = preProcessLine( $new_line, $raOut );
+        processIndLine( $raLine, $rhFlags->{$preferred_id}->{field},
+            $rhArgs, $sSTDOUT, $raOut, $qOut, $lineNum );
+        ( $lineNum, $new_line ) = $qLines->dequeue(2);
+    }
+}
+
+sub preProcessLine {
+
+    my $new_line = shift;
+    my $raOut    = shift;
+
+    chomp($new_line);
+    my @line = split( /\t/, $new_line );
+    my $chromLoc = join( q/:/, @line[ 0 .. 1 ] );
+
+    push @{$raOut}, $chromLoc . ' ' . join( q/ /, @line[ 3 .. 4 ] );
+
+    return ( $chromLoc, \@line );
+}
+
+sub processIndLine {
+
+    my $raLine   = shift;
+    my $fieldNum = shift;
+    my $rhArgs   = shift;
+    my $sSTDOUT  = shift;
+    my $raOut    = shift;
+    my $qOut     = shift;
+    my $lineNum  = shift;
+
+    my ( $args_f, $args_n, $args_h ) =
+      ( $rhArgs->{f}, $rhArgs->{n}, $rhArgs->{h} );
+
+    foreach my $col ( @{$raLine}[ 9 .. $#{$raLine} ] ) {
 
         my @print_val;
 
         my @col = split( /\:/, $col );
-        my $used_col = $col[ $supported_flags{$preferred_id}->{field} ];
+        my $used_col = $col[$fieldNum];
         unless ( defined $used_col ) {
             confess '$used_col is not defined';
         }
@@ -197,7 +341,7 @@ while ($new_line) {
         my @genotype_probs = get_geno_probs( $preferred_id, $used_col );
 
         # use hardy weinberg prior if freqs file given
-        if ( $args{f} ) {
+        if ($args_f) {
             @genotype_probs = GLToGP(
                 prefID   => $preferred_id,
                 likes    => \@genotype_probs,
@@ -209,7 +353,7 @@ while ($new_line) {
         # turn into genotype or dose, or keep probs if -g
         @print_val = toDose( $preferred_id, @genotype_probs );
 
-        unless ( $args{n} ) {
+        unless ($args_n) {
 
             # sanity check: are all vals between 0 and 2?
             foreach my $val_num ( 0 .. $#print_val ) {
@@ -222,7 +366,7 @@ while ($new_line) {
                 }
             }
 
-            if ( $args{h} ) {
+            if ($args_h) {
 
                 # sanity check: there should be only one print val
                 confess
@@ -236,16 +380,17 @@ while ($new_line) {
             }
         }
 
-        if ( $args{h} ) {
-            print STDOUT q/ / . sprintf( '%u', $print_val[0] );
+        if ($args_h) {
+            push @{$raOut}, q/ / . sprintf( '%u', $print_val[0] );
         }
         else {
-            print STDOUT q/ / . join( ' ', @print_val );
+            push @{$raOut}, q/ / . join( ' ', @print_val );
         }
-    }
-    print STDOUT "\n";
 
-    $new_line = <>;
+    }
+    $sSTDOUT->down();
+    $qOut->enqueue( $lineNum, join( '', @{$raOut} ) . "\n" );
+    $sSTDOUT->up();
 }
 
 sub getVarAFs {
