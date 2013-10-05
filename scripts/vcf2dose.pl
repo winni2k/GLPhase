@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-our $VERSION = 1.008;
+our $VERSION = 1.009;
 $VERSION = eval $VERSION;
 
 use threads;
@@ -46,6 +46,8 @@ Use -n for no sanity checking on output (speeds things up)
 
 =head2 Changelog
 
+v1.009 - improved multithreading
+
 v1.008 - added multithreading
 
 v1.007 - added functionality for converting AP to gprobs using -g
@@ -59,13 +61,16 @@ v1.002 - Added support for SNPtools AP field
 =cut
 
 my %args;
-getopts( 'np:ugf:ht:b:', \%args );
+getopts( 'np:ugf:ht:b:d', \%args );
 
+our $DEBUG     = $args{d};
 our $gHC       = $args{h};
 our $gGProbs   = $args{g};
 our $gUnscaled = $args{u};
 
 print STDERR "vcf_to_dose.pl v$VERSION\n\n";
+
+$args{b} = $args{b} || 1000;
 
 # parse freq file
 my $hVaraf;
@@ -76,7 +81,7 @@ if ( $args{f} ) {
 my $numThreads = $args{t} || 1;
 $numThreads = 1 unless $numThreads =~ m/^\d+$/;
 croak "-t option must be an integer greater 0" unless $numThreads > 0;
-print STDERR "Running in multithreaded mode with $numThreads threads.\n";
+print STDERR "Running in multithreaded mode with $numThreads thread(s).\n";
 
 =head1 FORMAT Fields Used
 
@@ -189,8 +194,12 @@ my $outLineNum = 0;
 processIndLine( $raLine, $supported_flags{$preferred_id}->{field},
     \%args, $sSTDOUT, $raOut, $qOut, $inLineNum );
 
-my %lineCache;
-$outLineNum = emptyOutInOrder( $qOut, $inLineNum, $outLineNum, \%lineCache );
+# end qOut to tell empty outline worker when to return
+my $qInLineNum  = Thread::Queue->new();
+my $qOutLineNum = Thread::Queue->new();
+$qInLineNum->enqueue($inLineNum);    # just to get started on the first line
+my $tEmptyOutLineWorker =
+  threads->create( 'emptyOutInOrderWorker', $qOut, $qInLineNum, $qOutLineNum);
 
 # create input queue
 my $qLines = Thread::Queue->new();
@@ -200,7 +209,7 @@ my @threads;
 for ( 1 .. $numThreads ) {
     push @threads,
       threads->create( 'processLinesWorker', \%supported_flags, $sSTDOUT,
-        $qLines, \%args, $qOut );
+        $qLines, \%args, $qOut, $preferred_id );
 }
 
 # print body
@@ -212,35 +221,68 @@ while ( $new_line = <> ) {
     # Otherwise sleep for a second.
     while ( defined $args{b} && $qLines->pending() > $args{b} ) {
         sleep 1;
+
+        # check status of jobs if we are waiting anyway
+#defined( my $nextOutLineNum = $qOutLineNum->dequeue() )
+        if ( my $numPending = $qOutLineNum->pending() ) {
+            my @nextOutLineNums = $qOutLineNum->dequeue($numPending);
+            $outLineNum = pop @nextOutLineNums;
+            print STDERR "Processing line number $outLineNum/$inLineNum\r";
+        }
     }
     $qLines->enqueue( $inLineNum, $new_line );
-
-    # empty output queue
-    $outLineNum =
-      emptyOutInOrder( $qOut, $inLineNum, $outLineNum, \%lineCache );
-    print STDERR "Processing line number $outLineNum/$inLineNum\r";
+    $qInLineNum->enqueue($inLineNum);
 }
 
-# finish queue
+# finish input and print queues
 $qLines->end();
+$qInLineNum->end();
 
-# continue to empty output queue
+# continue to check on status
 while ( $outLineNum < $inLineNum ) {
-    $outLineNum =
-      emptyOutInOrder( $qOut, $inLineNum, $outLineNum, \%lineCache );
-    print STDERR "Processing line number $outLineNum/$inLineNum\r";
+
+    sleep 1;
+    if ( my $numPending = $qOutLineNum->pending() ) {
+        my @nextOutLineNums = $qOutLineNum->dequeue($numPending);
+        $outLineNum = pop @nextOutLineNums;
+        print STDERR "Processing line number $outLineNum/$inLineNum\r";
+    }
 }
 
 # wait for all threads to finish
 print STDERR "Waiting on worker queues to finish...";
 map { $_->join() } @threads;
+$tEmptyOutLineWorker->join();
 print STDERR "done.\n";
 
 exit 0;
 
+sub emptyOutInOrderWorker {
+    my ( $qOut, $qInLineNum, $qOutLineNum ) = @_;
+
+    my %cache;
+    my $outLineNum = 0;
+    my $inLineNum  = 1;
+    while ( defined( my $nextInLineNum = $qInLineNum->dequeue() ) ) {
+        $inLineNum = $nextInLineNum;
+        $outLineNum =
+          emptyOutInOrder( $qOut, $outLineNum, \%cache );
+        $qOutLineNum->enqueue($outLineNum);
+    }
+    while ( $outLineNum < $inLineNum ) {
+        $outLineNum =
+          emptyOutInOrder( $qOut, $outLineNum, \%cache );
+        $qOutLineNum->enqueue($outLineNum);
+        sleep 1;
+    }
+    $qOutLineNum->end();
+    croak "Only $outLineNum out of $inLineNum lines printed"
+      if $outLineNum != $inLineNum;
+    print STDERR "\nemptyOutInOrderWorker returning...\n" if $DEBUG;
+}
+
 sub emptyOutInOrder {
     my $qOut        = shift;
-    my $inLineNum   = shift;
     my $outLineNum  = shift;
     my $rhLineCache = shift;
 
@@ -278,7 +320,6 @@ sub emptyOutInOrder {
         }
     }
 
-    confess "outLineNum > inLineNum; coding error" if $outLineNum > $inLineNum;
     return $outLineNum;
 }
 
@@ -289,6 +330,7 @@ sub processLinesWorker {
     my $qLines  = shift;
     my $rhArgs  = shift;
     my $qOut    = shift;
+    my $preferred_id = shift;
 
     my ( $lineNum, $new_line ) = $qLines->dequeue(2);
     while ( defined $lineNum ) {
@@ -298,6 +340,7 @@ sub processLinesWorker {
             $rhArgs, $sSTDOUT, $raOut, $qOut, $lineNum );
         ( $lineNum, $new_line ) = $qLines->dequeue(2);
     }
+    print STDERR "\nprocessLinesWorker returning...\n" if $DEBUG;
 }
 
 sub preProcessLine {
@@ -334,7 +377,7 @@ sub processIndLine {
         my @col = split( /\:/, $col );
         my $used_col = $col[$fieldNum];
         unless ( defined $used_col ) {
-            confess '$used_col is not defined';
+            confess '$used_col is not defined from line:\n' . "@col\n" ;
         }
 
         # convert input fields to something 0:1 scaled (like, prob, or genotype)
