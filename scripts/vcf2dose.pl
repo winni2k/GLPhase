@@ -13,38 +13,54 @@ use Getopt::Std;
 use Carp;
 use Scalar::Util::Numeric qw(isint);
 
-use Memoize;
-
-#memoize('toDose');
-#memoize('get_geno_probs');
-
-=head1 Name
+=head1 NAME
 
 VCF to beagle dose format converter
 
-=head1 Description
+=head1 SYNOPSIS
+
+vcf2dose.pl < in.vcf > out.dose
+
+=head1 DESCRIPTION
 
 Takes a VCF file through stdin. Will rename ID column to
 chromosome_number:position format and calculate dose for each
 individual. Can handle genotype likelihoods as well.
 
-Use -p to pass in preferred field. (GP, GL, PL, AP or GT)
+=head2 -p [GP|GL|PL|AP|GT]    
 
-Use -u to treat GP field as unscaled probabilities
+pass in preferred field. (GP, GL, PL, AP or GT)
 
-Use -g to output in gprobs instead of dose format
+=head2 -u    
 
-Use -f to specify frequencies file from which to use Hardy Weinberg
+treat GP field as unscaled probabilities
+
+=head2 -g
+
+output in gprobs instead of dose format
+
+=head2 -f [file]
+
+specify frequencies file from which to use Hardy Weinberg 
 priors to convert GLs or PLs to genotype probabilities
 
-Use -h to create hard called genotypes instead of doses
+=head2 -h
 
-Use -n for no sanity checking on output (speeds things up)
+create hard called genotypes instead of doses
 
--t [integer] Number of threads to run. 
--b [integer] Max number of lines to buffer from STDIN (default is infinite);
+=head2 -n
 
-=head2 Changelog
+no sanity checking on output (speeds things up, but consider -t instead)
+
+=head2 -t [integer]
+
+Number of threads to run. 
+
+=head2 -b [integer]
+
+Max number of lines to buffer from STDIN (default is 1000);
+
+=head1 CHANGELOG
 
 v1.009 - improved multithreading
 
