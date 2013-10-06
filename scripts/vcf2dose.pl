@@ -7,7 +7,6 @@ use Thread::Queue 3.02;
 use Thread::Semaphore;
 use strict;
 use 5.010;
-use feature 'switch';
 use List::Util qw/sum/;
 use Getopt::Std;
 use Carp;
@@ -86,7 +85,7 @@ our $gUnscaled = $args{u};
 
 print STDERR "vcf_to_dose.pl v$VERSION\n\n";
 
-$args{b} = $args{b} || 1000;
+my $cacheSize = $args{b} || 200;
 
 # parse freq file
 my $hVaraf;
@@ -204,21 +203,11 @@ foreach my $field_num ( 0 .. $#format ) {
     }
 }
 
-my $qOut       = Thread::Queue->new();
-my $inLineNum  = 1;
-my $outLineNum = 0;
-processIndLine( $raLine, $supported_flags{$preferred_id}->{field},
-    \%args, $sSTDOUT, $raOut, $qOut, $inLineNum );
-
-# end qOut to tell empty outline worker when to return
-my $qInLineNum  = Thread::Queue->new();
-my $qOutLineNum = Thread::Queue->new();
-$qInLineNum->enqueue($inLineNum);    # just to get started on the first line
-my $tEmptyOutLineWorker =
-  threads->create( 'emptyOutInOrderWorker', $qOut, $qInLineNum, $qOutLineNum);
-
 # create input queue
 my $qLines = Thread::Queue->new();
+my $qOut   = Thread::Queue->new();
+processIndLine( $raLine, $supported_flags{$preferred_id}->{field},
+    \%args, $sSTDOUT, $raOut, $qOut, 1 );
 
 # kick off worker threads
 my @threads;
@@ -228,18 +217,28 @@ for ( 1 .. $numThreads ) {
         $qLines, \%args, $qOut, $preferred_id );
 }
 
+my $inLineNum  = 1;
+my $outLineNum = 0;
+
+# end qOut to tell empty outline worker when to return
+my $qInLineNum  = Thread::Queue->new();
+my $qOutLineNum = Thread::Queue->new();
+$qInLineNum->enqueue($inLineNum);    # just to get started on the first line
+my $tEmptyOutLineWorker =
+  threads->create( 'emptyOutInOrderWorker', $qOut, $qInLineNum, $qOutLineNum );
+
 # print body
 while ( $new_line = <> ) {
     $inLineNum++;
 
-    # Only read next line in to queue if less than three times the
-    # number of threads of lines are in the queue.
-    # Otherwise sleep for a second.
-    while ( defined $args{b} && $qLines->pending() > $args{b} ) {
+    # Only read next line in to queue if there are less lines in cache
+    # than the cache size parameter
+    # Otherwise sleep for a second and give an update of how far we are
+    while ( $inLineNum % $cacheSize == 0 && $qLines->pending() > $cacheSize ) {
         sleep 1;
 
         # check status of jobs if we are waiting anyway
-#defined( my $nextOutLineNum = $qOutLineNum->dequeue() )
+        #defined( my $nextOutLineNum = $qOutLineNum->dequeue() )
         if ( my $numPending = $qOutLineNum->pending() ) {
             my @nextOutLineNums = $qOutLineNum->dequeue($numPending);
             $outLineNum = pop @nextOutLineNums;
@@ -281,13 +280,11 @@ sub emptyOutInOrderWorker {
     my $inLineNum  = 1;
     while ( defined( my $nextInLineNum = $qInLineNum->dequeue() ) ) {
         $inLineNum = $nextInLineNum;
-        $outLineNum =
-          emptyOutInOrder( $qOut, $outLineNum, \%cache );
+        $outLineNum = emptyOutInOrder( $qOut, $outLineNum, \%cache );
         $qOutLineNum->enqueue($outLineNum);
     }
     while ( $outLineNum < $inLineNum ) {
-        $outLineNum =
-          emptyOutInOrder( $qOut, $outLineNum, \%cache );
+        $outLineNum = emptyOutInOrder( $qOut, $outLineNum, \%cache );
         $qOutLineNum->enqueue($outLineNum);
         sleep 1;
     }
@@ -341,11 +338,11 @@ sub emptyOutInOrder {
 
 sub processLinesWorker {
 
-    my $rhFlags = shift;
-    my $sSTDOUT = shift;
-    my $qLines  = shift;
-    my $rhArgs  = shift;
-    my $qOut    = shift;
+    my $rhFlags      = shift;
+    my $sSTDOUT      = shift;
+    my $qLines       = shift;
+    my $rhArgs       = shift;
+    my $qOut         = shift;
     my $preferred_id = shift;
 
     my ( $lineNum, $new_line ) = $qLines->dequeue(2);
@@ -393,7 +390,7 @@ sub processIndLine {
         my @col = split( /\:/, $col );
         my $used_col = $col[$fieldNum];
         unless ( defined $used_col ) {
-            confess '$used_col is not defined from line:\n' . "@col\n" ;
+            confess '$used_col is not defined from line:\n' . "@col\n";
         }
 
         # convert input fields to something 0:1 scaled (like, prob, or genotype)
@@ -431,11 +428,12 @@ sub processIndLine {
                 confess
 "unexpected output: more than one print val ( @print_val ) at line $lineNum"
                   if @print_val != 1;
+
+                # sanity check: the print val should be integer
                 confess
 "unexpected output: print val is not an integer ( @print_val ) at line $lineNum"
                   if $print_val[0] != sprintf( '%u', $print_val[0] );
 
-                # sanity check: the print val should be integer
             }
         }
 
@@ -555,43 +553,40 @@ sub toDose {
     # convert from prob/like to dose otherwise
     else {
 
-        given ($preferred_id) {
-            when (/^(GP|GL|PL)$/) {
-                if ($gHC) {
-                    my $idxMax = 0;
-                    $gprobs[$idxMax] > $gprobs[$_]
-                      or $idxMax = $_
-                      for 1 .. $#gprobs;
-                    @print_val = ($idxMax);
-                }
-                else {
-                    @print_val =
-                      ( ( $gprobs[1] + $gprobs[2] * 2 ) / sum(@gprobs) );
-                }
-            }
-            when ('AP') {
-                if ($gHC) {
+        if ( $preferred_id eq 'AP' ) {
+            if ($gHC) {
 
-                    # convert AP to GP
-                    my @rGProbs = AP2GP(@gprobs);
-                    my $idxMax  = 0;
-                    $rGProbs[$idxMax] > $rGProbs[$_]
-                      or $idxMax = $_
-                      for 1 .. $#rGProbs;
-                    @print_val = ($idxMax);
-                }
-                else {
-                    @print_val = ( sum(@gprobs) );
-                }
+                # convert AP to GP
+                my @rGProbs = AP2GP(@gprobs);
+                my $idxMax  = 0;
+                $rGProbs[$idxMax] > $rGProbs[$_]
+                  or $idxMax = $_
+                  for 1 .. $#rGProbs;
+                @print_val = ($idxMax);
             }
-            when ('GT') {
-                @print_val = @gprobs;
-            }
-            default {
-                confess
-                  "could not figure out what to do with field $preferred_id"
+            else {
+                @print_val = ( sum(@gprobs) );
             }
         }
+        elsif ( $preferred_id eq 'GT' ) {
+            @print_val = @gprobs;
+        }
+        elsif ( $preferred_id =~ m/^(GP|GL|PL)$/ ) {
+            if ($gHC) {
+                my $idxMax = 0;
+                $gprobs[$idxMax] > $gprobs[$_]
+                  or $idxMax = $_
+                  for 1 .. $#gprobs;
+                @print_val = ($idxMax);
+            }
+            else {
+                @print_val = ( ( $gprobs[1] + $gprobs[2] * 2 ) / sum(@gprobs) );
+            }
+        }
+        else {
+            confess "could not figure out what to do with field $preferred_id";
+        }
+
     }
     return @print_val;
 
@@ -607,59 +602,58 @@ sub get_geno_probs {
     my $used_col     = shift;
 
     my @print_val;
-    given ($preferred_id) {
-        when ('GP') {
-            my @genotype_phred_probability = split( /\,/, $used_col );
-            my @genotype_probability;
+    if ( $preferred_id eq 'GP' ) {
+        my @genotype_phred_probability = split( /\,/, $used_col );
+        my @genotype_probability;
 
-            if ($gUnscaled) {
-                @genotype_probability = @genotype_phred_probability;
+        if ($gUnscaled) {
+            @genotype_probability = @genotype_phred_probability;
+        }
+        else {
+            @genotype_probability =
+              map { 10**( $_ / -10 ) } @genotype_phred_probability;
+        }
+
+        @print_val = @genotype_probability;
+    }
+    elsif ( $preferred_id eq 'GL' ) {
+        my @genotype_log_likelihoods = split( /\,/, $used_col );
+        my @genotype_likelihoods =
+          map { 10**($_) } @genotype_log_likelihoods;
+
+        @print_val = @genotype_likelihoods;
+    }
+    elsif ( $preferred_id eq 'PL' ) {
+        my @genotype_phred_likelihoods = split( /\,/, $used_col );
+        my @genotype_likelihoods =
+          map { 10**( $_ / -10 ) } @genotype_phred_likelihoods;
+
+        @print_val = @genotype_likelihoods;
+    }
+    elsif ( $preferred_id eq 'AP' ) {
+        @print_val = split( /\,/, $used_col );
+    }
+    elsif ( $preferred_id eq 'GT' ) {
+
+        # check for missing data in 'GT' field
+        if ( $used_col =~ /\./ ) {
+            @print_val = qw'.';
+        }
+        else {
+            #                print STDERR "$lineNum\t$used_col\n";
+            my @alleles = split( qr([\|\/]), $used_col );
+            unless ( defined $alleles[1] ) {
+                @print_val = qw/./;
             }
             else {
-                @genotype_probability =
-                  map { 10**( $_ / -10 ) } @genotype_phred_probability;
+                @print_val = ( $alleles[0] + $alleles[1] );
             }
-
-            @print_val = @genotype_probability;
-        }
-        when ('GL') {
-            my @genotype_log_likelihoods = split( /\,/, $used_col );
-            my @genotype_likelihoods =
-              map { 10**($_) } @genotype_log_likelihoods;
-
-            @print_val = @genotype_likelihoods;
-        }
-        when ('PL') {
-            my @genotype_phred_likelihoods = split( /\,/, $used_col );
-            my @genotype_likelihoods =
-              map { 10**( $_ / -10 ) } @genotype_phred_likelihoods;
-
-            @print_val = @genotype_likelihoods;
-        }
-        when ('AP') {
-            @print_val = split( /\,/, $used_col );
-        }
-        when ('GT') {
-
-            # check for missing data in 'GT' field
-            if ( $used_col =~ /\./ ) {
-                @print_val = qw'.';
-            }
-            else {
-                #                print STDERR "$lineNum\t$used_col\n";
-                my @alleles = split( qr([\|\/]), $used_col );
-                unless ( defined $alleles[1] ) {
-                    @print_val = qw/./;
-                }
-                else {
-                    @print_val = ( $alleles[0] + $alleles[1] );
-                }
-            }
-        }
-        default {
-            confess "could not figure out what to do with field $preferred_id"
         }
     }
+    else {
+        confess "could not figure out what to do with field $preferred_id";
+    }
+
     return @print_val;
 }
 

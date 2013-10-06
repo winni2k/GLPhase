@@ -29,17 +29,24 @@ while (<$fh>) {
 close($fh);
 
 my @keepCols;
+my $colNum;
+my $lineNum = 0;
 while (<>) {
     chomp;
     my @line = split(/ /);
+    $lineNum++;
 
     # this is the header
     unless (@keepCols) {
+        $colNum   = @line;
         @keepCols = 0 .. 2;
         for my $headIdx ( 3 .. $#line ) {
             push @keepCols, $headIdx if exists $samples{ $line[$headIdx] };
         }
     }
+
+    croak "Header has $colNum columns; Line $lineNum has " . @line
+      if @line != $colNum;
 
     my @printLine = map { $line[$_] } @keepCols;
     print join( ' ', @printLine ) . "\n";
