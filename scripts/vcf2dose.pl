@@ -6,7 +6,7 @@ use threads;
 use Thread::Queue 3.02;
 use Thread::Semaphore;
 use strict;
-use 5.010;
+use 5.008;
 use List::Util qw/sum/;
 use Getopt::Std;
 use Carp;
