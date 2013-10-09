@@ -33,3 +33,19 @@ bamTracker.pl validateSamJar=~/opt/ValidateSamFile.jar backupBamList=bamlist.cur
 
 # now backup all files that exist
 bamTracker.pl validateSamJar=~/opt/ValidateSamFile.jar backupBamList=bamlist.curr.exists backupTargetDir=cairparavel:/mnt/extHD1/BGI backupDeviceName=converge4 doNotValidate=1 doNotIndex=1
+
+###########
+# Mon Oct 07 14:16:52 BST 2013
+# create two lists
+wc bamlist.curr.exists 
+shuf bamlist.curr.exists > bamlist.curr.exists.shuf
+head -n 4920 bamlist.curr.exists.shuf >  bamlist.curr.exists.shuf.A
+tail -n 4920 bamlist.curr.exists.shuf >  bamlist.curr.exists.shuf.B
+
+# send the first list to converge7
+HD=converge7
+bamTracker.pl validateSamJar=~/opt/ValidateSamFile.jar backupBamList=bamlist.curr.exists.shuf.A backupTargetDir=cairparavel:/mnt/$HD/BGI backupDeviceName=$HD doNotValidate=1 doNotIndex=1
+
+HD=converge8
+LIST=bamlist.curr.exists.shuf.B
+bamTracker.pl validateSamJar=~/opt/ValidateSamFile.jar backupBamList=$LIST backupTargetDir=cairparavel:/mnt/$HD/BGI backupDeviceName=$HD doNotValidate=1 doNotIndex=1
