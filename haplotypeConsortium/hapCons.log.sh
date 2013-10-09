@@ -135,3 +135,66 @@ rsync -navP cluster3:/well/marchini/winni/proj/marchini/haplotypeConsortium/resu
 # Thu Oct 03 15:25:11 BST 2013
 # results from 14500 samples were still disappointing
 # reverted to pre GoCD insti version 1.0.11 and am running with -C1000
+ssh cluster3
+cd /well/marchini/winni/proj/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-30_run_insti_on_combined_GLs
+rm gprobs/14513.427589.519/chr20/*.vcf.gz
+./runall.pl -m /well/marchini/winni/proj/marchini -i -q 'short.qb' -P 'marchini.prjb'
+
+ssh feng
+cd /homes/kretzsch/feng/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-30_run_insti_on_combined_GLs/
+rsync -navP cluster3:/well/marchini/winni/proj/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-30_run_insti_on_combined_GLs/merged/14513.427589.519/chr20.concat.vcf.gz ./merged/14513.427589.519/
+
+###########
+# Sun Oct 06 19:58:57 BST 2013
+#kicked off another set of jobs with C5000
+ssh cluster3
+cd /well/marchini/winni/proj/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-30_run_insti_on_combined_GLs
+./runall.pl -m /well/marchini/winni/proj/marchini -i -q 'long.qb' -P 'marchini.prjb' -C 5000
+
+###########
+# Mon Oct 07 10:30:11 BST 2013
+# need to split concat vcf into chunks to run shapeit
+cd /well/marchini/winni/proj/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-30_run_insti_on_combined_GLs
+/well/marchini/winni/proj/marchini/converge/rare_snps/scripts/BED_maker.pl -c 20 -s chr20.biAllelic.sites  -L 12000 -O 1000 -i > lists/chr20.shapeit.overlap.bed
+/well/marchini/winni/proj/marchini/converge/rare_snps/scripts/BED_deoverlapper.pl < lists/chr20.shapeit.overlap.bed > lists/chr20.shapeit.deOverlap.bed
+
+# move concat files to new 'C1000' position
+cd merged/14513.427589.519/
+mv chr20.concat.vcf.gz chr20.concat.C1000.vcf.gz
+mv chr20.concat.vcf.gz.tbi chr20.concat.C1000.vcf.gz.tbi
+
+./runall.pl -m /well/marchini/winni/proj/marchini -i -s -C 1000 -q 'short.qb' -P 'marchini.prjb'
+
+###########
+# Mon Oct 07 15:09:56 BST 2013
+# no more phasing
+# need to extract the allele frequencies from the original GLs file
+# is in README of data dir 
+
+###########
+# Mon Oct 07 17:24:33 BST 2013
+# try running snptools with 2.5k on amd cluster
+cd /well/marchini/winni/proj/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-30_run_insti_on_combined_GLs
+./runall.pl -m /well/marchini/winni/proj/marchini -i -C 2500 -q 'short.qa' -P 'marchini.prja'
+
+###########
+# Tue Oct 08 17:00:35 BST 2013
+# killed all jobs
+# ran insti with 2000 cycles on b nodes
+./runall.pl -m /well/marchini/winni/proj/marchini -i -C 2000 -q 'short.qb' -P 'marchini.prjb' -r
+
+# ran beagle on same data
+# but on feng first
+ssh feng
+cd /homes/kretzsch/feng/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-30_run_insti_on_combined_GLs
+./runall.pl -m ~/feng/marchini -b -q 'short.qb' -P 'mott-flint.prjb'
+
+rsync -navP ./regions/14513.427589.519/chr20/*.BEAGLE.PL.gz  cluster3:/well/marchini/winni/proj/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-30_run_insti_on_combined_GLs/regions/14513.427589.519/chr20/
+
+###########
+# Tue Oct 08 21:36:37 BST 2013
+# now run beagle on cluster3
+ssh cluster3
+cd /well/marchini/winni/proj/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-30_run_insti_on_combined_GLs
+./runall.pl -m ~/feng/marchini -b -q 'short.qb' -P 'mott-flint.prjb' -t
+./runall.pl -m ~/feng/marchini -b -q 'short.qb' -P 'mott-flint.prjb' -i
