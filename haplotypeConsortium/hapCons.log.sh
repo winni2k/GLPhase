@@ -181,7 +181,7 @@ cd /well/marchini/winni/proj/marchini/haplotypeConsortium/results/chr20_pilot/20
 # Tue Oct 08 17:00:35 BST 2013
 # killed all jobs
 # ran insti with 2000 cycles on b nodes
-./runall.pl -m /well/marchini/winni/proj/marchini -i -C 2000 -q 'short.qb' -P 'marchini.prjb' -r
+./runall.pl -m /well/marchini/winni/proj/marchini -i -C 2000 -q 'short.qb' -P 'marchini.prjb'
 
 # ran beagle on same data
 # but on feng first
@@ -196,5 +196,5 @@ rsync -navP ./regions/14513.427589.519/chr20/*.BEAGLE.PL.gz  cluster3:/well/marc
 # now run beagle on cluster3
 ssh cluster3
 cd /well/marchini/winni/proj/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-30_run_insti_on_combined_GLs
-./runall.pl -m ~/feng/marchini -b -q 'short.qb' -P 'mott-flint.prjb' -t
-./runall.pl -m ~/feng/marchini -b -q 'short.qb' -P 'mott-flint.prjb' -i
+./runall.pl -m /well/marchini/winni/proj/marchini -b -q 'short.qb' -P 'mott-flint.prjb' -t
+./runall.pl -m /well/marchini/winni/proj/marchini -b -q 'short.qb' -P 'mott-flint.prjb' -i

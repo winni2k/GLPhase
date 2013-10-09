@@ -158,7 +158,9 @@ int Insti::RWSelection( const vector <EMCChain> &rvcChains){
 
 bool    Insti::load_bin(const char *F) {
 
-    Impute::load_bin(F);
+    bool bRetVal = Impute::load_bin(F);
+    if(bRetVal == false) return false;
+
     
     // setting number of cycles to use
     // here is best place to do it because in is defined in load_bin()
