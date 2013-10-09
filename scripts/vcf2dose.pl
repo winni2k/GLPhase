@@ -1,44 +1,69 @@
 #!/usr/bin/perl -w
-our $VERSION = 1.007;
+our $VERSION = 1.009;
 $VERSION = eval $VERSION;
 
+use threads;
+use Thread::Queue 3.02;
+use Thread::Semaphore;
 use strict;
-use 5.010;
-use feature 'switch';
+use 5.008;
 use List::Util qw/sum/;
 use Getopt::Std;
 use Carp;
 use Scalar::Util::Numeric qw(isint);
 
-use Memoize;
-
-#memoize('toDose');
-#memoize('get_geno_probs');
-
-=head1 Name
+=head1 NAME
 
 VCF to beagle dose format converter
 
-=head1 Description
+=head1 SYNOPSIS
+
+vcf2dose.pl < in.vcf > out.dose
+
+=head1 DESCRIPTION
 
 Takes a VCF file through stdin. Will rename ID column to
 chromosome_number:position format and calculate dose for each
 individual. Can handle genotype likelihoods as well.
 
-Use -p to pass in preferred field. (GP, GL, PL, AP or GT)
+=head2 -p [GP|GL|PL|AP|GT]    
 
-Use -u to treat GP field as unscaled probabilities
+pass in preferred field. (GP, GL, PL, AP or GT)
 
-Use -g to output in gprobs instead of dose format
+=head2 -u    
 
-Use -f to specify frequencies file from which to use Hardy Weinberg
+treat GP field as unscaled probabilities
+
+=head2 -g
+
+output in gprobs instead of dose format
+
+=head2 -f [file]
+
+specify frequencies file from which to use Hardy Weinberg 
 priors to convert GLs or PLs to genotype probabilities
 
-Use -h to create hard called genotypes instead of doses
+=head2 -h
 
-Use -n for no sanity checking on output (speeds things up)
+create hard called genotypes instead of doses
 
-=head2 Changelog
+=head2 -n
+
+no sanity checking on output (speeds things up, but consider -t instead)
+
+=head2 -t [integer]
+
+Number of threads to run. 
+
+=head2 -b [integer]
+
+Max number of lines to buffer from STDIN (default is 1000);
+
+=head1 CHANGELOG
+
+v1.009 - improved multithreading
+
+v1.008 - added multithreading
 
 v1.007 - added functionality for converting AP to gprobs using -g
 
@@ -50,23 +75,28 @@ v1.002 - Added support for SNPtools AP field
 
 =cut
 
-# skip comments
-my $new_line = 1;
-
 my %args;
-getopts( 'np:ugf:h', \%args );
+getopts( 'np:ugf:ht:b:d', \%args );
 
+our $DEBUG     = $args{d};
 our $gHC       = $args{h};
 our $gGProbs   = $args{g};
 our $gUnscaled = $args{u};
 
 print STDERR "vcf_to_dose.pl v$VERSION\n\n";
 
+my $cacheSize = $args{b} || 200;
+
 # parse freq file
 my $hVaraf;
 if ( $args{f} ) {
     $hVaraf = getVarAFs( f => $args{f} );
 }
+
+my $numThreads = $args{t} || 1;
+$numThreads = 1 unless $numThreads =~ m/^\d+$/;
+croak "-t option must be an integer greater 0" unless $numThreads > 0;
+print STDERR "Running in multithreaded mode with $numThreads thread(s).\n";
 
 =head1 FORMAT Fields Used
 
@@ -98,6 +128,7 @@ if ( defined $preferredField ) {
 }
 
 # skipping comments
+my $new_line = 1;
 while ($new_line) {
     $new_line = <>;
     if ( $new_line =~ m/^##/ ) {
@@ -149,55 +180,224 @@ if ( $args{g} ) {
 else {
     print STDOUT join( ' ', @header_line[ 9 .. $#header_line ] ) . "\n";
 }
+
+# to guarantee serialized output
+my $sSTDOUT = Thread::Semaphore->new();
+
+# figure out format ordering and print first line
 $new_line = <>;
+my $raOut = [];
+my ( $chromLoc, $raLine ) = preProcessLine( $new_line, $raOut );
+my @format = split( /\:/, $raLine->[8] );
+foreach my $field_num ( 0 .. $#format ) {
+    my $fieldID = $format[$field_num];
+    if ( defined $supported_flags{$fieldID} ) {
+
+        # check for missing header
+        if ( !$supported_flags{$fieldID}->{included} ) {
+            confess "$fieldID does not have a header line";
+        }
+
+        # save location of field
+        $supported_flags{$fieldID}->{field} = $field_num;
+    }
+}
+
+# create input queue
+my $qLines = Thread::Queue->new();
+my $qOut   = Thread::Queue->new();
+processIndLine( $raLine, $supported_flags{$preferred_id}->{field},
+    \%args, $sSTDOUT, $raOut, $qOut, 1 );
+
+# kick off worker threads
+my @threads;
+for ( 1 .. $numThreads ) {
+    push @threads,
+      threads->create( 'processLinesWorker', \%supported_flags, $sSTDOUT,
+        $qLines, \%args, $qOut, $preferred_id );
+}
+
+my $inLineNum  = 1;
+my $outLineNum = 0;
+
+# end qOut to tell empty outline worker when to return
+my $qInLineNum  = Thread::Queue->new();
+my $qOutLineNum = Thread::Queue->new();
+$qInLineNum->enqueue($inLineNum);    # just to get started on the first line
+my $tEmptyOutLineWorker =
+  threads->create( 'emptyOutInOrderWorker', $qOut, $qInLineNum, $qOutLineNum );
 
 # print body
-my $lineNum    = 0;
-my $first_line = 1;
-while ($new_line) {
-    $lineNum++;
-    print STDERR "Line number $lineNum\r" unless $lineNum % 1000;
-    chomp($new_line);
-    my @line = split( /\t/, $new_line );
-    my $chromLoc = join( q/:/, @line[ 0 .. 1 ] );
-    print STDOUT $chromLoc . ' ' . join( q/ /, @line[ 3 .. 4 ] );
+while ( $new_line = <> ) {
+    $inLineNum++;
 
-    if ($first_line) {
-        $first_line = 0;
+    # Only read next line in to queue if there are less lines in cache
+    # than the cache size parameter
+    # Otherwise sleep for a second and give an update of how far we are
+    while ( $inLineNum % $cacheSize == 0 && $qLines->pending() > $cacheSize ) {
+        sleep 1;
 
-        # figure out format ordering
-        my @format = split( /\:/, $line[8] );
-        foreach my $field_num ( 0 .. $#format ) {
-            my $fieldID = $format[$field_num];
-            if ( defined $supported_flags{$fieldID} ) {
+        # check status of jobs if we are waiting anyway
+        #defined( my $nextOutLineNum = $qOutLineNum->dequeue() )
+        if ( my $numPending = $qOutLineNum->pending() ) {
+            my @nextOutLineNums = $qOutLineNum->dequeue($numPending);
+            $outLineNum = pop @nextOutLineNums;
+            print STDERR "Processing line number $outLineNum/$inLineNum\r";
+        }
+    }
+    $qLines->enqueue( $inLineNum, $new_line );
+    $qInLineNum->enqueue($inLineNum);
+}
 
-                # check for missing header
-                if ( !$supported_flags{$fieldID}->{included} ) {
-                    confess "$fieldID does not have a header line";
-                }
+# finish input and print queues
+$qLines->end();
+$qInLineNum->end();
 
-                # save location of field
-                $supported_flags{$fieldID}->{field} = $field_num;
-            }
+# continue to check on status
+while ( $outLineNum < $inLineNum ) {
+
+    sleep 1;
+    if ( my $numPending = $qOutLineNum->pending() ) {
+        my @nextOutLineNums = $qOutLineNum->dequeue($numPending);
+        $outLineNum = pop @nextOutLineNums;
+        print STDERR "Processing line number $outLineNum/$inLineNum\r";
+    }
+}
+
+# wait for all threads to finish
+print STDERR "Waiting on worker queues to finish...";
+map { $_->join() } @threads;
+$tEmptyOutLineWorker->join();
+print STDERR "done.\n";
+
+exit 0;
+
+sub emptyOutInOrderWorker {
+    my ( $qOut, $qInLineNum, $qOutLineNum ) = @_;
+
+    my %cache;
+    my $outLineNum = 0;
+    my $inLineNum  = 1;
+    while ( defined( my $nextInLineNum = $qInLineNum->dequeue() ) ) {
+        $inLineNum = $nextInLineNum;
+        $outLineNum = emptyOutInOrder( $qOut, $outLineNum, \%cache );
+        $qOutLineNum->enqueue($outLineNum);
+    }
+    while ( $outLineNum < $inLineNum ) {
+        $outLineNum = emptyOutInOrder( $qOut, $outLineNum, \%cache );
+        $qOutLineNum->enqueue($outLineNum);
+        sleep 1;
+    }
+    $qOutLineNum->end();
+    croak "Only $outLineNum out of $inLineNum lines printed"
+      if $outLineNum != $inLineNum;
+    print STDERR "\nemptyOutInOrderWorker returning...\n" if $DEBUG;
+}
+
+sub emptyOutInOrder {
+    my $qOut        = shift;
+    my $outLineNum  = shift;
+    my $rhLineCache = shift;
+
+    while ( $qOut->pending() > 1 ) {
+        my ( $lineNum, $out ) = $qOut->dequeue(2);
+
+        # this is the next line to print
+        if ( $lineNum + 1 == $outLineNum ) {
+            print STDOUT $out;
+            $outLineNum++;
+        }
+
+        # otherwise put the line in cache
+        else {
+            $rhLineCache->{$lineNum} = $out;
         }
     }
 
-    # parsing individual specific fields
-    foreach my $col ( @line[ 9 .. $#line ] ) {
+    # check cache for line with the correct line number
+  KEY: for my $key ( sort keys %{$rhLineCache} ) {
+        my $searchLineNum = $outLineNum + 1;
+
+        # if the correct line number exists,
+        # then pull it out of cache, print it and go to the next key
+        if ( exists $rhLineCache->{$searchLineNum} ) {
+            print STDOUT $rhLineCache->{$searchLineNum};
+            delete $rhLineCache->{$searchLineNum};
+            $outLineNum++;
+        }
+
+        # if the current key was not the searched for one
+        # then none of the subsequent keys will be either.
+        else {
+            last KEY;
+        }
+    }
+
+    return $outLineNum;
+}
+
+sub processLinesWorker {
+
+    my $rhFlags      = shift;
+    my $sSTDOUT      = shift;
+    my $qLines       = shift;
+    my $rhArgs       = shift;
+    my $qOut         = shift;
+    my $preferred_id = shift;
+
+    my ( $lineNum, $new_line ) = $qLines->dequeue(2);
+    while ( defined $lineNum ) {
+        my $raOut = [];
+        my ( $chromLoc, $raLine ) = preProcessLine( $new_line, $raOut );
+        processIndLine( $raLine, $rhFlags->{$preferred_id}->{field},
+            $rhArgs, $sSTDOUT, $raOut, $qOut, $lineNum );
+        ( $lineNum, $new_line ) = $qLines->dequeue(2);
+    }
+    print STDERR "\nprocessLinesWorker returning...\n" if $DEBUG;
+}
+
+sub preProcessLine {
+
+    my $new_line = shift;
+    my $raOut    = shift;
+
+    chomp($new_line);
+    my @line = split( /\t/, $new_line );
+    my $chromLoc = join( q/:/, @line[ 0 .. 1 ] );
+
+    push @{$raOut}, $chromLoc . ' ' . join( q/ /, @line[ 3 .. 4 ] );
+
+    return ( $chromLoc, \@line );
+}
+
+sub processIndLine {
+
+    my $raLine   = shift;
+    my $fieldNum = shift;
+    my $rhArgs   = shift;
+    my $sSTDOUT  = shift;
+    my $raOut    = shift;
+    my $qOut     = shift;
+    my $lineNum  = shift;
+
+    my ( $args_f, $args_n, $args_h ) =
+      ( $rhArgs->{f}, $rhArgs->{n}, $rhArgs->{h} );
+
+    foreach my $col ( @{$raLine}[ 9 .. $#{$raLine} ] ) {
 
         my @print_val;
 
         my @col = split( /\:/, $col );
-        my $used_col = $col[ $supported_flags{$preferred_id}->{field} ];
+        my $used_col = $col[$fieldNum];
         unless ( defined $used_col ) {
-            confess '$used_col is not defined';
+            confess '$used_col is not defined from line:\n' . "@col\n";
         }
 
         # convert input fields to something 0:1 scaled (like, prob, or genotype)
         my @genotype_probs = get_geno_probs( $preferred_id, $used_col );
 
         # use hardy weinberg prior if freqs file given
-        if ( $args{f} ) {
+        if ($args_f) {
             @genotype_probs = GLToGP(
                 prefID   => $preferred_id,
                 likes    => \@genotype_probs,
@@ -209,7 +409,7 @@ while ($new_line) {
         # turn into genotype or dose, or keep probs if -g
         @print_val = toDose( $preferred_id, @genotype_probs );
 
-        unless ( $args{n} ) {
+        unless ($args_n) {
 
             # sanity check: are all vals between 0 and 2?
             foreach my $val_num ( 0 .. $#print_val ) {
@@ -222,30 +422,32 @@ while ($new_line) {
                 }
             }
 
-            if ( $args{h} ) {
+            if ($args_h) {
 
                 # sanity check: there should be only one print val
                 confess
 "unexpected output: more than one print val ( @print_val ) at line $lineNum"
                   if @print_val != 1;
+
+                # sanity check: the print val should be integer
                 confess
 "unexpected output: print val is not an integer ( @print_val ) at line $lineNum"
                   if $print_val[0] != sprintf( '%u', $print_val[0] );
 
-                # sanity check: the print val should be integer
             }
         }
 
-        if ( $args{h} ) {
-            print STDOUT q/ / . sprintf( '%u', $print_val[0] );
+        if ($args_h) {
+            push @{$raOut}, q/ / . sprintf( '%u', $print_val[0] );
         }
         else {
-            print STDOUT q/ / . join( ' ', @print_val );
+            push @{$raOut}, q/ / . join( ' ', @print_val );
         }
-    }
-    print STDOUT "\n";
 
-    $new_line = <>;
+    }
+    $sSTDOUT->down();
+    $qOut->enqueue( $lineNum, join( '', @{$raOut} ) . "\n" );
+    $sSTDOUT->up();
 }
 
 sub getVarAFs {
@@ -351,43 +553,40 @@ sub toDose {
     # convert from prob/like to dose otherwise
     else {
 
-        given ($preferred_id) {
-            when (/^(GP|GL|PL)$/) {
-                if ($gHC) {
-                    my $idxMax = 0;
-                    $gprobs[$idxMax] > $gprobs[$_]
-                      or $idxMax = $_
-                      for 1 .. $#gprobs;
-                    @print_val = ($idxMax);
-                }
-                else {
-                    @print_val =
-                      ( ( $gprobs[1] + $gprobs[2] * 2 ) / sum(@gprobs) );
-                }
-            }
-            when ('AP') {
-                if ($gHC) {
+        if ( $preferred_id eq 'AP' ) {
+            if ($gHC) {
 
-                    # convert AP to GP
-                    my @rGProbs = AP2GP(@gprobs);
-                    my $idxMax  = 0;
-                    $rGProbs[$idxMax] > $rGProbs[$_]
-                      or $idxMax = $_
-                      for 1 .. $#rGProbs;
-                    @print_val = ($idxMax);
-                }
-                else {
-                    @print_val = ( sum(@gprobs) );
-                }
+                # convert AP to GP
+                my @rGProbs = AP2GP(@gprobs);
+                my $idxMax  = 0;
+                $rGProbs[$idxMax] > $rGProbs[$_]
+                  or $idxMax = $_
+                  for 1 .. $#rGProbs;
+                @print_val = ($idxMax);
             }
-            when ('GT') {
-                @print_val = @gprobs;
-            }
-            default {
-                confess
-                  "could not figure out what to do with field $preferred_id"
+            else {
+                @print_val = ( sum(@gprobs) );
             }
         }
+        elsif ( $preferred_id eq 'GT' ) {
+            @print_val = @gprobs;
+        }
+        elsif ( $preferred_id =~ m/^(GP|GL|PL)$/ ) {
+            if ($gHC) {
+                my $idxMax = 0;
+                $gprobs[$idxMax] > $gprobs[$_]
+                  or $idxMax = $_
+                  for 1 .. $#gprobs;
+                @print_val = ($idxMax);
+            }
+            else {
+                @print_val = ( ( $gprobs[1] + $gprobs[2] * 2 ) / sum(@gprobs) );
+            }
+        }
+        else {
+            confess "could not figure out what to do with field $preferred_id";
+        }
+
     }
     return @print_val;
 
@@ -403,59 +602,58 @@ sub get_geno_probs {
     my $used_col     = shift;
 
     my @print_val;
-    given ($preferred_id) {
-        when ('GP') {
-            my @genotype_phred_probability = split( /\,/, $used_col );
-            my @genotype_probability;
+    if ( $preferred_id eq 'GP' ) {
+        my @genotype_phred_probability = split( /\,/, $used_col );
+        my @genotype_probability;
 
-            if ($gUnscaled) {
-                @genotype_probability = @genotype_phred_probability;
+        if ($gUnscaled) {
+            @genotype_probability = @genotype_phred_probability;
+        }
+        else {
+            @genotype_probability =
+              map { 10**( $_ / -10 ) } @genotype_phred_probability;
+        }
+
+        @print_val = @genotype_probability;
+    }
+    elsif ( $preferred_id eq 'GL' ) {
+        my @genotype_log_likelihoods = split( /\,/, $used_col );
+        my @genotype_likelihoods =
+          map { 10**($_) } @genotype_log_likelihoods;
+
+        @print_val = @genotype_likelihoods;
+    }
+    elsif ( $preferred_id eq 'PL' ) {
+        my @genotype_phred_likelihoods = split( /\,/, $used_col );
+        my @genotype_likelihoods =
+          map { 10**( $_ / -10 ) } @genotype_phred_likelihoods;
+
+        @print_val = @genotype_likelihoods;
+    }
+    elsif ( $preferred_id eq 'AP' ) {
+        @print_val = split( /\,/, $used_col );
+    }
+    elsif ( $preferred_id eq 'GT' ) {
+
+        # check for missing data in 'GT' field
+        if ( $used_col =~ /\./ ) {
+            @print_val = qw'.';
+        }
+        else {
+            #                print STDERR "$lineNum\t$used_col\n";
+            my @alleles = split( qr([\|\/]), $used_col );
+            unless ( defined $alleles[1] ) {
+                @print_val = qw/./;
             }
             else {
-                @genotype_probability =
-                  map { 10**( $_ / -10 ) } @genotype_phred_probability;
+                @print_val = ( $alleles[0] + $alleles[1] );
             }
-
-            @print_val = @genotype_probability;
-        }
-        when ('GL') {
-            my @genotype_log_likelihoods = split( /\,/, $used_col );
-            my @genotype_likelihoods =
-              map { 10**($_) } @genotype_log_likelihoods;
-
-            @print_val = @genotype_likelihoods;
-        }
-        when ('PL') {
-            my @genotype_phred_likelihoods = split( /\,/, $used_col );
-            my @genotype_likelihoods =
-              map { 10**( $_ / -10 ) } @genotype_phred_likelihoods;
-
-            @print_val = @genotype_likelihoods;
-        }
-        when ('AP') {
-            @print_val = split( /\,/, $used_col );
-        }
-        when ('GT') {
-
-            # check for missing data in 'GT' field
-            if ( $used_col =~ /\./ ) {
-                @print_val = qw'.';
-            }
-            else {
-                #                print STDERR "$lineNum\t$used_col\n";
-                my @alleles = split( qr([\|\/]), $used_col );
-                unless ( defined $alleles[1] ) {
-                    @print_val = qw/./;
-                }
-                else {
-                    @print_val = ( $alleles[0] + $alleles[1] );
-                }
-            }
-        }
-        default {
-            confess "could not figure out what to do with field $preferred_id"
         }
     }
+    else {
+        confess "could not figure out what to do with field $preferred_id";
+    }
+
     return @print_val;
 }
 
