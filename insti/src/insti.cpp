@@ -943,7 +943,20 @@ void    Insti::save_vcf(const char *F) {
                 else gzprintf(f, "\t0|1");
             }
             else gzprintf(f, "\t1|1");
-            gzprintf(f,":%.3f,%.3f,%.3f", -10 * log10(prr), -10 * log10(pra), -10 * log10(paa));
+
+            // test for any p being zero
+            vector < fast > vfProb = { prr, pra, paa };
+            for(auto iProb: vfProb){
+                if(iProb == 0) iProb = 999;
+                else if(iProb == 1) iProb = 0;
+                else if(iProb > 1 || iProb < 0) {
+                    cerr << "error: probability "  << iProb << " is not between 0 and 1";
+                    exit(1);
+                }
+                else iProb = -10 * log10(iProb);
+            }
+            //-10 * log10(prr), -10 * log10(pra), -10 * log10(paa));
+            gzprintf(f,":%.3f,%.3f,%.3f", vfProb[0], vfProb[1], vfProb[2]);
         }
     }
     gzprintf(f, "\n");
