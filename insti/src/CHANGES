@@ -1,3 +1,7 @@
+1.1.22  Tue Oct 15 15:34:13 BST 2013
+        1) insti now prints '999' instead of 'inf' in GP field of VCF output
+        2) insti now checks to make sure probabilities are between 0 and 1 (inclusive)
+
 1.1.21  Wed Oct 09 18:33:53 BST 2013
         caught bug where main does not exit with error of file could not be loaded
 
