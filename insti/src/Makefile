@@ -9,7 +9,7 @@ export LD_LIBRARY_PATH := $(LIBRARY_PATH)
 
 all: insti
 
-insti: CXXFLAGS += -O1
+insti: CXXFLAGS += -O3
 
 instiO0: CXXFLAGS += -O0
 
