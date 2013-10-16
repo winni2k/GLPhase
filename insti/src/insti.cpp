@@ -946,14 +946,14 @@ void    Insti::save_vcf(const char *F) {
 
             // test for any p being zero
             vector < fast > vfProb = { prr, pra, paa };
-            for(auto iProb: vfProb){
-                if(iProb == 0) iProb = 999;
-                else if(iProb == 1) iProb = 0;
-                else if(iProb > 1 || iProb < 0) {
-                    cerr << "error: probability "  << iProb << " is not between 0 and 1";
+            for(uint j=0; j < vfProb.size(); j++){
+                if(vfProb[j] == 0) vfProb[j] = 999;
+                else if(vfProb[j] == 1) vfProb[j] = 0;
+                else if(vfProb[j] > 1 || vfProb[j] < 0) {
+                    cerr << "error: probability "  << vfProb[j] << " is not between 0 and 1";
                     exit(1);
                 }
-                else iProb = -10 * log10(iProb);
+                else vfProb[j] = -10 * log10(vfProb[j]);
             }
             //-10 * log10(prr), -10 * log10(pra), -10 * log10(paa));
             gzprintf(f,":%.3f,%.3f,%.3f", vfProb[0], vfProb[1], vfProb[2]);
