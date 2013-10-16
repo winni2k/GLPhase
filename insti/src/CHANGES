@@ -1,3 +1,9 @@
+1.1.23  Wed Oct 16 15:00:10 BST 2013
+        Fixed bug in RelationshipGraph::sampleHap() where for graph type 2 only half 
+        the available haplotypes were being sampled from.  
+        Changed -O3 to -O1 for default optimization, as the higher -O's seem to be causing 
+        bugs in my code at RelationshipGraph::init()
+
 1.1.22  Tue Oct 15 15:34:13 BST 2013
         1) insti now prints '999' instead of 'inf' in GP field of VCF output
         2) insti now checks to make sure probabilities are between 0 and 1 (inclusive)
