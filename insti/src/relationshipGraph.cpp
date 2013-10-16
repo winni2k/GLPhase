@@ -214,12 +214,12 @@ unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng){
             if( gsl_rng_uniform(rng) <= vuRelRowNum[uProp] / vuRelRowDen[uProp] )
                 break;
         }
-        // make sure the return value is sensible
-        assert(uPropHap < Col2Hap(m_uCols));
-        return uPropHap;
-
     }
-    return 0;
+
+    // make sure the return value is sensible
+    assert(uPropHap < Col2Hap(m_uCols));
+    
+    return uPropHap;
 }
 
 
