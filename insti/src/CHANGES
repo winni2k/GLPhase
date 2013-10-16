@@ -1,3 +1,7 @@
+1.1.24  Wed Oct 16 15:23:05 BST 2013
+        Found another bug related to previous bug
+        Changed -O1 back to -O3, as the optimization was not a problem after all
+
 1.1.23  Wed Oct 16 15:00:10 BST 2013
         Fixed bug in RelationshipGraph::sampleHap() where for graph type 2 only half 
         the available haplotypes were being sampled from.  
