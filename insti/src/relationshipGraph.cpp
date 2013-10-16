@@ -182,7 +182,7 @@ unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng){
     if(m_iGraphType == 2){        
         while(1){
             // m_uCols is 1 based, but gsl_rng makes 0 based choice
-            uPropHap = gsl_rng_uniform_int(rng, m_uCols);
+            uPropHap = gsl_rng_uniform_int(rng, Col2Hap(m_uCols));
             if ( Hap2Col(uPropHap) != uInd) break;
         }
     }
