@@ -198,3 +198,20 @@ ssh cluster3
 cd /well/marchini/winni/proj/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-30_run_insti_on_combined_GLs
 ./runall.pl -m /well/marchini/winni/proj/marchini -b -q 'short.qb' -P 'mott-flint.prjb' -t
 ./runall.pl -m /well/marchini/winni/proj/marchini -b -q 'short.qb' -P 'mott-flint.prjb' -i
+
+
+###########
+# Wed Oct 09 18:00:01 BST 2013
+# timing instiv1-0-11
+ssh feng
+cd /homes/kretzsch/feng/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-30_run_insti_on_combined_GLs
+./runall.pl -m ~/feng/marchini -C 2000 -I -t
+./runall.pl -m ~/feng/marchini -C 2000 -I -i
+
+cd timing
+for i in 500 1000 2000; do echo $i; time /homes/kretzsch/feng/marchini/insti/src/insti -C $i chr20_62764710_62870647.C$i.bin > $i.log 2>&1 & done
+
+
+###########
+# Fri Oct 18 18:55:12 BST 2013
+# taking a peak at beagle data
