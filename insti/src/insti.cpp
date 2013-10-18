@@ -924,7 +924,7 @@ void    Insti::save_vcf(const char *F) {
     stringstream source;
     source <<  "##source=WTCHG:INSTIv" <<  VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_REVISION << "\n";
     gzprintf(f, source.str().c_str());
-    gzprintf(f, "##reference=1000Genomes-NCBI37\n");
+//    gzprintf(f, "##reference=1000Genomes-NCBI37\n");
     gzprintf(f, "##iteration=%u\n", sn);
     gzprintf(f, "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n");
 //    gzprintf(f, "##FORMAT=<ID=AP,Number=2,Type=Float,Description=\"Allelic Probability, P(Allele=1|Haplotype)\">\n");
