@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-our $VERSION = 1.009;
+our $VERSION = 1.010;
 $VERSION = eval $VERSION;
 
 use threads;
@@ -60,6 +60,8 @@ Number of threads to run.
 Max number of lines to buffer from STDIN (default is 1000);
 
 =head1 CHANGELOG
+
+v1.010 - added support for two column, header less frequency files
 
 v1.009 - improved multithreading
 
@@ -242,7 +244,7 @@ while ( $new_line = <> ) {
         if ( my $numPending = $qOutLineNum->pending() ) {
             my @nextOutLineNums = $qOutLineNum->dequeue($numPending);
             $outLineNum = pop @nextOutLineNums;
-            print STDERR "Processing line number $outLineNum/$inLineNum\r";
+            print STDERR "Processing line number $outLineNum/$inLineNum\n";
         }
     }
     $qLines->enqueue( $inLineNum, $new_line );
@@ -260,7 +262,7 @@ while ( $outLineNum < $inLineNum ) {
     if ( my $numPending = $qOutLineNum->pending() ) {
         my @nextOutLineNums = $qOutLineNum->dequeue($numPending);
         $outLineNum = pop @nextOutLineNums;
-        print STDERR "Processing line number $outLineNum/$inLineNum\r";
+        print STDERR "Processing line number $outLineNum/$inLineNum\n";
     }
 }
 
@@ -465,19 +467,38 @@ sub getVarAFs {
         open( $fh, "<", $args{f} ) or die "could not open $args{f}";
     }
 
-    # checking header
-    my $trash = <$fh>;
-    chomp $trash;
-    confess "malformed header in $args{f}"
-      unless $trash eq "CHROM\tPOS\talleleA\talleleB\tFreqA\tFreqB";
-
     # parse each line and save to hash
     my %varaf;
+    my $numCol = undef;
     while (<$fh>) {
         chomp;
-        my @line = split(/\t/);
-        my $key = join( ':', @line[ 0 .. 1 ] );
-        $varaf{$key} = $line[5];
+
+        # checking header
+        if (! defined $numCol) {
+
+              if ( $_ eq "CHROM\tPOS\talleleA\talleleB\tFreqA\tFreqB" ) {
+                $numCol    = 6;
+                next;
+            }
+            elsif (m/^\S+ \S+$/) {
+                $numCol    = 2;
+            }
+            else {
+                confess "malformed header in $args{f}";
+            }
+        }
+
+        my @line;
+        if ( $numCol == 6 ) {
+            @line = split(/\t/);
+            my $key = join( ':', @line[ 0 .. 1 ] );
+            $varaf{$key} = $line[5];
+        }
+        elsif ( $numCol == 2 ) {
+            @line = split(/ /);
+            $varaf{ $line[0] } = $line[1];
+        }
+
     }
     close($fh);
 
