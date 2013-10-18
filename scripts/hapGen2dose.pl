@@ -24,7 +24,7 @@ croak "Please make sure sampList $sampList exists" unless -e $sampList;
 my $cacheSize = $args{b} || 200;
 
 # print header
-open( my $fh, '<', $sampList) or confess "could not open file $sampList";
+open( my $fh, '<', $sampList ) or confess "could not open file $sampList";
 my @out = qw/marker alleleA alleleB/;
 while (<$fh>) {
     chomp;
@@ -125,7 +125,14 @@ sub processLinesWorker {
         elsif ($isGen) {
             for my $colNum ( 5 .. $#line ) {
                 if ( $colNum % 3 == 0 ) {
-                    push @out, $line[$colNum] + 2 * $line[ $colNum + 1 ];
+                    my $miss = 1;
+                    map { $miss = 0 if $line[ $colNum - 1 + $_ ] ne 0 } 0 .. 2;
+                    if ($miss) {
+                        push @out, 'NA';
+                    }
+                    else {
+                        push @out, $line[$colNum] + 2 * $line[ $colNum + 1 ];
+                    }
                 }
             }
         }
