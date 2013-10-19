@@ -215,3 +215,10 @@ for i in 500 1000 2000; do echo $i; time /homes/kretzsch/feng/marchini/insti/src
 ###########
 # Fri Oct 18 18:55:12 BST 2013
 # taking a peak at beagle data
+ssh cluster3
+cd /users/winni/winni_on_marchini/proj/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-30_run_insti_on_combined_GLs
+qsub -sync y -cwd -V -b yes -j y -o distributedmake.log -N gprobs_merger -P marchini.prjb -r no -q short.qb /well/marchini/winni/proj/marchini/converge/rare_snps/scripts/gprobs_merger.pl -b chr20.noOverlap.dose.fileNames.bed -o merged/14513.427589.519/chr20.concat.C5000.peek.dose.gz -s
+
+ssh feng
+cd /homes/kretzsch/feng/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-30_run_insti_on_combined_GLs
+rsync -navP cluster3:/users/winni/winni_on_marchini/proj/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-30_run_insti_on_combined_GLs/merged/14513.427589.519/chr20.concat.C5000.peek.*.gz merged/14513.427589.519/
