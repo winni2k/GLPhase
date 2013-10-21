@@ -35,7 +35,9 @@ my $openCMD = $outIsGz ? " | bgzip -c > $args{o} " : "> $args{o}";
 open( my $outFH, $openCMD );
 
 # print VCF header
+print STDERR "printing VCF header\n"
 printHeader( $outFH, \@samples, $args{s} );
+print STDERR "printing VCF body\n"
 printBody( $inFH, $outFH, \@samples );
 
 sub printBody {
