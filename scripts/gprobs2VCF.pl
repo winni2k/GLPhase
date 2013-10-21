@@ -45,7 +45,10 @@ sub printBody {
     my ( $inFH, $outFH, $raSamples ) = @_;
 
     my $numSamples = @{$raSamples};
+    my $siteNum = 0;
     while (<$inFH>) {
+        $siteNum ++;
+        print STDERR "Processing site $siteNum\n" if $siteNum % 1000 == 0;
         chomp;
         my @line = split(/ /);
         my ( $chrom, $pos, $id ) = qw/. . ./;
