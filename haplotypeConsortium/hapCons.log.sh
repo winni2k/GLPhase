@@ -222,3 +222,16 @@ qsub -sync y -cwd -V -b yes -j y -o distributedmake.log -N gprobs_merger -P marc
 ssh feng
 cd /homes/kretzsch/feng/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-30_run_insti_on_combined_GLs
 rsync -navP cluster3:/users/winni/winni_on_marchini/proj/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-30_run_insti_on_combined_GLs/merged/14513.427589.519/chr20.concat.C5000.peek.*.gz merged/14513.427589.519/
+
+
+###########
+# Mon Oct 21 13:11:07 BST 2013
+# the dose files are done!
+
+ssh feng
+cd /homes/kretzsch/feng/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-30_run_insti_on_combined_GLs
+rsync -navP cluster3:/users/winni/winni_on_marchini/proj/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-30_run_insti_on_combined_GLs/merged/14513.427589.519/chr20.concat.C5000.*.gz merged/14513.427589.519/
+
+###########
+# Mon Oct 21 13:17:00 BST 2013
+#also ran the merging on fenghuang cause it's faster!
