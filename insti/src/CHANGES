@@ -1,3 +1,6 @@
+1.2.0   Thu Nov 21 17:00:46 GMT 2013
+        Added nearest neighbor clustering a la IMPUTEv2 only using a scaffold
+
 1.1.24  Wed Oct 16 15:23:05 BST 2013
         Found another bug related to previous bug
         Changed -O1 back to -O3, as the optimization was not a problem after all

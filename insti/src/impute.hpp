@@ -1,4 +1,4 @@
-/* @(#)impute.h
+/* @(#)impute.hpp
  */
 
 #ifndef _IMPUTE_H
@@ -30,65 +30,63 @@
 #define    MaskG    0x3f
 typedef float fast;
 typedef double real;
-typedef unsigned uint;
-typedef uint64_t word;
 
 struct Site {
     std::string chr, all;
-    uint pos;
+    unsigned pos;
 };
 
 class Impute {
 
 protected:
     gsl_rng *rng;
-    uint hn; // 2 * number of individuals = number of haplotypes
-    uint pn; // 3 * number of sites = number of gls
-    uint en; // 4 * number of sites = number of possible emissions
-    uint wn; // this is the number of blocks of size 64 to save haps in
-    std::vector<word> haps, hnew;
-    std::vector<uint> hsum;
+    unsigned hn; // 2 * number of individuals = number of haplotypes
+    unsigned pn; // 3 * number of sites = number of gls
+    unsigned en; // 4 * number of sites = number of possible emissions
+    unsigned wn; // this is the number of blocks of size 64 to save haps in
+    std::vector<uint64_t> haps, hnew;
+    std::vector<unsigned> hsum;
     std::vector<fast> tran, emit;
 
     fast pc[4][4];      // mutation matrix
 
-    // *P is pointer to haplotype (in bits, i.e. each word contains 64 sites)
+    // *P is pointer to haplotype (in bits, i.e. each uint64_t contains 64 sites)
     // set1() sets the Ith bit in P to 1
-    void set1(word *P, uint I) {
-        // I >> WordShift is moving along the array according to which word I is in
-        // e.g. I <= 63 is first word, and so forth in blocks of 64 bits
-        P[I >> WordShift] |= static_cast<word>(1) << (I & WordMod);
+    void set1(uint64_t *P, unsigned I) {
+        // I >> Uint64_TShift is moving along the array according to which uint64_t I is in
+        // e.g. I <= 63 is first uint64_t, and so forth in blocks of 64 bits
+        P[I >> WordShift] |= static_cast<uint64_t>(1) << (I & WordMod);
     }
 
-    void set0(word *P, uint I) {
-        P[I >> WordShift] &= ~(static_cast<word>(1) << (I & WordMod));
+    void set0(uint64_t *P, unsigned I) {
+        P[I >> WordShift] &= ~(static_cast<uint64_t>(1) << (I & WordMod));
     }
 
     // test if bit I is 1
-    word test(word *P, uint I) {
-        return (P[I >> WordShift] >> (I & WordMod)) & static_cast<word>(1);
+    uint64_t test(uint64_t *P, unsigned I) {
+        return (P[I >> WordShift] >> (I & WordMod)) & static_cast<uint64_t>(1);
     }
 
-    fast hmm(uint I, uint *P, fast S);
+    fast hmm(unsigned I, unsigned *P, fast S);
 
-    void hmm_work(uint I, uint *P, fast S);
+    void hmm_work(unsigned I, unsigned *P, fast S);
 
-    virtual fast solve(uint I, uint    &N, fast S);
+    virtual fast solve(unsigned I, unsigned    &N, fast S);
 
-    void replace(uint I);
+    void replace(unsigned I);
 
     void result(void);
 
     // for the pointer to an array shift the site number bitwise by 6 (ie divide by 64) then shift again by number of bits overlapping with 000111111, ie. it keeps the unique address of I.
-    // this is particularly designed for 1024 max sites... also converts it back to type word from int
-    virtual fast hmm_like(uint I, uint *P);
+    // this is particularly designed for 1024 max sites... also converts it back to type uint64_t from int
+    virtual fast hmm_like(unsigned I, unsigned *P);
 
 public:
-    uint in; // number of samples
-    uint mn; // number of sites
+    unsigned in; // number of samples
+    unsigned mn; // number of sites
 
     // number of burnin, sampling iterations and folds
-    static uint bn, sn, nn;
+    static unsigned bn, sn, nn;
     static real density, conf;
     static std::vector <std::string> vcf_file;
     static std::set <std::string> male;
@@ -114,7 +112,7 @@ public:
 
     bool load_bin(const char *F);
 
-    uint load_vcf(const char *F);
+    unsigned load_vcf(const char *F);
 
     void initialize(void);
 

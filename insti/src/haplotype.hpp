@@ -1,4 +1,4 @@
-/* @(#)haplotype.h
+/* @(#)haplotype.hpp
  */
 
 #ifndef _HAPLOTYPE_H
@@ -22,7 +22,7 @@ private:
     
 public:
 
-    const unsigned m_uNumAlleles;
+    unsigned m_uNumAlleles;
 
     // initialize all haps to all 0s
     Haplotype(unsigned uNumAlleles) : m_uNumAlleles(uNumAlleles){
@@ -36,7 +36,15 @@ public:
     // allele is either 1 or 0 and is the bit to set the site to
     void Set(unsigned uSite, bool bAllele) ;
     
-    bool TestSite(unsigned uSite) const;
+    bool TestSite(unsigned uSite) const{
+        assert(uSite < m_uNumAlleles);
+        return (m_utHap[uSite >> h_WordShift] >> (uSite & h_WordMod)) & static_cast< uint64_t >(1);
+    };
+
+    // test if bit uSite is 1
+    uint64_t TestSite( unsigned uSite, const uint64_t *P) const {
+        return (P[uSite >> h_WordShift] >> (uSite & h_WordMod)) & static_cast<uint64_t>(1);
+    };
     
     uint64_t GetWord(unsigned uWordNum) const { return m_utHap[uWordNum]; };
 
