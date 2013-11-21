@@ -162,8 +162,7 @@ unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng, bool bOnlyFro
         return(uRetHap);
     }
     else{
-        cerr << "programming error";
-        exit(1);
+        return SampleHap(uInd, rng);
     }
 }
 
