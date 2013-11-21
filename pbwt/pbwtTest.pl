@@ -14,37 +14,158 @@ use File::Basename;
 use Env qw(HOME);
 use autodie;
 use Carp;
+use Term::ANSIColor;
 
 use Getopt::Std;
 my %args;
 getopts( 'drj:', \%args );
 my $DEBUG = $args{d} || 1;
 
-my $numSites = 5;
-my @aaHaps   = (
-    [qw/0 1 0 0 0/], [qw/0 0 1 0 0/], [qw/0 0 0 0 0/], [qw/0 0 1 0 0/],
-    [qw/0 0 0 1 0/]
-);
+srand(2);
 
-VisualizeMat(\@aaHaps, "Haps");
+my @aaHaps = (
+    [qw/0 1 0 0 0/], [qw/0 0 1 0 0/], [qw/0 0 0 0 0/], [qw/0 0 1 0 0/],
+    [qw/1 0 0 0 0/], [qw/0 0 0 1 0/],
+);
+@aaHaps = RandHaps( 5, 6 );
+
+my $numHaps  = @aaHaps;
+my $numSites = @{ $aaHaps[0] };
+
+VisualizeMat( \@aaHaps, "Haps", 0 );
 
 # this is k = 1
-my @aaDk = ( [qw/2 0 0 0 0/] );
-my @aaAk = ( [ 0 .. $numSites - 1 ] );
+my @aaDk = ( [ 0, (0) x ( $numHaps - 1 ) ] );
+my @aaAk = ( [ 0 .. $numHaps - 1 ] );
 
-BuildPrefixAndDivergenceArrays( \@aaHaps, \@aaDk, \@aaAk, 1 );
-VisualizeMat(\@aaDk, "Dk");
-VisualizeMat(\@aaAk, "Ak");
+my $maxK = $numSites;
+for my $k ( 0 .. $maxK - 1 ) {
+    BuildPrefixAndDivergenceArrays( \@aaHaps, \@aaDk, \@aaAk, $k );
+}
 
+#add sentinel array to Dk
+# push @aaDk, [($maxK+1) x $numHaps];
+
+VisualizeMat( \@aaDk, "Dk", 0 );
+VisualizeMat( \@aaAk, "Ak", 0 );
+
+# visualize Ak with differing k
+for my $sortRow ( 1 .. $maxK ) {
+
+    # find longest match
+    my $matchLength = 2;
+    my @matches;
+    if ( $sortRow > $matchLength ) {
+        @matches =
+          ReportLongMatches( \@aaDk, \@aaHaps, \@aaAk,
+            $numHaps, $sortRow, $matchLength );
+        print "Matches greater length $matchLength: ";
+        for my $set (@matches) {
+            print " " . join( " ", @{$set} ) . ";";
+        }
+        print "\n";
+
+    }
+    print "Dk[$sortRow]: " . join( ' ', @{ $aaDk[$sortRow] } ) . "\n";
+    print "Ak[$sortRow]: " . join( ' ', @{ $aaAk[$sortRow] } ) . "\n";
+    my $raaSortedHaps = SortHapsByAk( $aaAk[$sortRow], \@aaHaps );
+    VisualizeMat( $raaSortedHaps, "Haps sorted by Ak row $sortRow", 0, \@matches );
+}
+
+sub ReportLongMatches {
+
+    my ( $raaDk, $raaHaps, $raaAk, $M, $k, $L ) = @_;
+    my ( $v, $u, @a, @b ) = qw/0 0/;
+
+    croak "k needs to be greater 0" unless $k > 0;
+
+    my $hapLength = @{$raaAk} - 1;
+    my @matches;
+
+    for my $i ( 0 .. $M - 1 ) {
+        if ( $raaDk->[$k][$i] > $k - $L - 1 ) {
+            if ( @a > 0 && @b > 0 ) {
+                push @matches, [ @a, @b ];
+            }
+            @a = ();
+            @b = ();
+        }
+        if ( $k == $hapLength ) {
+            if ( $i % 2 == 0 ) {
+                push @a, $raaAk->[$k][$i];
+            }
+            else {
+                push @b, $raaAk->[$k][$i];
+            }
+        }
+        elsif ( $raaHaps->[ $raaAk->[$k][$i] ][$k] == 0 ) {
+            push @a, $raaAk->[$k][$i];
+        }
+        else {
+            push @b, $raaAk->[$k][$i];
+        }
+    }
+    push @matches, [ @a, @b ] if @a && @b;
+
+    return @matches;
+
+}
+
+sub RandHaps {
+
+    my ( $rows, $cols ) = @_;
+
+    my @aaHaps;
+    for my $row ( 1 .. $rows ) {
+        my @hap;
+        for my $col ( 1 .. $cols ) {
+            push @hap, int( rand(2) );
+        }
+        push @aaHaps, \@hap;
+    }
+    return @aaHaps;
+}
+
+sub SortHapsByAk {
+
+    my $raAk    = shift;
+    my $raaHaps = shift;
+
+    my @retHaps;
+    for my $idx ( @{$raAk} ) {
+        push @retHaps, $raaHaps->[$idx];
+    }
+    return \@retHaps;
+}
 
 sub VisualizeMat {
 
-    my $raa = shift;
+    my $raa   = shift;
     my $title = shift;
-    
-    print $title."\n";
-    for my $row (@{$raa}){
-        print join(' ', @{$row})."\n";
+    my $base  = shift;
+    my $raMatches = shift;
+
+    my @matches;
+    for my $set (@{$raMatches}){
+        push @matches, @{$set};
+    }
+    my %matches = map { $_ => 1 } @matches;
+
+    print $title. "\n";
+    my $rowNum = $base;
+    for my $row ( @{$raa} ) {
+        my $allNum = 0;
+        for my $all (@{$row}){
+            $allNum ++;
+            print ' ' if $allNum > 1;
+            if(defined $matches{$rowNum}){
+                print colored [ 'yellow' ], $all;
+            }
+            else{
+                print $all;
+            }
+        print join( ' ', ( "$rowNum: ", @{$row} ) ) . "\n";
+        $rowNum++;
     }
     print "\n";
 }
@@ -53,32 +174,31 @@ sub BuildPrefixAndDivergenceArrays {
 
     my ( $raaHaps, $raaDk, $raaAk, $k ) = @_;
 
-    # k is 1 based
-    croak "k needs to be >0" unless ( $k > 0 && int($k) == $k );
+    # k is 0 based
+    croak "k plus 1 needs to be > 0"
+      unless ( $k >= 0 && int($k) == $k );
 
-    my ( $u, $v, $p, $q ) = ( 0, 0, $k + 1, $k + 1 );
+    my ( $p, $q ) = ( $k + 1, $k + 1 );
     my ( @a, @b, @d, @e );
     my $M = @{$raaHaps};    # M is number of haps
 
     for my $i ( 0 .. $M - 1 ) {
-        $p = $raaDk->[$k-1][$i] if $raaDk->[$k-1][$i] > $p;
-        $q = $raaDk->[$k-1][$i] if $raaDk->[$k-1][$i] > $q;
-        if($raaHaps->[$i][$k-1] == 0){
-            push @a, $raaAk->[$k-1][$i];
+        $p = $raaDk->[$k][$i] if $raaDk->[$k][$i] > $p;
+        $q = $raaDk->[$k][$i] if $raaDk->[$k][$i] > $q;
+        if ( $raaHaps->[ $raaAk->[$k][$i] ][$k] == 0 ) {
+            push @a, $raaAk->[$k][$i];
             push @d, $p;
             $p = 0;
-            $u = $u+1;
         }
-        else{
-            push @b, $raaAk->[$k-1][$i];
+        else {
+            push @b, $raaAk->[$k][$i];
             push @e, $q;
             $q = 0;
-            $v = $v+1;
         }
     }
 
-    push @{$raaAk}, [@a, @b];
-    push @{$raaDk}, [@d, @e];
+    push @{$raaAk}, [ @a, @b ];    # adding sentinel value at end
+    push @{$raaDk}, [ @d, @e ];
 }
 
 __END__
