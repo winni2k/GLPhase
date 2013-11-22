@@ -1,3 +1,6 @@
+1.2.1   Fri Nov 22 16:47:30 GMT 2013
+        Changed input of scaffold to haps sample format
+
 1.2.0   Thu Nov 21 17:00:46 GMT 2013
         Added nearest neighbor clustering a la IMPUTEv2 only using a scaffold
 

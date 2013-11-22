@@ -109,16 +109,13 @@ int main(int ac, char **av) {
             Insti::s_uStartClusterGen = atoi(optarg);
             break;
         case 'h':
-            Insti::s_sScaffoldHapFile = optarg;
+            Insti::s_scaffoldHapsFile = optarg;
             break;
         case 's':
-            Insti::s_sScaffoldLegendFile = optarg;
-            break;
-        case 'S':
-            Insti::s_sScaffoldSampleFile = optarg;
+            Insti::s_scaffoldSampleFile = optarg;
             break;
         case 'q':
-            Insti::s_dScaffoldFreqCutoff = std::stod(optarg);
+            Insti::s_scaffoldFreqCutoff = std::stod(optarg);
             break;
         default:
             Insti::document();

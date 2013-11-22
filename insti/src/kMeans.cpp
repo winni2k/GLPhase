@@ -15,7 +15,7 @@ void KMeans::init(const vector< uint64_t > & vuHaplotypes,
     m_uNumSites = uNumSites;
 
     m_dFreqCutoff = dFreqCutoff;
-    
+
     // dereferencing the vector pointer
     assert(vuHaplotypes.size() % uNumWordsPerHap == 0);
     m_uNumHaps = vuHaplotypes.size() / uNumWordsPerHap;
@@ -37,9 +37,10 @@ unsigned KMeans::SampleHap(unsigned uInd, gsl_rng *rng) {
     // this should be out of bounds if left unchanged
     unsigned uPropHap = m_uNumHaps;
 
-    if (UsingScaffold()) {
-        uPropHap = m_vvuNeighbors[uInd][gsl_rng_uniform_int(rng, m_vvuNeighbors[uInd].size())];
-    } else {
+    if (UsingScaffold())
+        uPropHap = m_vvuNeighbors[uInd][gsl_rng_uniform_int(rng,
+                                        m_vvuNeighbors[uInd].size())];
+    else {
         cout << "kmeans without a scaffold is not implemented yet" << endl;
         exit(4);
     }
@@ -70,18 +71,20 @@ void KMeans::ClusterHaps(const vector< uint64_t > & vuHaplotypes) {
 
         for (unsigned uSampNum = 0; uSampNum < m_uNumHaps / 2; uSampNum ++) {
 
-            
+
             // assign only the common sites of each hap to new haps
             Haplotype hHapA(uNumCommonSites);
             Haplotype hHapB(uNumCommonSites);
             AssignHap(hHapA, vuHaplotypes.data() + uSampNum * 2 * m_uNumWordsPerHap);
             AssignHap(hHapB, vuHaplotypes.data() + (uSampNum * 2 + 1) * m_uNumWordsPerHap);
-            
+
             // calculate neighbors of this sample
             // hap number then distance
             vector < dist > vpDists;
+
             for (unsigned uHapNum = 0; uHapNum < m_uNumHaps; uHapNum ++) {
-                if(floor(uHapNum/2) == uSampNum) continue;
+                if (floor(uHapNum / 2) == uSampNum) continue;
+
                 Haplotype hCompHap(uNumCommonSites);
                 AssignHap(hCompHap, vuHaplotypes.data() + uHapNum * m_uNumWordsPerHap);
                 dist dTemp;
@@ -93,12 +96,12 @@ void KMeans::ClusterHaps(const vector< uint64_t > & vuHaplotypes) {
 
             //sort the haplotypes by distance
             sort(vpDists.begin(), vpDists.end(), by_dist());
-            
+
             // keep only the k samples with smallest distance
             vector< unsigned > vuDists(m_uNumClusters);
-            for(unsigned idx = 0; idx != m_uNumClusters; ++idx){
+
+            for (unsigned idx = 0; idx != m_uNumClusters; ++idx)
                 vuDists[idx] = vpDists[idx].idx;
-            }
 
             // put the closest k in m_vvuNeighbors
             m_vvuNeighbors.push_back(vuDists);
@@ -113,6 +116,7 @@ void KMeans::ClusterHaps(const vector< uint64_t > & vuHaplotypes) {
 
 void KMeans::AssignHap(Haplotype &hHap, const uint64_t *oa) {
     unsigned uSiteNum = 0;
+
     for (auto iHapNum : m_vuCommonSiteNums) {
         hHap.Set(uSiteNum, hHap.TestSite(iHapNum, oa));
         uSiteNum++;
@@ -136,26 +140,31 @@ void KMeans::CalculateVarAfs(const vector < uint64_t > & vuScaffoldHaps) {
     m_vdVarAfs.resize(m_uNumSites);
     Haplotype hTestHap(m_uNumSites);
 
-//    cerr << "num words per hap: " << m_uNumWordsPerHap << endl;
+    //    cerr << "num words per hap: " << m_uNumWordsPerHap << endl;
     for (unsigned uPosNum = 0; uPosNum < m_uNumSites; uPosNum ++) {
 
         unsigned uAltAllNum = 0;
 
         for (unsigned uHapNum = 0; uHapNum < m_uNumHaps; uHapNum ++) {
-            if (hTestHap.TestSite(uPosNum, vuScaffoldHaps.data() + uHapNum * m_uNumWordsPerHap))
+            if (hTestHap.TestSite(uPosNum,
+                                  vuScaffoldHaps.data() + uHapNum * m_uNumWordsPerHap))
                 uAltAllNum ++;
         }
-//        cerr << "alternate allele count: " << uAltAllNum << endl;
 
-        m_vdVarAfs[uPosNum] = static_cast<double> (uAltAllNum) / m_uNumHaps;
+        //        cerr << "alternate allele count: " << uAltAllNum << endl;
+
+        m_vdVarAfs[uPosNum] = static_cast<double>(uAltAllNum) / m_uNumHaps;
     }
-/*    for(unsigned i = 0; i < m_uNumHaps; i++){
-        cerr << "hap num: " << i << ": ";
-        for (unsigned j = 0; j < m_uNumSites; j ++){
-            cerr << hTestHap.TestSite(j, vuScaffoldHaps.data() + i * m_uNumWordsPerHap);
+
+    /*    for(unsigned i = 0; i < m_uNumHaps; i++){
+            cerr << "hap num: " << i << ": ";
+            for (unsigned j = 0; j < m_uNumSites; j ++){
+                cerr << hTestHap.TestSite(j, vuScaffoldHaps.data() + i * m_uNumWordsPerHap);
+            }
+            cerr << endl;
         }
-        cerr << endl;
-    }
-*/
+    */
 }
+
+
 
