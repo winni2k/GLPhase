@@ -19,6 +19,7 @@
 #include "utils.hpp"
 #include "relationship.hpp"
 #include "version.hpp"
+#include "enums.hpp"
 
 //require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
@@ -69,13 +70,17 @@ class Insti : public Impute {
     Insti()
         : m_oRelationship(Insti::s_uNumClusters, Insti::s_uClusterType) {};
 
-    bool LoadRefPanel(string legendFile, string hapFile) {
-        return (LoadHapPanel(legendFile, hapFile, 0));
-    }
+    bool LoadHapsSamp(string sampleFile, string hapsFile, PanelType panelType);
+    unsigned OpenHaps(string hapFile, vector<uint64_t> & vHaps);
+    void OpenSample(string sampleFile, vector<string>& IDs);
 
-    bool LoadScaffold(string legendFile, string hapFile, string sampleFile);
+    bool LoadHapLegSamp(string legendFile, string hapFile, string sampleFile, PanelType panelType);
+    unsigned OpenHap(string hapFile, vector<uint64_t> & tempHaps);
+    unsigned OpenLegend(string legendFile);
 
-    bool LoadHapPanel(string legendFile, string hapFile, unsigned uPanelType);
+    void LoadHaps(vector<uint64_t> & vHaps, unsigned numHaps, PanelType panelType);
+    
+    void CheckPanelPrereqs(PanelType panelType);
 
     void CalculateVarAfs();
 
@@ -103,10 +108,9 @@ class Insti : public Impute {
     static string s_sRefLegendFile; //location of sample file
     static string s_sRefHapFile; // location of reference haplotypes file
 
-    static string s_sScaffoldLegendFile; //location of scaffold legend file
-    static string s_sScaffoldHapFile; // location of scaffold haplotype file
-    static string s_sScaffoldSampleFile; // location of scaffold sample file
-    static double s_dScaffoldFreqCutoff; // cutoff MAF for what to fix in scaffold
+    static string s_scaffoldHapsFile; // location of scaffold haps file
+    static string s_scaffoldSampleFile; // location of scaffold sample file
+    static double s_scaffoldFreqCutoff; // cutoff MAF for what to fix in scaffold
 
     unsigned GetNumWords() {
         return wn;

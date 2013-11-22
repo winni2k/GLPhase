@@ -78,7 +78,7 @@ TEST(Insti, loadBin) {
 
 //    cerr << "BLOINC2\n";
     // now test refpanel loading
-    lp.LoadRefPanel(sampleLegend, sampleHaps);
+    lp.LoadHapLegSamp(sampleLegend, sampleHaps, "", PanelType::REFERENCE);
 
 //    cerr << "BLOINC2.5\n";
     for (unsigned i = 0; i != 601; i++) {
@@ -119,10 +119,10 @@ TEST(Insti, loadHapsErrors) {
     lp.load_bin(sampleBin.c_str());
 
     //    cerr << "BLOINC1\n";
-    ASSERT_EXIT(lp.LoadRefPanel("", sampleHaps), ::testing::ExitedWithCode(1),
-                "Need to define a legend file if defining a reference haplotypes file");
-    ASSERT_EXIT(lp.LoadRefPanel(sampleLegend, ""), ::testing::ExitedWithCode(1),
-                "Need to define a reference haplotypes file if defining a legend file");
+    ASSERT_EXIT(lp.LoadHapLegSamp("", sampleHaps, "", PanelType::REFERENCE), ::testing::ExitedWithCode(1),
+                "Need to define a legend file if defining a hap file");
+    ASSERT_EXIT(lp.LoadHapLegSamp(sampleLegend, "", "", PanelType::REFERENCE), ::testing::ExitedWithCode(1),
+                "Need to define a hap file if defining a legend file");
 
 }
 
