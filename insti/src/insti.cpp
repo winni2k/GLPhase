@@ -55,11 +55,13 @@ unsigned Insti::s_uStartClusterGen = Insti::s_uNonSABurninGen;
 // return the probability of the model given the input haplotypes P and
 // emission and transition matrices of individual I
 // call Impute::hmm_like and print out result
-fast    Insti::hmm_like(unsigned I, uint* P) {
+fast    Insti::hmm_like(unsigned I, uint* P)
+{
     return Impute::hmm_like(I, P);
 }
 
-void Insti::SetLog(const string & sLogFile) {
+void Insti::SetLog(const string & sLogFile)
+{
 
     s_bIsLogging = true;
     m_sLogFile = sLogFile;
@@ -91,7 +93,8 @@ void Insti::SetLog(const string & sLogFile) {
     cerr << "Logging to:\t" << m_sLogFile << endl;
 };
 
-void Insti::WriteToLog(const string & tInput) {
+void Insti::WriteToLog(const string & tInput)
+{
     if (! s_bIsLogging)
         return;
 
@@ -118,7 +121,8 @@ void Insti::WriteToLog(const string & tInput) {
 };
 
 // what to log when given an EMCChain
-void Insti::WriteToLog(const EMCChain& rcChain, const bool bMutate) {
+void Insti::WriteToLog(const EMCChain& rcChain, const bool bMutate)
+{
     stringstream message;
     message << m_nIteration << "\t" << rcChain.m_uI << "\t" <<  rcChain.getLike() <<
             "\t"
@@ -128,7 +132,8 @@ void Insti::WriteToLog(const EMCChain& rcChain, const bool bMutate) {
 }
 
 // Roulette Wheel Selection, returns index of chain selected
-int Insti::RWSelection(const vector <EMCChain> &rvcChains) {
+int Insti::RWSelection(const vector <EMCChain> &rvcChains)
+{
     double dTotalProb = 0; // always positive, could  be larger than 1
 
     for (const auto& icChain : rvcChains) {
@@ -155,7 +160,8 @@ int Insti::RWSelection(const vector <EMCChain> &rvcChains) {
 }
 
 
-bool    Insti::load_bin(const char *F) {
+bool    Insti::load_bin(const char *F)
+{
     bool bRetVal = Impute::load_bin(F);
 
     if (bRetVal  == false) return false;
@@ -172,7 +178,8 @@ bool    Insti::load_bin(const char *F) {
 }
 
 // HAPS/SAMPLE sample file
-void Insti::OpenSample(string sampleFile, vector<string>& IDs) {
+void Insti::OpenSample(string sampleFile, vector<string>& IDs)
+{
 
     // read in sample file
     ifile sampleFD(sampleFile);
@@ -210,33 +217,11 @@ void Insti::OpenSample(string sampleFile, vector<string>& IDs) {
         // now add sample id to vector
         IDs.push_back(tokens[0]);
     }
-
-    try {
-        if (name.size() != IDs.size())
-            throw myException("bin and scaffold IDs list lengths (" + sutils::uint2str(
-                                  name.size()) + " and " + sutils::uint2str(IDs.size()) +
-                              " respectively) do not agree.");
-    } catch (exception& e) {
-        cout << e.what() << endl;
-        exit(2);
-    }
-
-    // make sure ids match names pulled from bin files
-    for (unsigned i = 0; i < name.size(); i++) {
-        try {
-            if (name[i] != IDs[i])
-                throw myException("ID number " + sutils::uint2str(i) +
-                                  " (0-based): bin and IDs from sample file do not match (" + name[i] + " and " +
-                                  IDs[i] + " respectively) do not agree.");
-        } catch (exception& e) {
-            cout << e.what() << endl;
-            exit(2);
-        }
-    }
 }
 
 //read in the haps file
-unsigned Insti::OpenHaps(string hapFile, vector<uint64_t> & vHaps) {
+unsigned Insti::OpenHaps(string hapFile, vector<uint64_t> & vHaps)
+{
 
     ifile hapsFD(hapFile);
     string buffer;
@@ -293,7 +278,8 @@ unsigned Insti::OpenHaps(string hapFile, vector<uint64_t> & vHaps) {
 
 
 bool Insti::LoadHapsSamp(string sampleFile, string hapsFile,
-                         PanelType panelType) {
+                         PanelType panelType)
+{
 
     // make sure both files are defined
     if (sampleFile.size() == 0) {
@@ -309,19 +295,47 @@ bool Insti::LoadHapsSamp(string sampleFile, string hapsFile,
     // load haps file
     CheckPanelPrereqs(panelType);
 
-    // get sample information if we are using a scaffold
-    if (panelType == PanelType::SCAFFOLD)
-        OpenSample(sampleFile, m_vsScaffoldIDs);
-
     vector<uint64_t> vHaps;
     unsigned numHaps = OpenHaps(hapsFile, vHaps);
+
+    // get sample information if we are using a scaffold
+    if (panelType == PanelType::SCAFFOLD) {
+        OpenSample(sampleFile, m_vsScaffoldIDs);
+
+        // make sure ids match names pulled from bin files
+        for (unsigned i = 0; i < name.size(); i++) {
+            try {
+                if (name[i] != m_vsScaffoldIDs[i])
+                    throw myException("ID number " + sutils::uint2str(i) +
+                                      " (0-based): bin and IDs from sample file do not match (" + name[i] + " and " +
+                                      m_vsScaffoldIDs[i] + " respectively) do not agree.");
+            } catch (exception& e) {
+                cout << e.what() << endl;
+                exit(2);
+            }
+        }
+
+        // make sure number of haplotypes in haplotypes matches number of samples *2
+        try {
+            if (m_vsScaffoldIDs.size() * 2 != numHaps)
+                throw myException("Number of haplotypes according to haps file (" +
+                                  sutils::uint2str(numHaps) +
+                                  ") and sample file (" + sutils::uint2str(m_vsScaffoldIDs.size() +
+                                          ") do not match.");
+            } catch (exception& e) {
+            cout << e.what() << endl;
+            exit(2);
+        }
+    }
+
     LoadHaps(vHaps, numHaps, panelType);
 
     return true;
 }
 
 void Insti::LoadHaps(vector<uint64_t> & vHaps, unsigned numHaps,
-                     PanelType panelType) {
+                     PanelType panelType)
+{
 
     // store the haplotypes in the correct place based on what type of panel we are loading
     switch (panelType) {
@@ -351,7 +365,8 @@ void Insti::LoadHaps(vector<uint64_t> & vHaps, unsigned numHaps,
     }
 }
 
-void Insti::CheckPanelPrereqs(PanelType panelType) {
+void Insti::CheckPanelPrereqs(PanelType panelType)
+{
     switch (panelType) {
     case PanelType::REFERENCE:
         m_bUsingRefHaps = true;
@@ -370,7 +385,8 @@ void Insti::CheckPanelPrereqs(PanelType panelType) {
     }
 }
 
-unsigned Insti::OpenLegend(string legendFile) {
+unsigned Insti::OpenLegend(string legendFile)
+{
 
     // read in legend file
     ifile legendFD(legendFile);
@@ -421,9 +437,9 @@ unsigned Insti::OpenLegend(string legendFile) {
 
     // legend should have as many rows (sites) as in the probin file
     try {
-        if (site.size() != uLineNum -1)
+        if (site.size() != uLineNum - 1)
             throw myException("Alleles in legend file (" + sutils::uint2str(
-                                  uLineNum -1 ) + ") need to match current data (" + sutils::uint2str(
+                                  uLineNum - 1) + ") need to match current data (" + sutils::uint2str(
                                   site.size()) + ")");
     } catch (exception& e) {
         cout << e.what() << endl;
@@ -433,7 +449,8 @@ unsigned Insti::OpenLegend(string legendFile) {
     return uLineNum; // return unmber of sites
 }
 
-unsigned Insti::OpenHap(string hapFile, vector<uint64_t> & tempHaps) {
+unsigned Insti::OpenHap(string hapFile, vector<uint64_t> & tempHaps)
+{
 
     // read in the hap file
     ifile hapsFD(hapFile);
@@ -490,7 +507,8 @@ unsigned Insti::OpenHap(string hapFile, vector<uint64_t> & tempHaps) {
 }
 
 bool Insti::LoadHapLegSamp(string legendFile, string hapFile, string sampleFile,
-                           PanelType panelType) {
+                           PanelType panelType)
+{
 
     // make sure required files are defined
     if (legendFile.size() == 0) {
@@ -530,7 +548,8 @@ bool Insti::LoadHapLegSamp(string legendFile, string hapFile, string sampleFile,
    support for reference haplotypes
 */
 
-void Insti::initialize() {
+void Insti::initialize()
+{
 
     // copied from SNPTools Impute
     // all haplotypes are saved in 64 bit unsigned ints (a word), where each bit represents a position
@@ -705,7 +724,8 @@ void Insti::initialize() {
 */
 
 // solve(individual, number of cycles, penalty, burnin?)
-fast Insti::solve(unsigned I, unsigned N, fast pen, Relationship &oRel) {
+fast Insti::solve(unsigned I, unsigned N, fast pen, Relationship &oRel)
+{
 
     // write log header
     stringstream message;
@@ -771,7 +791,8 @@ fast Insti::solve(unsigned I, unsigned N, fast pen, Relationship &oRel) {
    added a member variable for n so
 */
 
-void    Insti::estimate() {
+void    Insti::estimate()
+{
 
     // the uniform relationship "graph" will be used until
     // -M option says not to.
@@ -878,7 +899,8 @@ void    Insti::estimate() {
 */
 
 // solve(individual, number of cycles, penalty, burnin?)
-fast Insti::solve_EMC(unsigned I, unsigned  N, fast S) {
+fast Insti::solve_EMC(unsigned I, unsigned  N, fast S)
+{
     DEBUG_MSG("Entering solve_EMC..." << endl);
 
     // for lack of a better place, define free parameters here
@@ -1133,7 +1155,8 @@ fast Insti::solve_EMC(unsigned I, unsigned  N, fast S) {
    first edition?, 2010, pp. 128-132
 */
 
-void    Insti::estimate_EMC() {
+void    Insti::estimate_EMC()
+{
     cerr.setf(ios::fixed);
     cerr.precision(3);
     cerr << "Running Evolutionary Monte Carlo\n";
@@ -1173,7 +1196,8 @@ void    Insti::estimate_EMC() {
    "Advanced Markov Choin Monte Carlo Methods" by Liang, Liu and Carroll
    first edition?, 2010, pp. 309
 */
-void    Insti::estimate_AMH(unsigned uRelMatType) {
+void    Insti::estimate_AMH(unsigned uRelMatType)
+{
     cerr.setf(ios::fixed);
     cerr.precision(3);
     cerr << "Running Adaptive Metropolis Hastings\n";
@@ -1215,7 +1239,8 @@ void    Insti::estimate_AMH(unsigned uRelMatType) {
     result();    // call result
 }
 
-void Insti::save_relationship_graph(string sOutputFile) {
+void Insti::save_relationship_graph(string sOutputFile)
+{
     vector<string> vsSampNames;
     vsSampNames.insert(vsSampNames.end(), name.begin(), name.end());
 
@@ -1225,7 +1250,8 @@ void Insti::save_relationship_graph(string sOutputFile) {
     m_oRelationship.Save(sOutputFile, vsSampNames);
 }
 
-void    Insti::save_vcf(const char *F) {
+void    Insti::save_vcf(const char *F)
+{
     string temp = F;
     temp += ".vcf.gz";
     gzFile f = gzopen(temp.c_str(), "wt");
@@ -1284,7 +1310,8 @@ void    Insti::save_vcf(const char *F) {
 }
 
 
-void    Insti::document(void) {
+void    Insti::document(void)
+{
     cerr << "Author\tWarren W. Kretzschmar @ Marchini Group @ Universiy of Oxford - Statistics";
     cerr << "\n\nThis code is based on SNPTools impute:";
     cerr << "\nhaplotype imputation by cFDSL distribution";
@@ -1332,6 +1359,9 @@ void    Insti::document(void) {
     cerr << "\n\n";
     exit(1);
 }
+
+
+
 
 
 
