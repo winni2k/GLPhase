@@ -235,3 +235,12 @@ rsync -navP cluster3:/users/winni/winni_on_marchini/proj/marchini/haplotypeConso
 ###########
 # Mon Oct 21 13:17:00 BST 2013
 #also ran the merging on fenghuang cause it's faster!
+
+###########
+# Mon Nov 25 11:03:38 GMT 2013
+# running insti with scaffolding approach
+ssh feng
+cd /homes/kretzsch/feng/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-30_run_insti_on_combined_GLs
+./runall.pl -m ~/feng/marchini -C 100 -I -n 100 -t
+./runall.pl -m ~/feng/marchini -C 2000 -I -i
+
