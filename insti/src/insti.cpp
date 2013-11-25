@@ -515,6 +515,8 @@ bool Insti::LoadHapLegSamp(string legendFile, string hapFile, string sampleFile,
     }
 
     CheckPanelPrereqs(panelType);
+
+    // just make sure the legend matches what we have for now
     OpenLegend(legendFile);
 
     vector<uint64_t> tempHaps;
