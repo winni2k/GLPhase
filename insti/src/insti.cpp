@@ -192,7 +192,7 @@ void Insti::OpenSample(string sampleFile, vector<string>& IDs) {
             string header = "ID_1 ID_2 missing";
             sutils::tokenize(header, headerTokenized);
 
-            for (unsigned i = 0; i != header.size(); i++) {
+            for (unsigned i = 0; i != headerTokenized.size(); i++) {
                 try {
                     if (tokens[i] != headerTokenized[i])
                         throw myException("Error in sample file (" + sampleFile +
@@ -390,7 +390,7 @@ unsigned Insti::OpenLegend(string legendFile) {
             string header = "id position a0 a1";
             sutils::tokenize(header, headerTokenized);
 
-            for (int i = 0; i != 4; i++) {
+            for (unsigned i = 0; i != headerTokenized.size(); i++) {
                 try {
                     if (tokens[i] != headerTokenized[i])
                         throw myException("Error in legend file (" + legendFile +
