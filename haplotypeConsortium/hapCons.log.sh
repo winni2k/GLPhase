@@ -242,5 +242,5 @@ rsync -navP cluster3:/users/winni/winni_on_marchini/proj/marchini/haplotypeConso
 ssh feng
 cd /homes/kretzsch/feng/marchini/haplotypeConsortium/results/chr20_pilot/2013-09-30_run_insti_on_combined_GLs
 ./runall.pl -m ~/feng/marchini -C 100 -I -n 100 -t
-./runall.pl -m ~/feng/marchini -C 2000 -I -i
+./runall.pl -m ~/feng/marchini -C 100 -I -n 100 -i
 
