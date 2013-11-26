@@ -28,7 +28,7 @@ int main(int ac, char **av) {
     
     string sLogFile;
     int opt;
-    while ((opt = getopt(ac, av, "d:l:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:")) >= 0) {
+    while ((opt = getopt(ac, av, "d:l:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:")) >= 0) {
         switch (opt) {
         case    'd':
             Impute::density = atof(optarg);
@@ -81,10 +81,10 @@ int main(int ac, char **av) {
             Insti::s_uCycles = atoi(optarg);
             break;
         case 'L':
-            Insti::s_sLegendFile = optarg;
+            Insti::s_sRefLegendFile = optarg;
             break;
         case 'H':
-            Insti::s_sRefHapsFile = optarg;
+            Insti::s_sRefHapFile = optarg;
             break;
         case 'k':
             Insti::s_bKickStartFromRef = true;
@@ -108,6 +108,15 @@ int main(int ac, char **av) {
         case 'M':
             Insti::s_uStartClusterGen = atoi(optarg);
             break;
+        case 'h':
+            Insti::s_scaffoldHapsFile = optarg;
+            break;
+        case 's':
+            Insti::s_scaffoldSampleFile = optarg;
+            break;
+        case 'q':
+            Insti::s_scaffoldFreqCutoff = std::stod(optarg);
+            break;
         default:
             Insti::document();
         }
@@ -118,7 +127,7 @@ int main(int ac, char **av) {
     
     // need to specify ref panel if kickstarting
     if(Insti::s_bKickStartFromRef){
-        if( Insti::s_sLegendFile.size() == 0){
+        if( Insti::s_sRefLegendFile.size() == 0){
             cerr << endl << "error: Need to specify ref panel if kickstarting." << endl;
             Insti::document();
         }
@@ -144,7 +153,7 @@ int main(int ac, char **av) {
         timeval sta, end;
         gettimeofday(&sta, NULL);
 
-        // create a Insti instance!
+        // create an Insti instance!
         Insti lp;
 
         if( Insti::s_bIsLogging )

@@ -1,4 +1,4 @@
-/* @(#)relationshipGraph.h
+/* @(#)relationshipGraph.hpp
  */
 
 #ifndef _RELATIONSHIPGRAPH_H

@@ -11,9 +11,9 @@ using    namespace    std;
 const fast norm = powf(FLT_MIN, 2.0f / 3.0f);   // basically avoid singularity or floating point error
 
 // initialzing static member variables
-uint    Impute::bn;
-uint    Impute::sn;
-uint    Impute::nn;
+unsigned    Impute::bn;
+unsigned    Impute::sn;
+unsigned    Impute::nn;
 real    Impute::density;
 real    Impute::conf;
 vector <string>    Impute::vcf_file;
@@ -66,7 +66,7 @@ bool    Impute::load_bin(const char *F) {
         si >> temp.chr >> temp.pos >> temp.all;
         site.push_back(temp);
         posi.push_back(temp.pos);  // add to end of vector
-        for (uint i = 0; i < 2 * in; i++) {
+        for (unsigned i = 0; i < 2 * in; i++) {
             si >> rawp;
             prob.push_back(rawp);
         }  // store the raw GL , which the prob of het and homo alt
@@ -82,8 +82,8 @@ bool    Impute::load_bin(const char *F) {
     return true;
 }
 
-uint    Impute::load_vcf(const char *F) {  // this section loads known genotypes
-    uint known = 0;
+unsigned    Impute::load_vcf(const char *F) {  // this section loads known genotypes
+    unsigned known = 0;
     if (!vcf_file.size()) return 0;
     tabix_t *t;
     ti_iter_t iter;
@@ -92,7 +92,7 @@ uint    Impute::load_vcf(const char *F) {  // this section loads known genotypes
     if ((t = ti_open(F, 0)) == 0) return 0;
     vector <uint16_t> vid;
     real rest = (1 - conf) / 2;  // confidence of known genotype.  the rest has low confidence
-    uint vin;
+    unsigned vin;
     {
         vector <string> vname;
         iter = ti_query(t, 0, 0, 0);
@@ -110,9 +110,9 @@ uint    Impute::load_vcf(const char *F) {  // this section loads known genotypes
         ti_iter_destroy(iter);
         vin = vname.size();
         vid.resize(vin);  //vin is vname size.....  which stores something from tabix
-        for (uint i = 0; i < vin; i++) {
+        for (unsigned i = 0; i < vin; i++) {
             vid[i] = 0xffff;
-            for (uint j = 0; j < in; j++)
+            for (unsigned j = 0; j < in; j++)
                 if (vname[i] == name[j]) {
                     vid[i] = j;
                     break;
@@ -126,13 +126,13 @@ uint    Impute::load_vcf(const char *F) {  // this section loads known genotypes
     while ((s = ti_read(t, iter, &len)) != 0) {
         istringstream si(s);
         string st, chr, all;
-        uint pos;
+        unsigned pos;
         si >> chr >> pos >> st >> all >> st;
         all += st;
         si >> st >> st >> st >> st;
-        for (uint m = 0; m < mn; m++)
+        for (unsigned m = 0; m < mn; m++)
             if (site[m].chr == chr && site[m].pos == pos && site[m].all == all) {  // for each element in site vector
-                for (uint i = 0; i < vin; i++) {
+                for (unsigned i = 0; i < vin; i++) {
                     si >> st;
                     if (vid[i] == 0xffff) continue;
                     fast *p = &prob[m * in * 2 + vid[i] * 2], pa = max<fast>(1 - p[0] - p[1], 0);
@@ -166,8 +166,8 @@ uint    Impute::load_vcf(const char *F) {  // this section loads known genotypes
 
 void    Impute::initialize(void) {
 
-    // all haplotypes are saved in 64 bit unsigned ints (a word), where each bit represents a position
-    // first, figure out how many words we'll need to store a hap and save in wn
+    // all haplotypes are saved in 64 bit unsigned ints (a uint64_t), where each bit represents a position
+    // first, figure out how many uint64_ts we'll need to store a hap and save in wn
 
     // if total sites overlaps with 00111111,  then wn = mn number of sites shifter to right....
     // we define a minimum block size of 64.
@@ -194,12 +194,12 @@ void    Impute::initialize(void) {
     // move away from vector of bools to vector of chars
     vector<bool> is_par(mn);
     if (posi.size() == mn) {
-        for (uint m = 0; m < mn; m++)
+        for (unsigned m = 0; m < mn; m++)
             is_par[m] = (posi[m] >= 60001 && posi[m] <= 2699520) || (posi[m] >= 154931044 && posi[m] <= 155270560);
     }
     if (posi.size() != mn) {
         posi.resize(mn);
-        for (uint m = 0; m < mn; m++) posi[m] = m;
+        for (unsigned m = 0; m < mn; m++) posi[m] = m;
     }    // if sites not stored
 
     // initialize the mutation rate mu:
@@ -207,7 +207,7 @@ void    Impute::initialize(void) {
     // then mu = 1/S ( hn + 1/S)
     // initialize recombination rate rho based on SNP density
     fast mu = 0, rho;
-    for (uint i = 1; i < hn; i++) mu += 1.0 / i;
+    for (unsigned i = 1; i < hn; i++) mu += 1.0 / i;
     mu = 1 / mu;
     rho = 0.5 * mu * (mn - 1) / (posi[mn - 1] - posi[0]) / density;
     mu = mu / (hn + mu);  // rho is recombination rate?  mu is mutation rate
@@ -217,7 +217,7 @@ void    Impute::initialize(void) {
     // r < 1; the larger the number of haplotypes, the smaller r gets
     // tran is a site's recombination probability matrix
     // r therefore must be a recombination rate estimate
-    for (uint m = mn - 1; m; m--) {
+    for (unsigned m = mn - 1; m; m--) {
         posi[m] = (posi[m] - posi[m - 1]) * rho;
         fast r = posi[m] / (posi[m] + hn); 
         tran[m * 3] = (1 - r) * (1 - r);
@@ -234,10 +234,10 @@ void    Impute::initialize(void) {
     pc[0][3] = pc[1][2] = pc[2][1] = pc[3][0] = mu * mu;  //	  probability of mutating both positions for each parental haplotype
 
     // initialize individual haplotypes
-    for (uint i = 0; i < in; i++) {
+    for (unsigned i = 0; i < in; i++) {
         
         // define pointers to an individual's two haplotypes: ha and hb
-        word *ha = &haps[i * 2 * wn], *hb = ha + wn;
+        uint64_t *ha = &haps[i * 2 * wn], *hb = ha + wn;
                 
         // here an individual's transition and probability matrices are
         // pulled out of the set of all individuals' matrices
@@ -247,7 +247,7 @@ void    Impute::initialize(void) {
 
         // now iterate through each site 
         fast *t = &temp[i * pn], *e = &emit[i * en], *p = &prob[i * 2];   
-        for (uint m = 0; m < mn; m++, t += 3, e += 4, p += hn) {
+        for (unsigned m = 0; m < mn; m++, t += 3, e += 4, p += hn) {
             // set each hap's bit randomly to 0 or 1 (equal probability)
             if (gsl_rng_get(rng) & 1) set1(ha, m);   
             if (gsl_rng_get(rng) & 1) set1(hb, m);
@@ -271,7 +271,7 @@ void    Impute::initialize(void) {
             }
 
             // initial emit assumes all states are by random mutation only.  basic state is ref/ref
-            for (uint j = 0; j < 4; j++)
+            for (unsigned j = 0; j < 4; j++)
                 e[j] = pc[j][0] * t[0] + pc[j][1] * t[1] + pc[j][2] * t[1] + pc[j][3] * t[2];  
 
         }
@@ -281,11 +281,11 @@ void    Impute::initialize(void) {
 
 // return the probability of the model given the input haplotypes P and
 // emission and transition matrices of individual I
-fast    Impute::hmm_like(uint I, uint *P) {
+fast    Impute::hmm_like(unsigned I, unsigned *P) {
 
 //    cerr << "running Impute::hmm_like()\n";
     // pull the four haplotypes into f0, f1, m0 and m1
-    word *f0 = &haps[P[0] * wn], *f1 = &haps[P[1] * wn], *m0 = &haps[P[2] * wn], *m1 = &haps[P[3] * wn];
+    uint64_t *f0 = &haps[P[0] * wn], *f1 = &haps[P[1] * wn], *m0 = &haps[P[2] * wn], *m1 = &haps[P[3] * wn];
 
     // pull out phase emission and transition probabilities
     fast *e = &emit[I * en], *t = &tran[0], sum, score = 0;
@@ -304,7 +304,7 @@ fast    Impute::hmm_like(uint I, uint *P) {
 
     // calculate total probability of model given the four haplotypes
     // passed in, and return as score
-    for (uint m = 1; m < mn; m++, e += 4, t += 3) {
+    for (unsigned m = 1; m < mn; m++, e += 4, t += 3) {
         b00 = l00 * t[0] + (l01 + l10) * t[1] + l11 * t[2];
         b01 = l01 * t[0] + (l00 + l11) * t[1] + l10 * t[2];
         b10 = l10 * t[0] + (l00 + l11) * t[1] + l01 * t[2];
@@ -329,10 +329,10 @@ fast    Impute::hmm_like(uint I, uint *P) {
 
 // take an individual number I, a set of four haplotypes P, and
 // penalty S and update haplotypes of individual I
-void    Impute::hmm_work(uint I, uint *P, fast S) {
+void    Impute::hmm_work(unsigned I, unsigned *P, fast S) {
 
     // setup the different haplotypes
-    word *f0 = &haps[P[0] * wn], *f1 = &haps[P[1] * wn], *m0 = &haps[P[2] * wn], *m1 = &haps[P[3] * wn];
+    uint64_t *f0 = &haps[P[0] * wn], *f1 = &haps[P[1] * wn], *m0 = &haps[P[2] * wn], *m1 = &haps[P[3] * wn];
 
     //	backward recursion
     vector<fast> beta(mn * 4);
@@ -346,7 +346,7 @@ void    Impute::hmm_work(uint I, uint *P, fast S) {
     b[0] = b[1] = b[2] = b[3] = 1; 
 
     // fill b with the forward probabilites
-    for (uint m = mn - 1; m; m--, e -= 4, t -= 3) {
+    for (unsigned m = mn - 1; m; m--, e -= 4, t -= 3) {
         b00 = b[0] * e[(test(f0, m) << 1) | test(m0, m)];
         b01 = b[1] * e[(test(f0, m) << 1) | test(m1, m)];
         b10 = b[2] * e[(test(f1, m) << 1) | test(m0, m)];
@@ -365,13 +365,13 @@ void    Impute::hmm_work(uint I, uint *P, fast S) {
 
     //	forward sampling
     // walk through b 
-    word *ha = &hnew[I * 2 * wn], *hb = ha + wn;
+    uint64_t *ha = &hnew[I * 2 * wn], *hb = ha + wn;
     fast *p = &prob[I * pn];
     e = &emit[I * en];
     t = &tran[0];
     b = &beta[0];
-    uint s00, s01, s10, s11;
-    for (uint m = 0; m < mn; m++, e += 4, t += 3, p += 3, b += 4) {
+    unsigned s00, s01, s10, s11;
+    for (unsigned m = 0; m < mn; m++, e += 4, t += 3, p += 3, b += 4) {
         s00 = (test(f0, m) << 1) | test(m0, m);
         s01 = (test(f0, m) << 1) | test(m1, m);
         s10 = (test(f1, m) << 1) | test(m0, m);
@@ -432,11 +432,11 @@ void    Impute::hmm_work(uint I, uint *P, fast S) {
 // A - finding a set of four haps that are close to the current individual
 // B - running the HMM and udating the individual I's haplotypes
 // A takes much longer than B
-fast    Impute::solve(uint I, uint    &N, fast S) {  // solve(i,	len,	pen,	n>=bn)
+fast    Impute::solve(unsigned I, unsigned    &N, fast S) {  // solve(i,	len,	pen,	n>=bn)
 
     // pick 4 haplotype indices at random not from individual
-    uint p[4];
-    for (uint j = 0; j < 4; j++) {
+    unsigned p[4];
+    for (unsigned j = 0; j < 4; j++) {
         do p[j] = gsl_rng_get(rng) % hn; while (p[j] / 2 == I);
     }
 
@@ -448,9 +448,9 @@ fast    Impute::solve(uint I, uint    &N, fast S) {  // solve(i,	len,	pen,	n>=bn
     // those haplotypes.
     // accept new set if probability has increased.
     // otherwise, accept with penalized probability
-    for (uint n = 0; n < N; n++) {  // fixed number of iterations
+    for (unsigned n = 0; n < N; n++) {  // fixed number of iterations
 
-        uint rp = gsl_rng_get(rng) & 3, oh = p[rp];    
+        unsigned rp = gsl_rng_get(rng) & 3, oh = p[rp];    
         do p[rp] = gsl_rng_get(rng) % hn; while (p[rp] / 2 == I);
         fast prop = hmm_like(I, p);
         if (prop > curr || gsl_rng_uniform(rng) < expf((prop - curr) * S)) curr = prop;
@@ -477,16 +477,16 @@ void    Impute::estimate(void) {
     // n is number of cycles = burnin + sampling cycles
     // increase penalty from 2/bn to 1 as we go through burnin
     // iterations.    
-    for (uint n = 0; n < bn + sn; n++) {  
+    for (unsigned n = 0; n < bn + sn; n++) {  
         fast sum = 0, pen = min<fast>(2 * (n + 1.0f) / bn, 1), iter = 0;
         pen *= pen;  // pen = 1 after bn/2 iterations
-        for (uint i = 0; i < in; i++) {
-            uint len = nn * in;  // nn is number of folds, in = num individuals
+        for (unsigned i = 0; i < in; i++) {
+            unsigned len = nn * in;  // nn is number of folds, in = num individuals
             sum += solve(i, len, pen);  // call solve=> inputs the sample number,
             iter += len;
         }
         swap(hnew, haps);
-        if (n >= bn) for (uint i = 0; i < in; i++) replace(i);  // call replace
+        if (n >= bn) for (unsigned i = 0; i < in; i++) replace(i);  // call replace
         cerr << n << '\t' << pen << '\t' << sum / in / mn << '\t' << iter / in / in << '\r';
     }
     cerr << endl;
@@ -495,11 +495,11 @@ void    Impute::estimate(void) {
 
 // keep a count of the number of 1s at each site for each haplotype
 // ha will always have more or as many 1 alleles as hb
-void    Impute::replace(uint I) {
-    word *oa = &haps[I * 2 * wn], *ob = oa + wn;  // observations?
-    uint *ha = &hsum[I * 2 * mn], *hb = ha + mn;
-    uint sis = 0, tra = 0;
-    for (uint m = 0; m < mn; m++) {
+void    Impute::replace(unsigned I) {
+    uint64_t *oa = &haps[I * 2 * wn], *ob = oa + wn;  // observations?
+    unsigned *ha = &hsum[I * 2 * mn], *hb = ha + mn;
+    unsigned sis = 0, tra = 0;
+    for (unsigned m = 0; m < mn; m++) {
         if (test(oa, m)) {
             sis += ha[m];
             tra += hb[m];
@@ -510,12 +510,12 @@ void    Impute::replace(uint I) {
         }
     }
     if (sis > tra)
-        for (uint m = 0; m < mn; m++) {
+        for (unsigned m = 0; m < mn; m++) {
             ha[m] += test(oa, m);
             hb[m] += test(ob, m);
         }
     else
-        for (uint m = 0; m < mn; m++) {
+        for (unsigned m = 0; m < mn; m++) {
             ha[m] += test(ob, m);
             hb[m] += test(oa, m);
         }
@@ -527,11 +527,11 @@ void    Impute::result(void) {
     fast norm = 1.0 / sn; // sn = no. of sampling iterations
 
     // mn = number of sites
-    for (uint m = 0; m < mn; m++) {
+    for (unsigned m = 0; m < mn; m++) {
         fast *p = &prob[m * hn];
 
         //in = number individuals
-        for (uint i = 0; i < in; i++, p += 2) {
+        for (unsigned i = 0; i < in; i++, p += 2) {
             p[0] = hsum[i * 2 * mn + m] * norm;
             p[1] = hsum[(i * 2 + 1) * mn + m] * norm;
         }
@@ -549,12 +549,12 @@ void    Impute::save_vcf(const char *F) {
     gzprintf(f, "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n");
     gzprintf(f, "##FORMAT=<ID=AP,Number=2,Type=Float,Description=\"Allelic Probability, P(Allele=1|Haplotype)\">\n");
     gzprintf(f, "#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT");
-    for (uint i = 0; i < in; i++) gzprintf(f, "\t%s", name[i].c_str());
-    for (uint m = 0; m < mn; m++) {
+    for (unsigned i = 0; i < in; i++) gzprintf(f, "\t%s", name[i].c_str());
+    for (unsigned m = 0; m < mn; m++) {
         gzprintf(f, "\n%s\t%u\t.\t%c\t%c\t100\tPASS\t.\tGT:AP",
                 site[m].chr.c_str(), site[m].pos, site[m].all[0], site[m].all[1]);
         fast *p = &prob[m * hn];
-        for (uint i = 0; i < in; i++, p += 2) {
+        for (unsigned i = 0; i < in; i++, p += 2) {
             fast prr = (1 - p[0]) * (1 - p[1]), pra = (1 - p[0]) * p[1] + p[0] * (1 - p[1]), paa = p[0] * p[1];
             if (prr >= pra && prr >= paa) gzprintf(f, "\t0|0:%.3f,%.3f", p[0], p[1]);  // aren't these probabilities being printed wrong
             else if (pra >= prr && pra >= paa) {
@@ -574,11 +574,11 @@ void    Impute::save_pare(const char *F) {
     temp += ".par.gz";
     gzFile f = gzopen(temp.c_str(), "wt");
     gzprintf(f, "C/P");
-    for (uint i = 0; i < in; i++) gzprintf(f, "\t%s", name[i].c_str());
-    for (uint i = 0; i < in; i++) {
+    for (unsigned i = 0; i < in; i++) gzprintf(f, "\t%s", name[i].c_str());
+    for (unsigned i = 0; i < in; i++) {
         gzprintf(f, "\n%s", name[i].c_str());
         uint16_t *p = &pare[i * in];
-        for (uint j = 0; j < in; j++, p++) gzprintf(f, "\t%.3f", (float) (*p) / sn);
+        for (unsigned j = 0; j < in; j++, p++) gzprintf(f, "\t%.3f", (float) (*p) / sn);
     }
     gzprintf(f, "\n");
     gzclose(f);

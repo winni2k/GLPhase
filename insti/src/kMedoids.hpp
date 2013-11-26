@@ -1,4 +1,4 @@
-/* @(#)kMedoids.h
+/* @(#)kMedoids.hpp
  */
 
 #ifndef _KMEDOIDS_H
@@ -7,8 +7,8 @@
 #include        <gsl/gsl_rng.h>
 #include        <vector>
 #include        <cassert>
-#include <iostream>
-#include <float.h>
+#include        <iostream>
+#include        <float.h>
 #include        "haplotype.hpp"
 
 

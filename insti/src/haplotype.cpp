@@ -17,15 +17,6 @@ void Haplotype::Set(unsigned uSite, bool bAllele){
         m_utHap[uSite >> h_WordShift] &= ~(static_cast< uint64_t >(1) <<( uSite & h_WordMod));
 }
 
-bool Haplotype::TestSite(unsigned uSite) const {
-
-    assert(uSite < m_uNumAlleles);
-
-//    uint64_t uWordNum = uSite >> h_WordShift;
-//    return (m_utHap[uWordNum] >> (uSite & h_WordMod)) & static_cast< uint64_t >(1);
-    return (m_utHap[uSite >> h_WordShift] >> (uSite & h_WordMod)) & static_cast< uint64_t >(1);
-}
-
 unsigned Haplotype::HammingDist(const Haplotype &oCompareHap) const {
 
     assert(oCompareHap.m_uNumAlleles == m_uNumAlleles);
