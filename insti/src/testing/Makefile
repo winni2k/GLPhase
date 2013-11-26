@@ -61,10 +61,10 @@ gtest_main.a : gtest-all.o gtest_main.o
 # gtest_main.a, depending on whether it defines its own main()
 # function.
 
-insti_unittest1.o : insti_unittest1.cpp $(SRC_DIR)/insti.hpp.gch $(SRC_DIR)/haplotype.hpp.gch $(GTEST_HEADERS)
+insti_unittest1.o : insti_unittest1.cpp $(SRC_DIR)/insti.hpp.gch $(SRC_DIR)/haplotype.hpp.gch $(SRC_DIR)/kMeans.hpp.gch $(SRC_DIR)/relationship.hpp.gch $(GTEST_HEADERS)
 	$(CXX) $(CXXFLAGS) -c $<
 
-insti_unittest1 : $(INSTI_O_FILES) insti_unittest1.o gtest_main.a $(SRC_DIR)/olivier/utils.o 
+insti_unittest1 : $(INSTI_O_FILES) insti_unittest1.o gtest_main.a $(SRC_DIR)/olivier/utils.o $(SRC_DIR)/kMeans.o $(SRC_DIR)/haplotype.o
 	$(CXX) $(CXXFLAGS) -lpthread $^ -o $@ $(LIBS) && ./$@
 
 

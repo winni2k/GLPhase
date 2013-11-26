@@ -1,3 +1,26 @@
+1.2.1   Fri Nov 22 16:47:30 GMT 2013
+        Changed input of scaffold to haps sample format
+
+1.2.0   Thu Nov 21 17:00:46 GMT 2013
+        Added nearest neighbor clustering a la IMPUTEv2 only using a scaffold
+
+1.1.24  Wed Oct 16 15:23:05 BST 2013
+        Found another bug related to previous bug
+        Changed -O1 back to -O3, as the optimization was not a problem after all
+
+1.1.23  Wed Oct 16 15:00:10 BST 2013
+        Fixed bug in RelationshipGraph::sampleHap() where for graph type 2 only half 
+        the available haplotypes were being sampled from.  
+        Changed -O3 to -O1 for default optimization, as the higher -O's seem to be causing 
+        bugs in my code at RelationshipGraph::init()
+
+1.1.22  Tue Oct 15 15:34:13 BST 2013
+        1) insti now prints '999' instead of 'inf' in GP field of VCF output
+        2) insti now checks to make sure probabilities are between 0 and 1 (inclusive)
+
+1.1.21  Wed Oct 09 18:33:53 BST 2013
+        caught bug where main does not exit with error of file could not be loaded
+
 1.1.20  Mon Sep 30 17:36:54 BST 2013
         Output VCFs now use GP instead of non-standard AP field
 
@@ -9,3 +32,6 @@
 
 1.1.1   Thu Sep 12 17:16:03 BST 2013
         Added support for clustering of haplotypes
+
+1.0.11  Mon Sep 2 12:23:59 2013
+        Version used for GoCD
