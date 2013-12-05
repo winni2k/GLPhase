@@ -14,7 +14,7 @@ string sampleHap = sampleDir + "/20_011976121_012173018.bin.onlyThree.hap";
 string sampleBin = sampleDir + "/20_011976121_012173018.bin.onlyThree.bin";
 string refHap =  sampleDir + "/20_0_62000000.011976121_012173018.paste.onlyThree.hap";
 string refLegend =  sampleDir + "/20_0_62000000.011976121_012173018.paste.onlyThree.legend";
-
+string refHaps = sampleDir + "/20_0_62000000.011976121_012173018.paste.onlyThree.haps";
 
 gsl_rng *rng = gsl_rng_alloc(gsl_rng_default); 
 
@@ -83,30 +83,12 @@ TEST(Insti, loadBin) {
     // now test refpanel loading
     lp.LoadHapLegSamp(refLegend, refHap, "", PanelType::REFERENCE);
 
-    //  cerr << "BLOINC2.5\n";
     for (unsigned i = 0; i != 601; i++) {
-
-        //        cerr << "\tbloincing0\t" << i << endl;
-        //        cerr << lp.TestRefHap(0,i);
         EXPECT_EQ(0, lp.TestRefHap(0, i));
-
-        //        cerr << "\tbloincing0.5\t" << i << endl;
-        //        cerr << "refhap: 1\tsite: "<< i << "\t" << lp.TestRefHap(1,i) << endl;
-        //        cerr << "\t"<< lp.TestRefHap(1,i);
-        //        EXPECT_EQ(0, lp.TestRefHap(1,i));
-        //        cerr << "\tbloincing1\t" << i << endl;
-        //        EXPECT_EQ(1,lp.TestRefHap(1,i));
-        //      cerr << "\tbloincing2\t" << i << endl;
         EXPECT_EQ(0, lp.TestRefHap(2, i));
-
-        //        cerr << "\t"<< lp.TestRefHap(2,i);
-        //        cerr << "\tbloincing3\t" << i << endl;
         EXPECT_EQ(1, lp.TestRefHap(3, i));
-
-        //        cerr << "\t"<< lp.TestRefHap(3,i)<<endl;
     }
 
-//    cerr << "BLOINC3\n";
     for (unsigned i = 601; i != 1024; i++) {
         EXPECT_EQ(1, lp.TestRefHap(0, i));
         EXPECT_EQ(0, lp.TestRefHap(1, i));
@@ -117,6 +99,29 @@ TEST(Insti, loadBin) {
     // test the scaffold loading
 
 }
+
+TEST(Insti, loadHapsSamp) {
+
+    Insti lp;
+    lp.load_bin(sampleBin.c_str());
+    lp.initialize();
+    lp.LoadHapsSamp("", refHaps, PanelType::REFERENCE);
+
+    for (unsigned i = 0; i != 601; i++) {
+        EXPECT_EQ(0, lp.TestRefHap(0, i));
+        EXPECT_EQ(0, lp.TestRefHap(2, i));
+        EXPECT_EQ(1, lp.TestRefHap(3, i));
+    }
+
+    for (unsigned i = 601; i != 1024; i++) {
+        EXPECT_EQ(1, lp.TestRefHap(0, i));
+        EXPECT_EQ(0, lp.TestRefHap(1, i));
+        EXPECT_EQ(0, lp.TestRefHap(2, i));
+        EXPECT_EQ(1, lp.TestRefHap(3, i));
+    }
+
+}
+
 
 TEST(Insti, loadHapLegSampErrors) {
 

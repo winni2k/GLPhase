@@ -86,4 +86,5 @@ paste -d"\n" 20_011976121_012173018.bin.onlyThree.legend 20_0_62000000.bin.onlyT
 
 paste -d"\n" 20_011976121_012173018.bin.onlyThree.haps 20_0_62000000.bin.onlyThree.haps | grep -P '.' > 20_0_62000000.011976121_012173018.paste.onlyThree.haps 
 
-# create haps sample files as well
+# create haps file as well
+~/marchini/scripts/hapLeg2haps.pl -c 20 -h 20_011976121_012173018.bin.onlyThree.hap -l 20_011976121_012173018.bin.onlyThree.legend > 20_011976121_012173018.bin.onlyThree.haps

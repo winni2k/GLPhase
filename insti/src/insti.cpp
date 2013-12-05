@@ -223,11 +223,11 @@ void Insti::OpenSample(string sampleFile, vector<string> & IDs)
 
 //read in the haps file
 // store haps and sites
-void Insti::OpenHaps(string hapFile, vector<vector<char> > & loadHaps,
+void Insti::OpenHaps(string hapsFile, vector<vector<char> > & loadHaps,
                      vector <snp> & sites)
 {
 
-    ifile hapsFD(hapFile);
+    ifile hapsFD(hapsFile);
     string buffer;
     unsigned lineNum = 0;
     unsigned numHaps = 0;
@@ -243,7 +243,7 @@ void Insti::OpenHaps(string hapFile, vector<vector<char> > & loadHaps,
         // make sure header start is correct
         if (lineNum == 1) {
             if (tokens.size() <= 5)
-                throw myException("haps file " + hapFile + " contains too few columns (" +
+                throw myException("haps file " + hapsFile + " contains too few columns (" +
                                   sutils::uint2str(tokens.size()) + ")");
 
             // count number of haps
@@ -267,7 +267,7 @@ void Insti::OpenHaps(string hapFile, vector<vector<char> > & loadHaps,
             else if (val == 1)
                 loadSite.push_back(1);
             else {
-                throw myException("All alleles are not 0 or 1 In haplotypes file " + hapFile +
+                throw myException("All alleles are not 0 or 1 In haplotypes file " + hapsFile +
                                   " at line number " + sutils::uint2str(lineNum) + " (0-based)");
             }
         }
@@ -276,7 +276,7 @@ void Insti::OpenHaps(string hapFile, vector<vector<char> > & loadHaps,
     }
 
     if (numHaps == 0)
-        throw myException("num haps is 0.  Haps file empty?");
+        throw myException("Number of happlotypes in haps file is 0.  Haps file empty?");
 }
 
 
@@ -285,13 +285,13 @@ bool Insti::LoadHapsSamp(string sampleFile, string hapsFile,
 {
 
     // make sure both files are defined
-    if (sampleFile.size() == 0) {
-        cerr << "Need to define a sample file\n";
+    if (sampleFile.size() == 0 && panelType == PanelType::SCAFFOLD) {
+        cout << "Need to define a sample file\n";
         document();
     }
 
     if (hapsFile.size() == 0) {
-        cerr << "Need to define a haps file\n";
+        cout << "Need to define a haps file\n";
         document();
     }
 
