@@ -10,9 +10,9 @@
 string sampleDir = "../../samples";
 string sampleLegend = sampleDir +
                       "/20_011976121_012173018.bin.onlyThree.legend";
-string sampleHaps = sampleDir + "/20_011976121_012173018.bin.onlyThree.haps";
+string sampleHap = sampleDir + "/20_011976121_012173018.bin.onlyThree.hap";
 string sampleBin = sampleDir + "/20_011976121_012173018.bin.onlyThree.bin";
-string refHap =  sampleDir + "/20_0_62000000.011976121_012173018.paste.onlyThree.haps";
+string refHap =  sampleDir + "/20_0_62000000.011976121_012173018.paste.onlyThree.hap";
 string refLegend =  sampleDir + "/20_0_62000000.011976121_012173018.paste.onlyThree.legend";
 
 
@@ -118,13 +118,13 @@ TEST(Insti, loadBin) {
 
 }
 
-TEST(Insti, loadHapsErrors) {
+TEST(Insti, loadHapLegSampErrors) {
 
     Insti lp;
     lp.load_bin(sampleBin.c_str());
 
     //    cerr << "BLOINC1\n";
-    ASSERT_EXIT(lp.LoadHapLegSamp("", sampleHaps, "", PanelType::REFERENCE), ::testing::ExitedWithCode(1),
+    ASSERT_EXIT(lp.LoadHapLegSamp("", sampleHap, "", PanelType::REFERENCE), ::testing::ExitedWithCode(1),
                 "Need to define a legend file if defining a hap file");
     ASSERT_EXIT(lp.LoadHapLegSamp(sampleLegend, "", "", PanelType::REFERENCE), ::testing::ExitedWithCode(1),
                 "Need to define a hap file if defining a legend file");
