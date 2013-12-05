@@ -57,7 +57,7 @@ sub openCmd{
         return "gzip -dc $file |";
     }
     else{
-        return "<$file";
+        return "< $file";
     }
 }
 
