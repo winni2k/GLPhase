@@ -178,8 +178,10 @@ bool    Insti::load_bin(const char *F)
 }
 
 // HAPS/SAMPLE sample file
-void Insti::OpenSample(string sampleFile, vector<string>& IDs)
+void Insti::OpenSample(string sampleFile, vector<string> & IDs)
 {
+
+    IDs.clear();
 
     // read in sample file
     ifile sampleFD(sampleFile);
@@ -220,60 +222,61 @@ void Insti::OpenSample(string sampleFile, vector<string>& IDs)
 }
 
 //read in the haps file
-unsigned Insti::OpenHaps(string hapFile, vector<uint64_t> & vHaps)
+// store haps and sites
+void Insti::OpenHaps(string hapFile, vector<vector<char> > & loadHaps,
+                     vector <snp> & sites)
 {
 
     ifile hapsFD(hapFile);
     string buffer;
-    unsigned uLineNum = 0;
-    unsigned uNumHaps = 0;
+    unsigned lineNum = 0;
+    unsigned numHaps = 0;
+    sites.clear();
+    loadHaps.clear();
 
+    // create a map of site positions
     while (getline(hapsFD, buffer, '\n')) {
-        uLineNum++;
+        lineNum++;
         vector<string> tokens;
         sutils::tokenize(buffer, tokens);
 
         // make sure header start is correct
-        if (uLineNum == 1) {
+        if (lineNum == 1) {
+            if (tokens.size() <= 5)
+                throw myException("haps file " + hapFile + " contains too few columns (" +
+                                  sutils::uint2str(tokens.size()) + ")");
 
             // count number of haps
-            uNumHaps = tokens.size();
+            numHaps = tokens.size() - 5;
 
-            // resize the vector for holding haps
-            vHaps.resize(uNumHaps * wn);
-        }
-
-        try {
-            if (tokens.size() != uNumHaps)
+        } else {
+            if (tokens.size() != numHaps)
                 throw myException("Every row of haplotypes file must have the same number of columns");
-        } catch (exception& e) {
-            cout << e.what() << endl;
-            exit(1);
         }
 
-        // store haplotypes
-        for (unsigned i = 0; i != tokens.size(); i++) {
+        // store site of haplotype
+        sites.push_back(snp(atoi(tokens[2].c_str()), tokens[3], tokens[4]));
+        vector<char> loadSite;
+        loadSite.reserve(numHaps);
+
+        for (unsigned i = 5; i != tokens.size(); i++) {
             int val = atoi(tokens[i].c_str());
 
             if (val == 0)
-                set0(&vHaps[i * wn], uLineNum - 1);
+                loadSite.push_back(0);
             else if (val == 1)
-                set1(&vHaps[i * wn], uLineNum - 1);
+                loadSite.push_back(1);
             else {
-                cerr << "All alleles are not 0 or 1 In haplotypes file " << hapFile <<
-                     " at line number " << uLineNum << endl;
-                throw 1;
+                throw myException("All alleles are not 0 or 1 In haplotypes file " + hapFile +
+                                  " at line number " + sutils::uint2str(lineNum) + " (0-based)");
             }
         }
+
+        loadHaps.push_back(loadSite);
     }
 
-    if (uNumHaps == 0) {
-        cerr << "num haps is 0.  Haps file empty?";
-        throw 2;
-    }
-
-    return uNumHaps;
-
+    if (numHaps == 0)
+        throw myException("num haps is 0.  Haps file empty?");
 }
 
 
@@ -295,58 +298,155 @@ bool Insti::LoadHapsSamp(string sampleFile, string hapsFile,
     // load haps file
     CheckPanelPrereqs(panelType);
 
-    vector<uint64_t> vHaps;
-    unsigned numHaps = OpenHaps(hapsFile, vHaps);
+    vector<vector<char> > loadHaps;
+    vector<snp> loadSites;
+    cerr << "Loading haplotype file: " << hapsFile << endl;
 
-    // get sample information if we are using a scaffold
-    if (panelType == PanelType::SCAFFOLD) {
-        OpenSample(sampleFile, m_vsScaffoldIDs);
+    try {
+        OpenHaps(hapsFile, loadHaps, loadSites);
 
-        // make sure ids match names pulled from bin files
-        for (unsigned i = 0; i < name.size(); i++) {
-            try {
-                if (name[i] != m_vsScaffoldIDs[i])
-                    throw myException("ID number " + sutils::uint2str(i) +
-                                      " (0-based): bin and IDs from sample file do not match (" + name[i] + " and " +
-                                      m_vsScaffoldIDs[i] + " respectively) do not agree.");
-            } catch (exception& e) {
-                cout << e.what() << endl;
-                exit(2);
-            }
+        // get sample information if we are using a scaffold
+        // make sure samples match
+        if (panelType == PanelType::SCAFFOLD) {
+            cerr << "Loading samples file: " << sampleFile << endl;
+            OpenSample(sampleFile, m_vsScaffoldIDs);
+            MatchSamples(m_vsScaffoldIDs, loadHaps[0].size());
         }
 
-        // make sure number of haplotypes in haplotypes matches number of samples *2
+        auto filtHaps = FilterSites(loadHaps, loadSites);
+        LoadHaps(filtHaps, panelType);
+
+    } catch (exception& e) {
+        cout << e.what() << endl;
+        exit(1);
+    }
+
+    return true;
+}
+
+// only keep sites in main gl set
+vector<vector<char> > Insti::FilterSites(vector<vector<char> > & loadHaps,
+        vector<snp> & loadSites)
+{
+
+    assert(loadSites.size() == loadHaps.size());
+    assert(loadHaps[0].size() > 0);
+    vector<vector<char> > filtHaps(site.size());
+
+    //initializing filtHaps
+    //    for(auto & iter  : filtHaps)
+    //      iter.resize(loadSites.size());
+
+    unsigned mainDataSiteIdx = 0;
+    unsigned numHaplotypesLoaded = loadHaps[0].size();
+
+    for (unsigned loadDataSiteIdx = 0; loadDataSiteIdx < loadSites.size();
+            loadDataSiteIdx++) {
+        assert(loadHaps[loadDataSiteIdx].size() == numHaplotypesLoaded);
+
+        if (static_cast<unsigned>(loadSites[loadDataSiteIdx].pos) ==
+                site[mainDataSiteIdx].pos) {
+            filtHaps[mainDataSiteIdx].swap(loadHaps[loadDataSiteIdx]);
+            mainDataSiteIdx++;
+        }
+    }
+
+    assert(filtHaps[0].size() == numHaplotypesLoaded);
+    assert(mainDataSiteIdx <= site.size());
+    assert(mainDataSiteIdx > 0);
+
+    try {
+        if (site.size() != mainDataSiteIdx) {
+            throw myException("Error: site " + sutils::uint2str(site[mainDataSiteIdx -
+                              1].pos) +
+                              " could not be found in loaded haplotype panel");
+
+        }
+    } catch (exception& e) {
+        cout << e.what() << endl;
+        exit(1);
+    }
+
+
+    return filtHaps;
+}
+
+
+// make sure samples loaded and samples in main GLs match
+// would only be used for scaffold at the moment
+void Insti::MatchSamples(const vector<std::string> & IDs, unsigned numHaps)
+{
+
+    // make sure ids match names pulled from bin files
+    for (unsigned i = 0; i < name.size(); i++) {
         try {
-            if (m_vsScaffoldIDs.size() * 2 != numHaps)
-                throw myException("Number of haplotypes according to haps file (" +
-                                  sutils::uint2str(numHaps) +
-                                  ") and sample file (" + sutils::uint2str(m_vsScaffoldIDs.size() +
-                                          ") do not match.");
-            } catch (exception& e) {
+            if (name[i] != IDs[i])
+                throw myException("ID number " + sutils::uint2str(i) +
+                                  " (0-based): bin and IDs from sample file do not match (" + name[i] + " and " +
+                                  IDs[i] + " respectively) do not agree.");
+        } catch (exception& e) {
             cout << e.what() << endl;
             exit(2);
         }
     }
 
-    LoadHaps(vHaps, numHaps, panelType);
-
-    return true;
+    // make sure number of haplotypes in haplotypes matches number of samples *2
+    try {
+        if (IDs.size() * 2 != numHaps)
+            throw myException("Number of haplotypes according to haps file (" +
+                              sutils::uint2str(numHaps) +
+                              ") and sample file (" + sutils::uint2str(IDs.size()) +
+                              ") do not match.");
+    } catch (exception& e) {
+        cout << e.what() << endl;
+        exit(2);
+    }
 }
 
-void Insti::LoadHaps(vector<uint64_t> & vHaps, unsigned numHaps,
-                     PanelType panelType)
+vector< uint64_t > Insti::Char2BitVec(vector<vector<char> > inHaps)
 {
+
+    assert(inHaps.size() == site.size());
+    vector<uint64_t> storeHaps;
+
+    unsigned numSites = inHaps.size();
+    unsigned numHaps = inHaps[0].size();
+    storeHaps.reserve(wn * numHaps);
+
+    for (unsigned siteNum = 0; siteNum < numSites; siteNum++) {
+        for (unsigned hapNum = 0; hapNum < numHaps; hapNum ++) {
+            if (inHaps[siteNum][hapNum] == 0)
+                set0(&storeHaps[hapNum * wn], siteNum);
+            else if (inHaps[siteNum][hapNum] == 1)
+                set1(&storeHaps[hapNum * wn], siteNum);
+            else {
+                cout << "programming error";
+                throw 1;
+            }
+        }
+    }
+
+    return storeHaps;
+
+}
+
+void Insti::LoadHaps(vector<vector<char> > & inHaps, PanelType panelType)
+{
+
+    // convert char based haplotypes to bitvector
+    auto storeHaps = Char2BitVec(inHaps);
+    unsigned numHaps = inHaps[0].size();
 
     // store the haplotypes in the correct place based on what type of panel we are loading
     switch (panelType) {
     case PanelType::REFERENCE:
-        vHaps.swap(m_vRefHaps);
+        storeHaps.swap(m_vRefHaps);
         m_uNumRefHaps = numHaps;
         cerr << "Reference panel haplotypes\t" << m_uNumRefHaps << endl;
         break;
 
     case PanelType::SCAFFOLD:
-        vHaps.swap(m_vScaffoldHaps);
+        storeHaps.swap(m_vScaffoldHaps);
         m_uNumScaffoldHaps = numHaps;
         cerr << "Scaffold haplotypes\t" << m_uNumScaffoldHaps << endl;
 
@@ -385,125 +485,103 @@ void Insti::CheckPanelPrereqs(PanelType panelType)
     }
 }
 
-unsigned Insti::OpenLegend(string legendFile)
+vector<snp> Insti::OpenLegend(string legendFile)
 {
 
     // read in legend file
     ifile legendFD(legendFile);
     string buffer;
+    vector<snp> loadLeg;
 
     // discard header
-    unsigned uLineNum = 0;
+    unsigned lineNum = 0;
 
     while (getline(legendFD, buffer, '\n')) {
-        uLineNum++;
+        if (buffer.size() == 0)
+            throw myException("Error in legend file " + legendFile +
+                              ": empty lines detected.");
+
+        lineNum++;
         vector<string> tokens;
         sutils::tokenize(buffer, tokens);
 
         // make sure header start is correct
-        if (uLineNum == 1) {
+        if (lineNum == 1) {
             vector<string> headerTokenized;
             string header = "id position a0 a1";
             sutils::tokenize(header, headerTokenized);
 
             for (unsigned i = 0; i != headerTokenized.size(); i++) {
-                try {
-                    if (tokens[i] != headerTokenized[i])
-                        throw myException("Error in legend file (" + legendFile +
-                                          "): header start does not match:\n\t" + header +
-                                          "\n.  Instead the first line of the header is:\n\t" + buffer + "\n");
-                } catch (exception& e) {
-                    cout << e.what() << endl;
-                    exit(2);
-                }
+                if (tokens[i] != headerTokenized[i])
+                    throw myException("Error in legend file " + legendFile +
+                                      ": header start does not match:\n\t" + header +
+                                      "\n.  Instead the first line of the header is:\n\t" + buffer + "\n");
             }
 
             continue;
         }
 
-        // now make sure legend file matches sites
-        try {
-            if (tokens[1] != sutils::uint2str(site[uLineNum - 2].pos))
-                throw myException("Error at Line " + sutils::uint2str(
-                                      uLineNum) + " in legend file:\tPosition " + tokens[1] +
-                                  " in legend file needs to match position in probin file: " + sutils::uint2str(
-                                      site[uLineNum - 2].pos));
-        } catch (exception& e) {
-            cout << e.what() << endl;
-            exit(1);
-        }
-
+        // add each site to loadLeg
+        int pos = atoi(tokens[1].c_str());
+        loadLeg.push_back(snp(pos, tokens[2], tokens[3]));
     }
 
-    // legend should have as many rows (sites) as in the probin file
-    try {
-        if (site.size() != uLineNum - 1)
-            throw myException("Alleles in legend file (" + sutils::uint2str(
-                                  uLineNum - 1) + ") need to match current data (" + sutils::uint2str(
-                                  site.size()) + ")");
-    } catch (exception& e) {
-        cout << e.what() << endl;
-        exit(1);
-    }
-
-    return uLineNum; // return unmber of sites
+    return loadLeg;
 }
 
-unsigned Insti::OpenHap(string hapFile, vector<uint64_t> & tempHaps)
+
+vector<vector<char> > Insti::OpenHap(string hapFile)
 {
 
     // read in the hap file
     ifile hapsFD(hapFile);
     string buffer;
-    unsigned uLineNum = 0;
+    int lineNum = -1;
     unsigned uNumHaps = 0;
+    vector<vector<char> > loadHaps;
 
     while (getline(hapsFD, buffer, '\n')) {
+        lineNum++;
+
+        // read line
         vector<string> tokens;
         sutils::tokenize(buffer, tokens);
 
         // make sure header start is correct
-        if (uLineNum == 0) {
+        if (lineNum == 0) {
 
             // count number of haps
             uNumHaps = tokens.size();
-
-            // resize the vector for holding haps
-            tempHaps.resize(uNumHaps * wn);
         }
 
-        try {
-            if (tokens.size() != uNumHaps)
-                throw myException("Every row of hap file must have the same number of columns");
-        } catch (exception& e) {
-            cout << e.what() << endl;
-            exit(1);
-        }
+        // make sure the number of haps does not change
+        if (tokens.size() != uNumHaps)
+            throw myException("Every row of hap file must have the same number of columns");
 
         // store haplotypes
+        vector<char> inSite;
+        inSite.reserve(uNumHaps);
+
         for (unsigned i = 0; i != tokens.size(); i++) {
             int val = atoi(tokens[i].c_str());
 
             if (val == 0)
-                set0(&tempHaps[i * wn], uLineNum);
+                inSite.push_back(0);
             else if (val == 1)
-                set1(&tempHaps[i * wn], uLineNum);
+                inSite.push_back(1);
             else {
-                cerr << "All alleles are not 0 or 1 In haplotypes file " << hapFile <<
-                     " at line number " << uLineNum + 1 << endl;
-                throw 1;
+                throw myException("All alleles are not 0 or 1 In haplotypes file " + hapFile +
+                                  " at line number " + sutils::uint2str(lineNum) + " (0-based)");
             }
         }
 
-        uLineNum++;
+        loadHaps.push_back(inSite);
     }
 
-    if (uNumHaps == 0) {
-        cerr << "num haps is 0.  Haps file empty?";
-        throw 2;
-    }
+    if (uNumHaps == 0)
+        throw myException("num haps is 0.  Haps file empty?");
 
-    return uNumHaps;
+    return loadHaps;
 }
 
 bool Insti::LoadHapLegSamp(string legendFile, string hapFile, string sampleFile,
@@ -528,18 +606,33 @@ bool Insti::LoadHapLegSamp(string legendFile, string hapFile, string sampleFile,
 
     // for now sample loading is not implemented
     if (sampleFile.size() > 0) {
-        cerr << "for now sample loading is not implemented in the sampleghap paradigm";
+        cout << "for now sample loading is not implemented in the sampleghap paradigm";
         document();
     }
 
     CheckPanelPrereqs(panelType);
 
-    // just make sure the legend matches what we have for now
-    OpenLegend(legendFile);
 
-    vector<uint64_t> tempHaps;
-    unsigned numHaps = OpenHap(hapFile, tempHaps);
-    LoadHaps(tempHaps, numHaps, panelType);
+    // Load the site list in the legend
+    cerr << "Loading legend file: " << legendFile << endl;
+
+    try {
+        auto legend = OpenLegend(legendFile);
+
+        /*catch (exception& e) {
+            cout << e.what() << " in legend file " << legendFile << endl;
+            exit(1);
+            }*/
+
+        cerr << "Loading hap file: " << hapFile << endl;
+        auto loadHaps = OpenHap(hapFile);
+        auto filtHaps = FilterSites(loadHaps, legend);
+
+        LoadHaps(filtHaps, panelType);
+    } catch (exception& e) {
+        cout << e.what() << endl;
+        exit(2);
+    }
 
     return true;
 }
@@ -1359,6 +1452,19 @@ void    Insti::document(void)
     cerr << "\n\n";
     exit(1);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
