@@ -84,5 +84,6 @@ perl -e 'for(1..1000){ @a=(); for(1..4){ push @a, int(rand(2))}; print join(" ",
 # combining snps we want with ones we don't want
 paste -d"\n" 20_011976121_012173018.bin.onlyThree.legend 20_0_62000000.bin.onlyThree.legend |tail -n +2 | grep -P '.' > 20_0_62000000.011976121_012173018.paste.onlyThree.legend
 
-paste -d"\n" 20_011976121_012173018.bin.onlyThree.haps 20_0_62000000.bin.onlyThree.haps | grep -P '.' > 20_0_62000000.011976121_012173018.paste.onlyThree.haps # 
+paste -d"\n" 20_011976121_012173018.bin.onlyThree.haps 20_0_62000000.bin.onlyThree.haps | grep -P '.' > 20_0_62000000.011976121_012173018.paste.onlyThree.haps 
 
+# create haps sample files as well
