@@ -12,6 +12,9 @@ string sampleLegend = sampleDir +
                       "/20_011976121_012173018.bin.onlyThree.legend";
 string sampleHaps = sampleDir + "/20_011976121_012173018.bin.onlyThree.haps";
 string sampleBin = sampleDir + "/20_011976121_012173018.bin.onlyThree.bin";
+string refHap =  sampleDir + "/20_0_62000000.011976121_012173018.paste.onlyThree.haps";
+string refLegend =  sampleDir + "/20_0_62000000.011976121_012173018.paste.onlyThree.legend";
+
 
 gsl_rng *rng = gsl_rng_alloc(gsl_rng_default); 
 
@@ -76,11 +79,11 @@ TEST(Insti, loadBin) {
     EXPECT_EQ(0, lp.prob[4]);
     EXPECT_EQ(1, lp.prob[5]);
 
-//    cerr << "BLOINC2\n";
+    //  cerr << "BLOINC2\n";
     // now test refpanel loading
-    lp.LoadHapLegSamp(sampleLegend, sampleHaps, "", PanelType::REFERENCE);
+    lp.LoadHapLegSamp(refLegend, refHap, "", PanelType::REFERENCE);
 
-//    cerr << "BLOINC2.5\n";
+    //  cerr << "BLOINC2.5\n";
     for (unsigned i = 0; i != 601; i++) {
 
         //        cerr << "\tbloincing0\t" << i << endl;
@@ -110,6 +113,8 @@ TEST(Insti, loadBin) {
         EXPECT_EQ(0, lp.TestRefHap(2, i));
         EXPECT_EQ(1, lp.TestRefHap(3, i));
     }
+
+    // test the scaffold loading
 
 }
 

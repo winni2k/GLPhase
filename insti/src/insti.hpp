@@ -14,12 +14,15 @@
 #include <cassert>
 #include <stdint.h>
 #include <utility>
+#include <map>
+#include <unordered_map>
 #include "impute.hpp"
 #include "emcchain.hpp"
 #include "utils.hpp"
 #include "relationship.hpp"
 #include "version.hpp"
 #include "enums.hpp"
+#include "snp.hpp"
 
 //require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
@@ -70,20 +73,33 @@ class Insti : public Impute {
     Insti()
         : m_oRelationship(Insti::s_uNumClusters, Insti::s_uClusterType) {};
 
+    // data loading
+    // haps/sample
     bool LoadHapsSamp(string sampleFile, string hapsFile, PanelType panelType);
-    unsigned OpenHaps(string hapFile, vector<uint64_t> & vHaps);
-    void OpenSample(string sampleFile, vector<string>& IDs);
+    void OpenHaps(string hapFile, vector<vector<char> > & loadHaps, vector <snp> & sites);
+    void OpenSample(string sampleFile, vector<string> & IDs);
+    void MatchSamples( const vector<std::string> & IDs, unsigned numHaps);
 
+    // hap/leg/samp
     bool LoadHapLegSamp(string legendFile, string hapFile, string sampleFile, PanelType panelType);
-    unsigned OpenHap(string hapFile, vector<uint64_t> & tempHaps);
-    unsigned OpenLegend(string legendFile);
+    vector<vector<char> > OpenHap(string hapFile);
+    vector<snp> OpenLegend(string legendFile);
 
-    void LoadHaps(vector<uint64_t> & vHaps, unsigned numHaps, PanelType panelType);
+    // filter out sites that aren't in main gl data
+    vector<vector<char> > FilterSites(vector<vector<char> > & loadHaps, vector<snp> & loadSites);
+    
+    // copy haplotypes to space in program where they actually are supposed to go
+    void LoadHaps(vector<vector<char> > & inHaps, PanelType panelType);
+
     
     void CheckPanelPrereqs(PanelType panelType);
 
+    vector< uint64_t > Char2BitVec(vector<vector<char> > inHaps);
+        
     void CalculateVarAfs();
 
+
+    
     // print out usage
     static void document(void);
     static int s_iEstimator; // see main.cpp and document for documentation
@@ -154,7 +170,6 @@ class Insti : public Impute {
     void save_vcf(const char *F);
 
     bool UsingScaffold(){ return (m_uNumScaffoldHaps > 0); };
-
 };
 
 #endif /* _INSTI_H */
