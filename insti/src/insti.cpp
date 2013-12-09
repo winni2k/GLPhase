@@ -243,6 +243,7 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > & loadHaps,
     ifile hapsFD(hapsFile);
     string buffer;
     unsigned lineNum = 0;
+    unsigned keptSites =0;
     unsigned numHaps = 0;
     sites.clear();
     loadHaps.clear();
@@ -250,6 +251,7 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > & loadHaps,
     
     // create a map of site positions
     while (getline(hapsFD, buffer, '\n')) {
+        cout << "Sites kept:\t" << keptSites << " / " << lineNum << "\r";
         lineNum++;
         vector<string> tokens;
         sutils::tokenize(buffer, tokens);
@@ -259,6 +261,8 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > & loadHaps,
 
         if (foundSite == m_sitesUnordered.end())
             continue;
+        else
+            keptSites ++;
 
         // make sure header start is correct
         if (numHaps == 0) {
@@ -294,6 +298,7 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > & loadHaps,
 
         loadHaps.push_back(loadSite);
     }
+    cout << "Sites kept:\t" << keptSites << " / " << lineNum << "\n";
 
     if (numHaps == 0)
         throw myException("Number of haplotypes in haps file is 0.  Haps file empty?");

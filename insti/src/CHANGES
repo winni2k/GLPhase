@@ -1,3 +1,6 @@
+1.2.3   Mon Dec 09 15:32:32 GMT 2013
+        Added filtering of haps files at input to speed things up
+
 1.2.2   Mon Dec 09 14:01:57 GMT 2013
         Added more tests to make sure filtering of sites for scaffold works correctly
 
