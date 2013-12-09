@@ -243,18 +243,20 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > & loadHaps,
     ifile hapsFD(hapsFile);
     string buffer;
     unsigned lineNum = 0;
-    unsigned keptSites =0;
+    unsigned keptSites = 0;
     unsigned numHaps = 0;
     sites.clear();
     loadHaps.clear();
     assert(m_sitesUnordered.size() == site.size());
-    
+
     // create a map of site positions
     while (getline(hapsFD, buffer, '\n')) {
-        if(keptSites == m_sitesUnordered.size())
+        if (keptSites == m_sitesUnordered.size())
             break;
-        if(lineNum % 1000 == 0)
+
+        if (lineNum % 1000 == 0)
             cerr << "Sites kept:\t" << keptSites << " / " << lineNum << "\r";
+
         lineNum++;
         vector<string> tokens;
         sutils::tokenize(buffer, tokens);
@@ -301,6 +303,7 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > & loadHaps,
 
         loadHaps.push_back(loadSite);
     }
+
     cout << "Sites kept:\t" << keptSites << " / " << lineNum << "\n";
 
     if (numHaps == 0)
@@ -337,8 +340,9 @@ bool Insti::LoadHapsSamp(string hapsFile, string sampleFile,
         // get sample information if we are using a scaffold
         // make sure samples match
         if (panelType == PanelType::SCAFFOLD) {
-            OpenSample(sampleFile, m_vsScaffoldIDs);
-            MatchSamples(m_vsScaffoldIDs, loadHaps[0].size());
+            OpenSample(sampleFile, m_ScaffoldIDs);
+            SubsetSamples(m_ScaffoldIDs, loadHaps);
+            MatchSamples(m_ScaffoldIDs, loadHaps[0].size());
         }
 
         vector<vector<char> > filtHaps;
@@ -352,6 +356,52 @@ bool Insti::LoadHapsSamp(string hapsFile, string sampleFile,
     }
 
     return true;
+}
+
+void Insti::SubsetSamples(vector<string> & loadIDs, vector<vector<char> > & loadHaps)
+{
+
+    assert(loadIDs.size() >= m_namesUnordered.size());
+    assert(loadIDs.size() * 2  == loadHaps[0].size());
+    vector<unsigned> idIdxsToKeep;
+
+    for (unsigned idIdx = 0; idIdx < loadIDs.size(); idIdx++) {
+        auto foundID = m_namesUnordered.find(loadIDs[idIdx]);
+
+        if (foundID == m_namesUnordered.end())
+            continue;
+
+        idIdxsToKeep.push_back(idIdx);
+    }
+
+    if (idIdxsToKeep.size() != name.size())
+        throw myException("Samples file does not contain right number of matching IDs to GL IDs ("
+                          + sutils::uint2str(idIdxsToKeep.size()) + "/" + sutils::uint2str(
+                              name.size()) + ")");
+
+    // subset haplotypes
+    vector<string> tempIDs;
+    tempIDs.reserve(idIdxsToKeep.size());
+    for(auto keepIdx : idIdxsToKeep)
+        tempIDs.push_back(loadIDs[keepIdx]);
+    std::swap(tempIDs, loadIDs);
+    
+    for(unsigned siteIdx = 0; siteIdx < loadHaps.size(); siteIdx++){
+
+        // subset haps
+        vector<char> tempSite;
+        tempSite.reserve(idIdxsToKeep.size() * 2);
+        for(auto keepIdx : idIdxsToKeep){
+            tempSite.push_back(loadHaps[siteIdx][keepIdx * 2]);
+            tempSite.push_back(loadHaps[siteIdx][keepIdx * 2 + 1]);
+        }
+        assert(tempSite.size() == idIdxsToKeep.size() *2);
+        std::swap(tempSite, loadHaps[siteIdx]);
+        assert(loadHaps[siteIdx].size() == idIdxsToKeep.size() *2);
+    }
+
+    assert(loadIDs.size() *2 == loadHaps[0].size());
+    
 }
 
 // only keep sites in main gl set
@@ -530,7 +580,7 @@ void Insti::LoadHaps(vector<vector<char> > & inHaps, PanelType panelType)
         Char2BitVec(inHaps,
                     static_cast<unsigned>(ceil(static_cast<double>(inHaps.size()) / (WordMod + 1))),
                     storeHaps);
-        std::swap(m_vScaffoldHaps, storeHaps);
+        std::swap(m_ScaffoldHaps, storeHaps);
         m_uNumScaffoldHaps = numHaps;
         cerr << "Scaffold haplotypes\t" << m_uNumScaffoldHaps << endl;
 
@@ -560,8 +610,8 @@ void Insti::CheckPanelPrereqs(PanelType panelType)
     case PanelType::SCAFFOLD:
         m_bUsingScaffold = true;
         assert(m_vuScaffoldPositions.size() == 0);
-        assert(m_vScaffoldHaps.size() == 0);
-        assert(m_vsScaffoldIDs.size() == 0);
+        assert(m_ScaffoldHaps.size() == 0);
+        assert(m_ScaffoldIDs.size() == 0);
         break;
 
     default:
@@ -878,9 +928,17 @@ void Insti::initialize()
 
     for (auto oneSite : site)
         m_sitesUnordered.insert(std::make_pair(oneSite.pos,
-                                snp(oneSite.pos, oneSite.all.substr(0, 1), oneSite.all.substr(1, 1))));
+                                               snp(oneSite.pos, oneSite.all.substr(0, 1), oneSite.all.substr(1, 1))));
 
     assert(m_sitesUnordered.size() == site.size());
+
+    // create unordered map version of names
+    assert(m_namesUnordered.size() == 0);
+
+    for (unsigned nameIdx = 0; nameIdx < name.size(); nameIdx++)
+        m_namesUnordered.insert(std::make_pair(name[nameIdx], nameIdx));
+
+    assert(m_namesUnordered.size() == name.size());
 
     // end of copy from SNPTools Impute
     // load ref haps
@@ -1005,7 +1063,7 @@ void    Insti::estimate()
             // use kmeans
             case 2:
                 if (UsingScaffold())
-                    m_oRelationship.init(4, m_vScaffoldHaps, wn, m_uNumScaffoldHaps,
+                    m_oRelationship.init(4, m_ScaffoldHaps, wn, m_uNumScaffoldHaps,
                                          s_scaffoldFreqCutoff);
                 else
                     m_oRelationship.init(4, haps, wn, mn, rng);
@@ -1548,6 +1606,7 @@ void    Insti::document(void)
     cerr << "\n\n";
     exit(1);
 }
+
 
 
 
