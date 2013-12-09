@@ -251,6 +251,8 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > & loadHaps,
     
     // create a map of site positions
     while (getline(hapsFD, buffer, '\n')) {
+        if(keptSites == m_sitesUnordered.size())
+            break;
         if(lineNum % 1000 == 0)
             cerr << "Sites kept:\t" << keptSites << " / " << lineNum << "\r";
         lineNum++;
