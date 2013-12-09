@@ -368,10 +368,8 @@ void Insti::SubsetSamples(vector<string> & loadIDs, vector<vector<char> > & load
     for (unsigned idIdx = 0; idIdx < loadIDs.size(); idIdx++) {
         auto foundID = m_namesUnordered.find(loadIDs[idIdx]);
 
-        if (foundID == m_namesUnordered.end())
-            continue;
-
-        idIdxsToKeep.push_back(idIdx);
+        if (foundID != m_namesUnordered.end())
+            idIdxsToKeep.push_back(idIdx);
     }
 
     if (idIdxsToKeep.size() != name.size())
