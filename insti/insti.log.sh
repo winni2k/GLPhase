@@ -84,7 +84,21 @@ perl -e 'for(1..1000){ @a=(); for(1..4){ push @a, int(rand(2))}; print join(" ",
 # combining snps we want with ones we don't want
 paste -d"\n" 20_011976121_012173018.bin.onlyThree.legend 20_0_62000000.bin.onlyThree.legend |tail -n +2 | grep -P '.' > 20_0_62000000.011976121_012173018.paste.onlyThree.legend
 
-paste -d"\n" 20_011976121_012173018.bin.onlyThree.haps 20_0_62000000.bin.onlyThree.haps | grep -P '.' > 20_0_62000000.011976121_012173018.paste.onlyThree.haps 
+paste -d"\n" 20_011976121_012173018.bin.onlyThree.hap 20_0_62000000.bin.onlyThree.hap | grep -P '.' > 20_0_62000000.011976121_012173018.paste.onlyThree.hap
 
 # create haps file as well
 ~/marchini/scripts/hapLeg2haps.pl -c 20 -h 20_011976121_012173018.bin.onlyThree.hap -l 20_011976121_012173018.bin.onlyThree.legend > 20_011976121_012173018.bin.onlyThree.haps
+~/marchini/scripts/hapLeg2haps.pl -c 20 -h 20_0_62000000.011976121_012173018.paste.onlyThree.hap -l 20_0_62000000.011976121_012173018.paste.onlyThree.legend > 20_0_62000000.011976121_012173018.paste.onlyThree.haps
+
+# create sample files
+echo -e "ID_1 ID_2 missing\n0 0 0\nsamp1 samp1 0\nsamp2 samp2 0\nsamp3 samp3 0\n" > onlyThree.hapsSample.extraLine.sample
+echo -e "sample population group sex\nsamp1 CEU EUR 1\nsamp2 CEU EUR 2\nsamp3 CEU EUR 1\n" > onlyThree.hapLegSamp.extraLine.sample
+
+echo -e "ID_1 ID_2 missing\n0 0 0\nsamp1 samp1 0\nsamp2 samp2 0\nsamp3 samp3 0" > onlyThree.hapsSample.sample
+echo -e "sample population group sex\nsamp1 CEU EUR 1\nsamp2 CEU EUR 2\nsamp3 CEU EUR 1" > onlyThree.hapLegSamp.sample
+
+# create scaffold haps
+perl -ne 'chomp; print $_." 0 0\n"' 20_011976121_012173018.bin.onlyThree.haps| gshuf |head -50 > 20_011976121_012173018.bin.onlyThree.scaffold50.haps
+~/marchini/scripts/haps2hapLegend.pl -i 20_011976121_012173018.bin.onlyThree.scaffold50.haps -o 20_011976121_012173018.bin.onlyThree.scaffold50
+gunzip 20_011976121_012173018.bin.onlyThree.scaffold50.hap.gz
+
