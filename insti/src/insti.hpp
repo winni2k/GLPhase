@@ -42,17 +42,20 @@ private:
     // keep track of relationship graph
     Relationship m_oRelationship;
 
-    // keep track of GL sites as unordered map of snps
+    // keep track of GL sites, names as unordered map of snps
     unordered_map<unsigned, snp> m_sitesUnordered;
+
+    // name -> name index in global variable "name"
+    unordered_map<string, unsigned> m_namesUnordered;
     
     // reference haplotypes
     vector<uint64_t> m_vRefHaps;
     unsigned m_uNumRefHaps = 0;
 
     // scaffold haplotypes
-    vector<uint64_t> m_vScaffoldHaps;
+    vector<uint64_t> m_ScaffoldHaps;
     vector<unsigned> m_vuScaffoldPositions;
-    vector<std::string> m_vsScaffoldIDs;
+    vector<std::string> m_ScaffoldIDs;
     unsigned m_uNumScaffoldHaps = 0;
 
     // Insti redefinition of hmm_like
@@ -79,6 +82,7 @@ private:
                   vector <snp> & sites);
     void OpenSample(string sampleFile, vector<string> & IDs);
     void MatchSamples(const vector<std::string> & IDs, unsigned numHaps);
+    void SubsetSamples(vector<string> & loadIDs, vector<vector< char> > & loadHaps);
     bool SwapMatch(const snp & loadSite,
                       const Site & existSite, vector<char>  & loadHap,
                        vector<char> & existHap);
