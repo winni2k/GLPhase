@@ -42,6 +42,9 @@ private:
     // keep track of relationship graph
     Relationship m_oRelationship;
 
+    // keep track of GL sites as unordered map of snps
+    unordered_map<unsigned, snp> m_sitesUnordered;
+    
     // reference haplotypes
     vector<uint64_t> m_vRefHaps;
     unsigned m_uNumRefHaps = 0;

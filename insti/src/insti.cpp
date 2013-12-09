@@ -181,6 +181,7 @@ bool    Insti::load_bin(const char *F)
 void Insti::OpenSample(string sampleFile, vector<string> & IDs)
 {
 
+    cerr << "Loading samples file: " << sampleFile << endl;
     IDs.clear();
 
     // read in sample file
@@ -238,21 +239,29 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > & loadHaps,
                      vector <snp> & sites)
 {
 
+    cerr << "Loading haps file: " << hapsFile << endl;
     ifile hapsFD(hapsFile);
     string buffer;
     unsigned lineNum = 0;
     unsigned numHaps = 0;
     sites.clear();
     loadHaps.clear();
-
+    assert(m_sitesUnordered.size() == site.size());
+    
     // create a map of site positions
     while (getline(hapsFD, buffer, '\n')) {
         lineNum++;
         vector<string> tokens;
         sutils::tokenize(buffer, tokens);
 
+        // only keep sites that we know of
+        auto foundSite = m_sitesUnordered.find(atoi(tokens[2].c_str()));
+
+        if (foundSite == m_sitesUnordered.end())
+            continue;
+
         // make sure header start is correct
-        if (lineNum == 1) {
+        if (numHaps == 0) {
             if (tokens.size() <= 5)
                 throw myException("haps file " + hapsFile + " contains too few columns (" +
                                   sutils::uint2str(tokens.size()) + ")");
@@ -287,7 +296,7 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > & loadHaps,
     }
 
     if (numHaps == 0)
-        throw myException("Number of happlotypes in haps file is 0.  Haps file empty?");
+        throw myException("Number of haplotypes in haps file is 0.  Haps file empty?");
 
     assert(loadHaps[0].size() == numHaps);
 }
@@ -313,7 +322,6 @@ bool Insti::LoadHapsSamp(string hapsFile, string sampleFile,
 
     vector<vector<char> > loadHaps;
     vector<snp> loadSites;
-    cerr << "Loading haplotype file: " << hapsFile << endl;
 
     try {
         OpenHaps(hapsFile, loadHaps, loadSites);
@@ -321,7 +329,6 @@ bool Insti::LoadHapsSamp(string hapsFile, string sampleFile,
         // get sample information if we are using a scaffold
         // make sure samples match
         if (panelType == PanelType::SCAFFOLD) {
-            cerr << "Loading samples file: " << sampleFile << endl;
             OpenSample(sampleFile, m_vsScaffoldIDs);
             MatchSamples(m_vsScaffoldIDs, loadHaps[0].size());
         }
@@ -857,6 +864,15 @@ void Insti::initialize()
     }
 
     swap(temp, prob);  // swap the assignments to each vector
+
+    // create an unordered map version of site
+    assert(m_sitesUnordered.size() == 0);
+
+    for (auto oneSite : site)
+        m_sitesUnordered.insert(std::make_pair(oneSite.pos,
+                                snp(oneSite.pos, oneSite.all.substr(0, 1), oneSite.all.substr(1, 1))));
+
+    assert(m_sitesUnordered.size() == site.size());
 
     // end of copy from SNPTools Impute
     // load ref haps
@@ -1524,6 +1540,10 @@ void    Insti::document(void)
     cerr << "\n\n";
     exit(1);
 }
+
+
+
+
 
 
 

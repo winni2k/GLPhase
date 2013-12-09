@@ -153,6 +153,7 @@ TEST(Insti, loadHapLegSampErrors)
 
     Insti lp;
     lp.load_bin(sampleBin.c_str());
+    lp.initialize();
 
     //    cerr << "BLOINC1\n";
     ASSERT_EXIT(lp.LoadHapLegSamp("", sampleHap, "", PanelType::REFERENCE),
