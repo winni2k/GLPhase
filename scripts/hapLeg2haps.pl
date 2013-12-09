@@ -71,7 +71,29 @@ sub openCmd {
         $cmd = " < $file";
     }
     return $cmd;
+}      
+
+sub getTokens{
+    my $fh = shift;
+    my $line = <$fh> || return undef;
+    chomp $line;
+    my @line = split(' ', $line);
+    return \@line;
 }
+
+sub openCmd{
+
+    my $file = shift;
+    my $cmd;
+    croak "need to define input file" unless defined $file;
+    if($file =~ m/\.gz$/){
+        return "gzip -dc $file |";
+    }
+    else{
+        return "< $file";
+    }
+}
+
 
 __END__
 
@@ -83,8 +105,17 @@ hapLeg2haps.pl
    
 
 =head1 DESCRIPTION
+<<<<<<< HEAD
 
 merges hap and legend file to haps file
+=======
+Stub documentation for hapLeg2haps.pl, 
+created by template.el.
+
+It looks like the author of this script was negligent
+enough to leave the stub unedited.
+
+>>>>>>> refs/heads/synced/master
 
 =head1 AUTHOR
 

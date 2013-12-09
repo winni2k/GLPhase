@@ -1,3 +1,6 @@
+1.2.2   Mon Dec 09 14:01:57 GMT 2013
+        Added more tests to make sure filtering of sites for scaffold works correctly
+
 1.2.1   Fri Nov 22 16:47:30 GMT 2013
         Changed input of scaffold to haps sample format
 

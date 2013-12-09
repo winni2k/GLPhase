@@ -69,3 +69,36 @@ cp ../2013-08-16_impute_C100_asianRefPanel/gls/20_059875288_060024976.bin.plusTh
 
 # run massif memory check on insti in kickstart mode
 valgrind --tool=massif ../../src/insti -m 10 -b 10 -C 1 -k -L ../2013-07-18b_insti_amh_100_cycles_kickstart/refPanelDir/ALL.chr20.integrated_phase1_v3.20101123.snps_indels_svs.genotypes.only_snps.asians.polymorphic.20_059875288_060024976.bin.minusThree.legend.gz -H ../2013-07-18b_insti_amh_100_cycles_kickstart/refPanelDir/ALL.chr20.integrated_phase1_v3.20101123.snps_indels_svs.genotypes.only_snps.asians.polymorphic.20_059875288_060024976.bin.minusThree.hap.gz -e 20_059875288_060024976.bin.IMPUTE_1000C_ASIAN_REF_KS.log.gz gls/20_059875288_060024976.bin.plusThree.bin
+
+
+###########
+# Thu Dec 05 13:24:43 GMT 2013
+# create some extra test data 
+
+# adding ref haps with extra sites
+cd ~/marchini/insti/samples
+perl -e 'BEGIN{@G = qw/A T G C/; print "id position a0 a1\n"}; for (1..1000){$pos = int(rand(62000001)); $out = "20:$pos $pos"; $g1 = $G[int(rand(@G))]; $g2 = $g1; while($g1 eq $g2){$g2=$G[int(rand(@G))]}; $out .= " $g1 $g2\n"; print $out;}' > 20_0_62000000.bin.onlyThree.legend
+
+perl -e 'for(1..1000){ @a=(); for(1..4){ push @a, int(rand(2))}; print join(" ", @a)."\n";}' > 20_0_62000000.bin.onlyThree.haps
+
+# combining snps we want with ones we don't want
+paste -d"\n" 20_011976121_012173018.bin.onlyThree.legend 20_0_62000000.bin.onlyThree.legend |tail -n +2 | grep -P '.' > 20_0_62000000.011976121_012173018.paste.onlyThree.legend
+
+paste -d"\n" 20_011976121_012173018.bin.onlyThree.hap 20_0_62000000.bin.onlyThree.hap | grep -P '.' > 20_0_62000000.011976121_012173018.paste.onlyThree.hap
+
+# create haps file as well
+~/marchini/scripts/hapLeg2haps.pl -c 20 -h 20_011976121_012173018.bin.onlyThree.hap -l 20_011976121_012173018.bin.onlyThree.legend > 20_011976121_012173018.bin.onlyThree.haps
+~/marchini/scripts/hapLeg2haps.pl -c 20 -h 20_0_62000000.011976121_012173018.paste.onlyThree.hap -l 20_0_62000000.011976121_012173018.paste.onlyThree.legend > 20_0_62000000.011976121_012173018.paste.onlyThree.haps
+
+# create sample files
+echo -e "ID_1 ID_2 missing\n0 0 0\nsamp1 samp1 0\nsamp2 samp2 0\nsamp3 samp3 0\n" > onlyThree.hapsSample.extraLine.sample
+echo -e "sample population group sex\nsamp1 CEU EUR 1\nsamp2 CEU EUR 2\nsamp3 CEU EUR 1\n" > onlyThree.hapLegSamp.extraLine.sample
+
+echo -e "ID_1 ID_2 missing\n0 0 0\nsamp1 samp1 0\nsamp2 samp2 0\nsamp3 samp3 0" > onlyThree.hapsSample.sample
+echo -e "sample population group sex\nsamp1 CEU EUR 1\nsamp2 CEU EUR 2\nsamp3 CEU EUR 1" > onlyThree.hapLegSamp.sample
+
+# create scaffold haps
+perl -ne 'chomp; print $_." 0 0\n"' 20_011976121_012173018.bin.onlyThree.haps| gshuf |head -50 > 20_011976121_012173018.bin.onlyThree.scaffold50.haps
+~/marchini/scripts/haps2hapLegend.pl -i 20_011976121_012173018.bin.onlyThree.scaffold50.haps -o 20_011976121_012173018.bin.onlyThree.scaffold50
+gunzip 20_011976121_012173018.bin.onlyThree.scaffold50.hap.gz
+

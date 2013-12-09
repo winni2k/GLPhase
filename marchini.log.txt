@@ -327,3 +327,6 @@ using Omni 1M and 2.5M
 - take allele frequencies from VCF file ALL-145...
 - rewrite as discordance in percentages
  
+###########
+# Thu Dec 05 10:06:14 GMT 2013
+- contact Petr and ask about the state of his SOM filtering
