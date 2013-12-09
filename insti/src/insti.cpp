@@ -251,7 +251,8 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > & loadHaps,
     
     // create a map of site positions
     while (getline(hapsFD, buffer, '\n')) {
-        cout << "Sites kept:\t" << keptSites << " / " << lineNum << "\r";
+        if(lineNum % 1000 == 0)
+            cerr << "Sites kept:\t" << keptSites << " / " << lineNum << "\r";
         lineNum++;
         vector<string> tokens;
         sutils::tokenize(buffer, tokens);
