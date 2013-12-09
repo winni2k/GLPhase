@@ -244,3 +244,25 @@ cd /homes/kretzsch/feng/marchini/haplotypeConsortium/results/chr20_pilot/2013-09
 ./runall.pl -m ~/feng/marchini -C 100 -I -n 100 -t
 ./runall.pl -m ~/feng/marchini -C 100 -I -n 100 -i
 
+
+###########
+# Thu Nov 28 14:31:45 GMT 2013
+echo <<EOF
+did a bunch of digging in the Omni1M chip sites
+of the 30548 sites on chr20
+- 10603 are not in reference panel
+  - 6466 are not in the hapCons genotype likelihoods 
+  - 4145 are not in ref panel because they were filtered (multi-allelic SNPs, SNPs on indels, etc.)
+    -> AFs are evenly spread across spectrum, see histogram at /data/fenghuang/not-backed-up/kretzsch/proj/marchini/haplotypeConsortium/results/chr20_pilot/2013-11-25_downstream_imputation_SNPchip/HumanOmni1-Quad_v1-0_H-b37/HumanOmni1-Quad_v1-0_H-b37.chr20.notInRef.sites.freq.pdf
+
+- 19945 were used for imputation
+
+EOF
+ 
+
+###########
+# Mon Dec 02 12:04:40 GMT 2013
+# running insti with scaffolding approach
+ssh feng
+cd /homes/kretzsch/feng/marchini/haplotypeConsortium/results/chr20_pilot/2013-11-15_ST_imputation_with_scaffold
+./runall.pl -m ~/feng/marchini -C 100 -I -n 100 -i
