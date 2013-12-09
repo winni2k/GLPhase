@@ -14,19 +14,22 @@
 #include <cassert>
 #include <stdint.h>
 #include <utility>
+#include <map>
+#include <unordered_map>
 #include "impute.hpp"
 #include "emcchain.hpp"
 #include "utils.hpp"
 #include "relationship.hpp"
 #include "version.hpp"
 #include "enums.hpp"
+#include "snp.hpp"
 
 //require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
 class Insti : public Impute {
 
-  private:
+private:
     ofstream m_ofsLogFileStream;
     gzFile m_gzLogFileStream;
     bool m_bLogIsGz;
@@ -54,7 +57,8 @@ class Insti : public Impute {
     virtual  fast hmm_like(unsigned I, unsigned *P) override;
 
     fast solve(unsigned I, unsigned N, fast pen, Relationship  &oRelationship);
-    virtual fast solve(unsigned I, unsigned    &N, fast pen) override {
+    virtual fast solve(unsigned I, unsigned    &N, fast pen) override
+    {
         cerr << I << N << pen;
         exit(1);
     }
@@ -65,24 +69,47 @@ class Insti : public Impute {
     unsigned SampleHap(unsigned I, bool bUseRefPanel, gsl_rng * rng, unsigned hn,
                        unsigned m_uNumRefHaps);
 
-  public:
+    // data loading
+    vector<vector<char> > OpenHap(string hapFile);
+    vector<snp> OpenLegend(string legendFile);
+    void OpenHaps(string hapFile, vector<vector<char> > & loadHaps,
+                  vector <snp> & sites);
+    void OpenSample(string sampleFile, vector<string> & IDs);
+    void MatchSamples(const vector<std::string> & IDs, unsigned numHaps);
+    bool SwapMatch(const snp & loadSite,
+                      const Site & existSite, vector<char>  & loadHap,
+                       vector<char> & existHap);
+
+public:
 
     Insti()
         : m_oRelationship(Insti::s_uNumClusters, Insti::s_uClusterType) {};
 
-    bool LoadHapsSamp(string sampleFile, string hapsFile, PanelType panelType);
-    unsigned OpenHaps(string hapFile, vector<uint64_t> & vHaps);
-    void OpenSample(string sampleFile, vector<string>& IDs);
+    // data loading
+    // haps/sample
+    bool LoadHapsSamp(string hapsFile, string sampleFile, PanelType panelType);
 
-    bool LoadHapLegSamp(string legendFile, string hapFile, string sampleFile, PanelType panelType);
-    unsigned OpenHap(string hapFile, vector<uint64_t> & tempHaps);
-    unsigned OpenLegend(string legendFile);
+    // hap/leg/samp
+    bool LoadHapLegSamp(string legendFile, string hapFile, string sampleFile,
+                        PanelType panelType);
 
-    void LoadHaps(vector<uint64_t> & vHaps, unsigned numHaps, PanelType panelType);
-    
+    // filter out sites that aren't in main gl data
+    void FilterSites(vector<vector<char> > & loadHaps,
+                     vector<snp> & loadSites, vector<vector<char> > & filtHaps,
+                     vector<snp> & filtSites, PanelType panelType);
+
+    // copy haplotypes to space in program where they actually are supposed to go
+    void LoadHaps(vector<vector<char> > & inHaps,  PanelType panelType);
+
+
+
     void CheckPanelPrereqs(PanelType panelType);
 
+    void Char2BitVec(const vector<vector<char> > & inHaps, unsigned numWords, vector<uint64_t> & storeHaps);
+
     void CalculateVarAfs();
+
+
 
     // print out usage
     static void document(void);
@@ -96,11 +123,11 @@ class Insti : public Impute {
     static unsigned s_uClusterType; // what type of clustering
 
     // number of simulated annealing burnin generations
-    static unsigned s_uSABurninGen; 
+    static unsigned s_uSABurninGen;
     static unsigned s_uNonSABurninGen; // number of non-SA burning generations
 
     // 0-based generation number at which to start clustering
-    static unsigned    s_uStartClusterGen; 
+    static unsigned    s_uStartClusterGen;
 
     // bool flag to keep track if we want to phase samples from ref haps only in first round
     static bool s_bKickStartFromRef;
@@ -112,17 +139,20 @@ class Insti : public Impute {
     static string s_scaffoldSampleFile; // location of scaffold sample file
     static double s_scaffoldFreqCutoff; // cutoff MAF for what to fix in scaffold
 
-    unsigned GetNumWords() {
+    unsigned GetNumWords()
+    {
         return wn;
     }
 
     // returns allele of hap number hap at sites number site
-    bool TestRefHap(uint hap, uint site) {
+    bool TestRefHap(uint hap, uint site)
+    {
         return test(&m_vRefHaps[ hap * wn], site) == 1;
     }
 
     // are we logging?
-    bool LogOn(void) {
+    bool LogOn(void)
+    {
         return s_bIsLogging;
     }
 
@@ -153,10 +183,13 @@ class Insti : public Impute {
     void save_relationship_graph(string sOutputFile);
     void save_vcf(const char *F);
 
-    bool UsingScaffold(){ return (m_uNumScaffoldHaps > 0); };
-
+    bool UsingScaffold()
+    {
+        return (m_uNumScaffoldHaps > 0);
+    };
 };
 
 #endif /* _INSTI_H */
+
 
 
