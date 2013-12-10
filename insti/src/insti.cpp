@@ -358,7 +358,62 @@ bool Insti::LoadHapsSamp(string hapsFile, string sampleFile,
     return true;
 }
 
-void Insti::SubsetSamples(vector<string> & loadIDs, vector<vector<char> > & loadHaps)
+void Insti::OrderSamples(vector<string> & loadIDs,
+                         vector<vector<char> > & loadHaps)
+{
+
+    assert(loadIDs.size() == m_namesUnordered.size());
+    assert(loadIDs.size() * 2  == loadHaps[0].size());
+
+
+    vector<unsigned> orderedLoadNameIdxs;
+    orderedLoadNameIdxs.reserve(loadIDs.size());
+
+    for (unsigned idIdx = 0; idIdx < loadIDs.size(); idIdx++) {
+        auto foundID = m_namesUnordered.find(loadIDs[idIdx]);
+
+        if (foundID != m_namesUnordered.end()) {
+            assert(foundID->second < m_namesUnordered.size());
+            orderedLoadNameIdxs.push_back(foundID->second);
+        } else
+            assert(false); // programming error
+    }
+
+    // sort names according to orderedLoadNameIdxs
+    vector<string> tempIDs(orderedLoadNameIdxs.size());
+
+    for (unsigned sortIdxIdx = 0; sortIdxIdx < orderedLoadNameIdxs.size();
+            sortIdxIdx++)
+        tempIDs[orderedLoadNameIdxs[sortIdxIdx]] = loadIDs[sortIdxIdx];
+
+    std::swap(tempIDs, loadIDs);
+
+    // sort haplotypes according to orderedLoadNameIdxs
+    for (unsigned siteIdx = 0; siteIdx < loadHaps.size(); siteIdx++) {
+
+        // subset haps
+        vector<char> tempSite(orderedLoadNameIdxs.size() * 2);
+
+        for (unsigned sortIdxIdx = 0; sortIdxIdx < orderedLoadNameIdxs.size();
+                sortIdxIdx++) {
+            tempSite[orderedLoadNameIdxs[sortIdxIdx * 2]] =
+                loadHaps[siteIdx][sortIdxIdx * 2];
+            tempSite[orderedLoadNameIdxs[sortIdxIdx * 2 + 1]] =
+                loadHaps[siteIdx][sortIdxIdx * 2 + 1];
+        }
+
+        assert(tempSite.size() == orderedLoadNameIdxs.size() * 2);
+        std::swap(tempSite, loadHaps[siteIdx]);
+        assert(loadHaps[siteIdx].size() == orderedLoadNameIdxs.size() * 2);
+    }
+
+    assert(loadIDs.size() * 2 == loadHaps[0].size());
+
+
+
+}
+void Insti::SubsetSamples(vector<string> & loadIDs,
+                          vector<vector<char> > & loadHaps)
 {
 
     assert(loadIDs.size() >= m_namesUnordered.size());
@@ -380,26 +435,30 @@ void Insti::SubsetSamples(vector<string> & loadIDs, vector<vector<char> > & load
     // subset haplotypes
     vector<string> tempIDs;
     tempIDs.reserve(idIdxsToKeep.size());
-    for(auto keepIdx : idIdxsToKeep)
+
+    for (auto keepIdx : idIdxsToKeep)
         tempIDs.push_back(loadIDs[keepIdx]);
+
     std::swap(tempIDs, loadIDs);
-    
-    for(unsigned siteIdx = 0; siteIdx < loadHaps.size(); siteIdx++){
+
+    for (unsigned siteIdx = 0; siteIdx < loadHaps.size(); siteIdx++) {
 
         // subset haps
         vector<char> tempSite;
         tempSite.reserve(idIdxsToKeep.size() * 2);
-        for(auto keepIdx : idIdxsToKeep){
+
+        for (auto keepIdx : idIdxsToKeep) {
             tempSite.push_back(loadHaps[siteIdx][keepIdx * 2]);
             tempSite.push_back(loadHaps[siteIdx][keepIdx * 2 + 1]);
         }
-        assert(tempSite.size() == idIdxsToKeep.size() *2);
+
+        assert(tempSite.size() == idIdxsToKeep.size() * 2);
         std::swap(tempSite, loadHaps[siteIdx]);
-        assert(loadHaps[siteIdx].size() == idIdxsToKeep.size() *2);
+        assert(loadHaps[siteIdx].size() == idIdxsToKeep.size() * 2);
     }
 
-    assert(loadIDs.size() *2 == loadHaps[0].size());
-    
+    assert(loadIDs.size() * 2 == loadHaps[0].size());
+
 }
 
 // only keep sites in main gl set
@@ -575,11 +634,11 @@ void Insti::LoadHaps(vector<vector<char> > & inHaps, PanelType panelType)
 
     case PanelType::SCAFFOLD:
         assert(WordMod >= 0);
+        m_uNumScaffoldHaps = numHaps;
         Char2BitVec(inHaps,
-                    static_cast<unsigned>(ceil(static_cast<double>(inHaps.size()) / (WordMod + 1))),
+                    ceil(static_cast<double>(inHaps.size()) / (WordMod +1)),
                     storeHaps);
         std::swap(m_ScaffoldHaps, storeHaps);
-        m_uNumScaffoldHaps = numHaps;
         cerr << "Scaffold haplotypes\t" << m_uNumScaffoldHaps << endl;
 
         try {
@@ -1604,6 +1663,9 @@ void    Insti::document(void)
     cerr << "\n\n";
     exit(1);
 }
+
+
+
 
 
 
