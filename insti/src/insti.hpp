@@ -83,12 +83,30 @@ private:
     void OpenSample(string sampleFile, vector<string> & IDs);
     void MatchSamples(const vector<std::string> & IDs, unsigned numHaps);
     void SubsetSamples(vector<string> & loadIDs, vector<vector< char> > & loadHaps);
+    void OrderSamples(vector<string> & loadIDs,
+                      vector<vector<char> > & loadHaps);
     bool SwapMatch(const snp & loadSite,
                       const Site & existSite, vector<char>  & loadHap,
                        vector<char> & existHap);
 
 public:
 
+    unsigned GetScaffoldNumWords(){
+        assert(m_ScaffoldHaps.size() > 0);
+        assert(m_ScaffoldHaps.size() % m_uNumScaffoldHaps == 0);
+        return (m_ScaffoldHaps.size() / m_uNumScaffoldHaps);
+    }
+    string GetScaffoldID(unsigned idx){
+        assert(idx < m_ScaffoldIDs.size());
+        return m_ScaffoldIDs[idx];
+    }
+    bool TestScaffoldSite(unsigned hapNum, unsigned siteNum){
+        assert(hapNum * GetScaffoldNumWords() < m_ScaffoldHaps.size());
+        assert(siteNum < GetScaffoldNumWords() * (WordMod + 1));
+        return test(&m_ScaffoldHaps[hapNum * GetScaffoldNumWords()], siteNum);
+    }
+
+    
     Insti()
         : m_oRelationship(Insti::s_uNumClusters, Insti::s_uClusterType) {};
 
@@ -112,6 +130,11 @@ public:
 
     void CheckPanelPrereqs(PanelType panelType);
 
+    void Char2BitVec(const vector<vector<char> > & inHaps, double numWords, vector<uint64_t> & storeHaps){
+        assert(numWords >= 0);
+        Char2BitVec(inHaps, static_cast<unsigned>(numWords), storeHaps);
+    }
+    
     void Char2BitVec(const vector<vector<char> > & inHaps, unsigned numWords, vector<uint64_t> & storeHaps);
 
     void CalculateVarAfs();

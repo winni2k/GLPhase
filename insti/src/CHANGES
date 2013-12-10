@@ -1,3 +1,6 @@
+1.2.4   Tue Dec 10 12:29:49 GMT 2013
+        Added filtering and sorting of hapsSamp samples files
+
 1.2.3   Mon Dec 09 15:32:32 GMT 2013
         Added filtering of haps files at input to speed things up
 
