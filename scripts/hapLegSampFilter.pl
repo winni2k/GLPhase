@@ -47,6 +47,21 @@ sub _build_filterFiles {
     return \%return;
 }
 
+sub outHap {
+    my $self = shift;
+    return $self->base . ".hap.gz"
+}
+sub outSamp {
+    my $self = shift;
+    return $self->base . ".samp.gz"
+}
+sub outLeg {
+    my $self = shift;
+    return $self->base . ".leg.gz"
+}
+
+
+
 # internal variables
 has '_requiredFiles' => (
     is  => 'rw',
