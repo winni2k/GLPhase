@@ -25,9 +25,9 @@ has 'dm'        => ( is => 'rw', isa     => 'DM' );
 has 'hap'       => ( is => 'rw', default => undef );
 has 'leg'       => ( is => 'rw', default => undef );
 has 'samp'      => ( is => 'rw', default => undef );
-has 'keepPop'   => ( is => 'rw', default => undef );
-has 'keepGroup' => ( is => 'rw', default => undef );
-has 'keepSex'   => ( is => 'rw', default => undef );
+has 'keepPop'   => ( is => 'rw', default => q// );
+has 'keepGroup' => ( is => 'rw', default => q// );
+has 'keepSex'   => ( is => 'rw', default => q// );
 has base        => ( is => 'rw', default => 'out' );
 
 # constants
@@ -115,7 +115,7 @@ around _requiredFiles => sub {
     map { $counts{$_} = 0 } keys %files;
     my $rhFilters = $self->_filterFiles;
     for my $filter ( sort keys %{$rhFilters} ) {
-        next unless defined $self->$filter;
+        next unless $self->$filter =! m/./;
         map { $counts{$_}++ } @{ $rhFilters->{$filter} };
     }
     croak "error in building filterFiles" if keys %counts != 3;
