@@ -330,3 +330,9 @@ using Omni 1M and 2.5M
 ###########
 # Thu Dec 05 10:06:14 GMT 2013
 - contact Petr and ask about the state of his SOM filtering
+
+
+###########
+# Wed Dec 11 10:43:43 GMT 2013
+- try imputing from just european haplotypes
+- /gpfs1/well/marchini/olivier/HAPC/step7_ligated/ALL.chr20.unionAC10BGL.hap.gz

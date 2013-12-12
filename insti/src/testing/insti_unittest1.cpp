@@ -26,7 +26,7 @@ string scaffHapsSampUnorderedSample = sampleDir +
                                       "/onlyThree.hapsSample.unordered.sample";
 
 string scaffoldUnorderedHaps = sampleDir +
-                               "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted.unordered.haps";
+    "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted.unordered.haps";
 string scaffoldHap = sampleDir +
                      "/20_011976121_012173018.bin.onlyThree.scaffold50.hap";
 string scaffoldHaps = sampleDir +
@@ -148,6 +148,9 @@ TEST(Insti, loadHapsSamp)
 
     // test the scaffold loading
     lp.LoadHapsSamp(scaffoldHaps, scaffHapsSampSample, PanelType::SCAFFOLD);
+    ASSERT_EQ("samp1", lp.GetScaffoldID(0));
+    ASSERT_EQ("samp2", lp.GetScaffoldID(1));
+    ASSERT_EQ("samp3", lp.GetScaffoldID(2));
 
     for (unsigned i = 0; i != 26; i++) {
         EXPECT_EQ(0, lp.TestScaffoldSite(0, i));
@@ -162,7 +165,7 @@ TEST(Insti, loadHapsSamp)
         EXPECT_EQ(0, lp.TestScaffoldSite(1, i));
         EXPECT_EQ(0, lp.TestScaffoldSite(2, i));
         EXPECT_EQ(1, lp.TestScaffoldSite(3, i));
-        EXPECT_EQ(0, lp.TestScaffoldSite(4, i));
+        EXPECT_EQ(1, lp.TestScaffoldSite(4, i));
         EXPECT_EQ(0, lp.TestScaffoldSite(5, i));
     }
 
@@ -173,24 +176,26 @@ TEST(Insti, loadHapsSamp)
     lp2.initialize();
 
     // test the scaffold loading
-    lp2.LoadHapsSamp(scaffoldUnorderedHaps, scaffHapsSampSample, PanelType::SCAFFOLD);
+    lp2.LoadHapsSamp(scaffoldHaps, scaffHapsSampUnorderedSample, PanelType::SCAFFOLD);
+    ASSERT_EQ("samp1", lp.GetScaffoldID(0));
+    ASSERT_EQ("samp2", lp.GetScaffoldID(1));
+    ASSERT_EQ("samp3", lp.GetScaffoldID(2));
     for (unsigned i = 0; i != 26; i++) {
+        EXPECT_EQ(0, lp.TestScaffoldSite(4, i));
+        EXPECT_EQ(1, lp.TestScaffoldSite(5, i));
         EXPECT_EQ(0, lp.TestScaffoldSite(0, i));
         EXPECT_EQ(1, lp.TestScaffoldSite(1, i));
         EXPECT_EQ(0, lp.TestScaffoldSite(2, i));
-        EXPECT_EQ(1, lp.TestScaffoldSite(3, i));
-        EXPECT_EQ(0, lp.TestScaffoldSite(4, i));
-        EXPECT_EQ(0, lp.TestScaffoldSite(5, i));
+        EXPECT_EQ(0, lp.TestScaffoldSite(3, i));
     }
     for (unsigned i = 26; i != 50; i++) {
-        EXPECT_EQ(1, lp.TestScaffoldSite(0, i));
-        EXPECT_EQ(0, lp.TestScaffoldSite(1, i));
-        EXPECT_EQ(0, lp.TestScaffoldSite(2, i));
-        EXPECT_EQ(1, lp.TestScaffoldSite(3, i));
-        EXPECT_EQ(0, lp.TestScaffoldSite(4, i));
+        EXPECT_EQ(1, lp.TestScaffoldSite(4, i));
         EXPECT_EQ(0, lp.TestScaffoldSite(5, i));
+        EXPECT_EQ(0, lp.TestScaffoldSite(0, i));
+        EXPECT_EQ(1, lp.TestScaffoldSite(1, i));
+        EXPECT_EQ(1, lp.TestScaffoldSite(2, i));
+        EXPECT_EQ(0, lp.TestScaffoldSite(3, i));
     }
-
 }
 
 

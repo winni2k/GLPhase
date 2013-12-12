@@ -53,9 +53,9 @@ private:
     unsigned m_uNumRefHaps = 0;
 
     // scaffold haplotypes
-    vector<uint64_t> m_ScaffoldHaps;
+    vector<uint64_t> m_scaffoldHaps;
     vector<unsigned> m_vuScaffoldPositions;
-    vector<std::string> m_ScaffoldIDs;
+    vector<std::string> m_scaffoldIDs;
     unsigned m_uNumScaffoldHaps = 0;
 
     // Insti redefinition of hmm_like
@@ -92,18 +92,18 @@ private:
 public:
 
     unsigned GetScaffoldNumWords(){
-        assert(m_ScaffoldHaps.size() > 0);
-        assert(m_ScaffoldHaps.size() % m_uNumScaffoldHaps == 0);
-        return (m_ScaffoldHaps.size() / m_uNumScaffoldHaps);
+        assert(m_scaffoldHaps.size() > 0);
+        assert(m_scaffoldHaps.size() % m_uNumScaffoldHaps == 0);
+        return (m_scaffoldHaps.size() / m_uNumScaffoldHaps);
     }
     string GetScaffoldID(unsigned idx){
-        assert(idx < m_ScaffoldIDs.size());
-        return m_ScaffoldIDs[idx];
+        assert(idx < m_scaffoldIDs.size());
+        return m_scaffoldIDs[idx];
     }
     bool TestScaffoldSite(unsigned hapNum, unsigned siteNum){
-        assert(hapNum * GetScaffoldNumWords() < m_ScaffoldHaps.size());
+        assert(hapNum * GetScaffoldNumWords() < m_scaffoldHaps.size());
         assert(siteNum < GetScaffoldNumWords() * (WordMod + 1));
-        return test(&m_ScaffoldHaps[hapNum * GetScaffoldNumWords()], siteNum);
+        return test(&m_scaffoldHaps[hapNum * GetScaffoldNumWords()], siteNum);
     }
 
     

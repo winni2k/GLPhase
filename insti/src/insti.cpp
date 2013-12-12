@@ -340,9 +340,10 @@ bool Insti::LoadHapsSamp(string hapsFile, string sampleFile,
         // get sample information if we are using a scaffold
         // make sure samples match
         if (panelType == PanelType::SCAFFOLD) {
-            OpenSample(sampleFile, m_ScaffoldIDs);
-            SubsetSamples(m_ScaffoldIDs, loadHaps);
-            MatchSamples(m_ScaffoldIDs, loadHaps[0].size());
+            OpenSample(sampleFile, m_scaffoldIDs);
+            SubsetSamples(m_scaffoldIDs, loadHaps);
+            OrderSamples(m_scaffoldIDs, loadHaps);
+            MatchSamples(m_scaffoldIDs, loadHaps[0].size());
         }
 
         vector<vector<char> > filtHaps;
@@ -382,9 +383,9 @@ void Insti::OrderSamples(vector<string> & loadIDs,
     // sort names according to orderedLoadNameIdxs
     vector<string> tempIDs(orderedLoadNameIdxs.size());
 
-    for (unsigned sortIdxIdx = 0; sortIdxIdx < orderedLoadNameIdxs.size();
-            sortIdxIdx++)
-        tempIDs[orderedLoadNameIdxs[sortIdxIdx]] = loadIDs[sortIdxIdx];
+    for (unsigned nameOrderIdx = 0; nameOrderIdx < orderedLoadNameIdxs.size();
+            nameOrderIdx++)
+        tempIDs[orderedLoadNameIdxs[nameOrderIdx]] = loadIDs[nameOrderIdx];
 
     std::swap(tempIDs, loadIDs);
 
@@ -394,12 +395,12 @@ void Insti::OrderSamples(vector<string> & loadIDs,
         // subset haps
         vector<char> tempSite(orderedLoadNameIdxs.size() * 2);
 
-        for (unsigned sortIdxIdx = 0; sortIdxIdx < orderedLoadNameIdxs.size();
-                sortIdxIdx++) {
-            tempSite[orderedLoadNameIdxs[sortIdxIdx * 2]] =
-                loadHaps[siteIdx][sortIdxIdx * 2];
-            tempSite[orderedLoadNameIdxs[sortIdxIdx * 2 + 1]] =
-                loadHaps[siteIdx][sortIdxIdx * 2 + 1];
+        for (unsigned nameOrderIdx = 0; nameOrderIdx < orderedLoadNameIdxs.size();
+                nameOrderIdx++) {
+            tempSite[orderedLoadNameIdxs[nameOrderIdx] * 2] =
+                loadHaps[siteIdx][nameOrderIdx * 2];
+            tempSite[orderedLoadNameIdxs[nameOrderIdx] * 2 + 1] =
+                loadHaps[siteIdx][nameOrderIdx * 2 + 1];
         }
 
         assert(tempSite.size() == orderedLoadNameIdxs.size() * 2);
@@ -638,7 +639,7 @@ void Insti::LoadHaps(vector<vector<char> > & inHaps, PanelType panelType)
         Char2BitVec(inHaps,
                     ceil(static_cast<double>(inHaps.size()) / (WordMod +1)),
                     storeHaps);
-        std::swap(m_ScaffoldHaps, storeHaps);
+        std::swap(m_scaffoldHaps, storeHaps);
         cerr << "Scaffold haplotypes\t" << m_uNumScaffoldHaps << endl;
 
         try {
@@ -667,8 +668,8 @@ void Insti::CheckPanelPrereqs(PanelType panelType)
     case PanelType::SCAFFOLD:
         m_bUsingScaffold = true;
         assert(m_vuScaffoldPositions.size() == 0);
-        assert(m_ScaffoldHaps.size() == 0);
-        assert(m_ScaffoldIDs.size() == 0);
+        assert(m_scaffoldHaps.size() == 0);
+        assert(m_scaffoldIDs.size() == 0);
         break;
 
     default:
@@ -1120,7 +1121,7 @@ void    Insti::estimate()
             // use kmeans
             case 2:
                 if (UsingScaffold())
-                    m_oRelationship.init(4, m_ScaffoldHaps, wn, m_uNumScaffoldHaps,
+                    m_oRelationship.init(4, m_scaffoldHaps, wn, m_uNumScaffoldHaps,
                                          s_scaffoldFreqCutoff);
                 else
                     m_oRelationship.init(4, haps, wn, mn, rng);
