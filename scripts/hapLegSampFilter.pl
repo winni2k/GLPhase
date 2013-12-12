@@ -64,8 +64,8 @@ around keepHapRows => sub {
     # use wc to read number of rows
     my @keepSites;
     unless ( defined $self->leg ) {
-        my $cmd
-          if ( $self->hap =~ m/\.gz$/ ) {
+        my $cmd;
+        if ( $self->hap =~ m/\.gz$/ ) {
             $cmd = "gzip -dc " . $self->hap . " | wc -l";
         }
         else {
@@ -105,8 +105,8 @@ around keepHapCols => sub {
     return $self->$orig() if defined $self->$orig();
     my @keepSamples;
     unless ( defined $self->samp ) {
-        my $cmd
-          if ( $self->hap =~ m/\.gz$/ ) {
+        my $cmd;
+        if ( $self->hap =~ m/\.gz$/ ) {
             $cmd = "gzip -dc " . $self->hap . q/ | head -1 | awk '{print NF}'/;
         }
         else {
