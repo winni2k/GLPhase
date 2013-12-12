@@ -51,7 +51,6 @@ sub _build_filterFiles {
 has '_requiredFiles' => (
     is      => 'rw',
     isa     => 'HashRef',
-    default => undef,
 );
 has keepHapCols => ( is => 'rw', isa => 'ArrayRef[Bool]' );
 has keepHapRows => ( is => 'rw', isa => 'ArrayRef[Bool]' );
