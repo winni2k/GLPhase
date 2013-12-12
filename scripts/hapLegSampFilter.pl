@@ -215,9 +215,10 @@ sub PrintFilterHap {
     # don't print anything if the hap file wasn't required!
     return unless $self->_requiredFiles->{hap};
 
-    print "Printing hap output file to: ".$self->outHap;
+    print "Printing hap output file to: ".$self->outHap."\n";
     my @keepCols = @{ $self->keepHapCols };
     my @keepRows = @{ $self->keepHapRows };
+
     my $openCmd  = $self->openCmd( $self->hap, '<' );
     open( my $hapFH, $openCmd );
     $openCmd = $self->openCmd( $self->outHap, '>' );
@@ -253,8 +254,8 @@ sub PrintFilterLeg {
 
     # don't print anything if the hap file wasn't required!
     return unless $self->_requiredFiles->{leg};
-    print "Printing leg output file to: ".$self->outLeg;
 
+    print "Printing leg output file to: ".$self->outLeg."\n";
     my @keepRows = @{ $self->keepHapRows };
     my $openCmd = $self->openCmd( $self->leg, '<' );
     open( my $inFH, $openCmd );
@@ -282,8 +283,8 @@ sub PrintFilterSamp {
 
     # don't print anything if the samp file wasn't required!
     return unless $self->_requiredFiles->{samp};
-    print "Printing samp output file to: ".$self->outSamp;
 
+    print "Printing samp output file to: ".$self->outSamp."\n";
     my @keepCols = @{ $self->keepHapCols };
     my $openCmd = $self->openCmd( $self->samp, '<' );
     open( my $inFH, $openCmd );
