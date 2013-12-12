@@ -49,8 +49,8 @@ sub _build_filterFiles {
 
 # internal variables
 has '_requiredFiles' => (
-    is      => 'rw',
-    isa     => 'HashRef',
+    is  => 'rw',
+    isa => 'HashRef',
 );
 has keepHapCols => ( is => 'rw', isa => 'ArrayRef[Bool]' );
 has keepHapRows => ( is => 'rw', isa => 'ArrayRef[Bool]' );
@@ -61,23 +61,40 @@ around keepHapRows => sub {
 
     return $self->$orig() if defined $self->$orig();
 
-    return undef unless defined $self->leg;
-    my $openCmd = $self->openCmd( $self->leg, '<' );
-    open( my $inFH, $openCmd );
-    my $head = <$inFH>;
-    chomp $head;
-    croak "Unexpected leg header '$head' in leg file: " . $self->leg
-      unless $head =~ m/^id position a0 a1/;
-
-    my $rowNum = 0;
+    # use wc to read number of rows
     my @keepSites;
-    while (<$inFH>) {
-        chomp;
-        my @line = split(' ');
-        my $keep = 0;
-        $keep = 1 if $self->keepLegLine( \@line );
-        push @keepSites, $keep;
+    unless ( defined $self->leg ) {
+        my $cmd
+          if ( $self->hap =~ m/\.gz$/ ) {
+            $cmd = "gzip -dc " . $self->hap . " | wc -l";
+        }
+        else {
+            $cmd = " wc -l " . $self->hap;
+        }
+        my $numLines = qx/$cmd/;
+        my @line = split( /\s/, $numLines );
+        $numLines = $line[0];
+        croak "weird wc. hap empty?" unless $numLines > 0;
+        @keepSites = map { 1 } 0 .. ( $numLines - 1 );
     }
+    else {
+        my $openCmd = $self->openCmd( $self->leg, '<' );
+        open( my $inFH, $openCmd );
+        my $head = <$inFH>;
+        chomp $head;
+        croak "Unexpected leg header '$head' in leg file: " . $self->leg
+          unless $head =~ m/^id position a0 a1/;
+
+        my $rowNum = 0;
+        while (<$inFH>) {
+            chomp;
+            my @line = split(' ');
+            my $keep = 0;
+            $keep = 1 if $self->keepLegLine( \@line );
+            push @keepSites, $keep;
+        }
+    }
+    print "Keeping " . @keepSites . " sites\n";
     return $self->$orig( \@keepSites );
 };
 
@@ -86,23 +103,36 @@ around keepHapCols => sub {
     my $self = shift;
 
     return $self->$orig() if defined $self->$orig();
-    return undef unless defined $self->samp;
-
-    my $openCmd = $self->openCmd( $self->samp, '<' );
-    open( my $inFH, $openCmd );
-    my $head = <$inFH>;
-    chomp $head;
-    croak "Unexpected samp header '$head' in samp file: " . $self->samp
-      unless $head =~ m/^sample population group sex/;
-
-    my $rowNum = 0;
     my @keepSamples;
-    while (<$inFH>) {
-        chomp;
-        my @line = split(' ');
-        my $keep = 0;
-        $keep = 1 if $self->keepSampLine( \@line );
-        push @keepSamples, $keep;
+    unless ( defined $self->samp ) {
+        my $cmd
+          if ( $self->hap =~ m/\.gz$/ ) {
+            $cmd = "gzip -dc " . $self->hap . q/ | head -1 | awk '{print NF}'/;
+        }
+        else {
+            $cmd = " head -1 " . $self->hap . q/ | awk '{print NF}'/;
+        }
+        my $numLines = qx/$cmd/;
+        chomp $numLines;
+        croak "weird awk nf. hap empty?" unless $numLines > 0;
+        @keepSites = map { 1 } 0 .. ( $numLines - 1 );
+    }
+    else {
+        my $openCmd = $self->openCmd( $self->samp, '<' );
+        open( my $inFH, $openCmd );
+        my $head = <$inFH>;
+        chomp $head;
+        croak "Unexpected samp header '$head' in samp file: " . $self->samp
+          unless $head =~ m/^sample population group sex/;
+
+        my $rowNum = 0;
+        while (<$inFH>) {
+            chomp;
+            my @line = split(' ');
+            my $keep = 0;
+            $keep = 1 if $self->keepSampLine( \@line );
+            push @keepSamples, $keep;
+        }
     }
     return $self->$orig( \@keepSamples );
 };
@@ -266,7 +296,7 @@ sub openCmd {
     croak "rwFlag is not '<' or '>': $rwFlag" unless $read xor $write;
 
     my $cmd;
-    if ( $file =~ m/\.gz/ ) {
+    if ( $file =~ m/\.gz$/ ) {
         if ($read) {
             $cmd = "gzip -dc $file |";
         }
