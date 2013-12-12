@@ -115,7 +115,7 @@ around _requiredFiles => sub {
     map { $counts{$_} = 0 } keys %files;
     my $rhFilters = $self->_filterFiles;
     for my $filter ( sort keys %{$rhFilters} ) {
-        next unless $self->$filter =! m/./;
+        next unless $self->$filter =~ m/./;
         map { $counts{$_}++ } @{ $rhFilters->{$filter} };
     }
     croak "error in building filterFiles" if keys %counts != 3;
