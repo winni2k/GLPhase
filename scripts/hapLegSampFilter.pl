@@ -149,6 +149,7 @@ around keepHapCols => sub {
             push @keepSamples, ($keep, $keep);
         }
     }
+    print "Keeping " . @keepSamples . " haplotypes\n";
     return $self->$orig( \@keepSamples );
 };
 
@@ -214,6 +215,7 @@ sub PrintFilterHap {
     # don't print anything if the hap file wasn't required!
     return unless $self->_requiredFiles->{hap};
 
+    print "Printing hap output file to: ".$self->outHap;
     my @keepCols = @{ $self->keepHapCols };
     my @keepRows = @{ $self->keepHapRows };
     my $openCmd  = $self->openCmd( $self->hap, '<' );
@@ -251,6 +253,7 @@ sub PrintFilterLeg {
 
     # don't print anything if the hap file wasn't required!
     return unless $self->_requiredFiles->{leg};
+    print "Printing leg output file to: ".$self->outLeg;
 
     my @keepRows = @{ $self->keepHapRows };
     my $openCmd = $self->openCmd( $self->leg, '<' );
@@ -279,6 +282,7 @@ sub PrintFilterSamp {
 
     # don't print anything if the samp file wasn't required!
     return unless $self->_requiredFiles->{samp};
+    print "Printing samp output file to: ".$self->outSamp;
 
     my @keepCols = @{ $self->keepHapCols };
     my $openCmd = $self->openCmd( $self->samp, '<' );
