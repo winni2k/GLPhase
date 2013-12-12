@@ -130,7 +130,7 @@ around keepHapCols => sub {
         my $numLines = qx/$cmd/;
         chomp $numLines;
         croak "weird awk nf. hap empty?" unless $numLines > 0;
-        @keepSamples = map { 1 } 0 .. ( $numLines - 1 );
+        @keepSamples = map { 1 } 0 .. ( 2*$numLines - 1 );
     }
     else {
         my $openCmd = $self->openCmd( $self->samp, '<' );
@@ -146,7 +146,7 @@ around keepHapCols => sub {
             my @line = split(' ');
             my $keep = 0;
             $keep = 1 if $self->keepSampLine( \@line );
-            push @keepSamples, $keep;
+            push @keepSamples, ($keep, $keep);
         }
     }
     return $self->$orig( \@keepSamples );
