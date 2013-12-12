@@ -22,9 +22,9 @@ $| = 1;
 has 'noDryRun' => ( is => 'ro', init_arg => 'r', isa => 'Bool', default => 0 );
 has 'numJobs'  => ( is => 'ro', init_arg => 'j', isa => 'Int',  default => 1 );
 has 'dm'        => ( is => 'rw', isa     => 'DM' );
-has 'hap'       => ( is => 'rw', default => undef );
-has 'leg'       => ( is => 'rw', default => undef );
-has 'samp'      => ( is => 'rw', default => undef );
+has 'hap'       => ( is => 'rw', default => q// );
+has 'leg'       => ( is => 'rw', default => q// );
+has 'samp'      => ( is => 'rw', default => q// );
 has 'keepPop'   => ( is => 'rw', default => q// );
 has 'keepGroup' => ( is => 'rw', default => q// );
 has 'keepSex'   => ( is => 'rw', default => q// );
@@ -63,7 +63,7 @@ around keepHapRows => sub {
 
     # use wc to read number of rows
     my @keepSites;
-    unless ( defined $self->leg ) {
+    unless ( $self->leg =~ m/./ ) {
         my $cmd;
         if ( $self->hap =~ m/\.gz$/ ) {
             $cmd = "gzip -dc " . $self->hap . " | wc -l";
@@ -104,7 +104,7 @@ around keepHapCols => sub {
 
     return $self->$orig() if defined $self->$orig();
     my @keepSamples;
-    unless ( defined $self->samp ) {
+    unless ( $self->samp =~ m/./ ) {
         my $cmd;
         if ( $self->hap =~ m/\.gz$/ ) {
             $cmd = "gzip -dc " . $self->hap . q/ | head -1 | awk '{print NF}'/;
