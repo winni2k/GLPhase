@@ -61,6 +61,7 @@ around keepHapRows => sub {
 
     return $self->$orig() if defined $self->$orig();
 
+    return undef unless defined $self->leg;
     my $openCmd = $self->openCmd( $self->leg, '<' );
     open( my $inFH, $openCmd );
     my $head = <$inFH>;
@@ -85,6 +86,8 @@ around keepHapCols => sub {
     my $self = shift;
 
     return $self->$orig() if defined $self->$orig();
+    return undef unless defined $self->samp;
+
     my $openCmd = $self->openCmd( $self->samp, '<' );
     open( my $inFH, $openCmd );
     my $head = <$inFH>;
