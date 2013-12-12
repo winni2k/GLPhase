@@ -53,8 +53,8 @@ has '_requiredFiles' => (
     isa     => 'HashRef',
     default => undef,
 );
-has keepHapCols => ( is => 'rw', isa => 'ArrayRef[Bool]', default => undef );
-has keepHapRows => ( is => 'rw', isa => 'ArrayRef[Bool]', default => undef );
+has keepHapCols => ( is => 'rw', isa => 'ArrayRef[Bool]' );
+has keepHapRows => ( is => 'rw', isa => 'ArrayRef[Bool]' );
 
 around keepHapRows => sub {
     my $orig = shift;
