@@ -115,7 +115,7 @@ around keepHapCols => sub {
         my $numLines = qx/$cmd/;
         chomp $numLines;
         croak "weird awk nf. hap empty?" unless $numLines > 0;
-        @keepSites = map { 1 } 0 .. ( $numLines - 1 );
+        @keepSamples = map { 1 } 0 .. ( $numLines - 1 );
     }
     else {
         my $openCmd = $self->openCmd( $self->samp, '<' );
