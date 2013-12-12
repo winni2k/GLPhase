@@ -36,7 +36,7 @@ has _filterFiles =>
 has _inputFiles => (
     is      => 'ro',
     isa     => 'HashRef[Bool]',
-    default => { hap => 1, samp => 1, leg => 1 }
+    default => sub { { hap => 1, samp => 1, leg => 1 } }
 );
 
 sub _build_filterFiles {
@@ -121,8 +121,9 @@ around _requiredFiles => sub {
     }
     croak "error in building filterFiles" if keys %counts != 3;
 
-    my @status = ("Reading files:",grep { $counts{$_} > 0} sort keys %counts);
-    print join(' ', @status)."\n";
+    my @status =
+      ( "Reading files:", grep { $counts{$_} > 0 } sort keys %counts );
+    print join( ' ', @status ) . "\n";
 
     return $self->$orig( \%counts );
 };
@@ -174,7 +175,8 @@ sub PrintFilterHap {
     open( my $outHapFH, $openCmd );
   LINE: for my $rowNum ( 0 .. $#keepRows ) {
         my $line = <$hapFH>;
-        croak "hap file has less rows than legend says it should have!" unless defined $line;
+        croak "hap file has less rows than legend says it should have!"
+          unless defined $line;
         next LINE unless $keepRows[$rowNum];
 
         chomp $line;
@@ -215,7 +217,8 @@ sub PrintFilterLeg {
 
   LINE: for my $rowNum ( 0 .. $#keepRows ) {
         my $line = <$inFH>;
-        croak "legend file has less rows than legend says it should have!" unless defined $line;
+        croak "legend file has less rows than legend says it should have!"
+          unless defined $line;
         next LINE unless $keepRows[$rowNum];
         print $outFH $line;
     }
@@ -241,7 +244,8 @@ sub PrintFilterSamp {
 
   LINE: for my $rowNum ( 0 .. $#keepCols ) {
         my $line = <$inFH>;
-        croak "samp file has less rows than samp says it should have!" unless defined $line;
+        croak "samp file has less rows than samp says it should have!"
+          unless defined $line;
         next LINE unless $keepCols[$rowNum];
         print $outFH $line;
     }
