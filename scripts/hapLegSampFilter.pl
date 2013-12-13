@@ -16,6 +16,7 @@ use Env qw(HOME);
 use autodie;
 use Carp;
 use DM;
+use List::Util qw/sum/;
 $| = 1;
 
 #input variables
@@ -109,7 +110,7 @@ around keepHapRows => sub {
             push @keepSites, $keep;
         }
     }
-    print "Keeping " . @keepSites . " sites\n";
+    print "Keeping " .sum( @keepSites) . " sites\n";
     return $self->$orig( \@keepSites );
 };
 
@@ -149,7 +150,7 @@ around keepHapCols => sub {
             push @keepSamples, ($keep, $keep);
         }
     }
-    print "Keeping " . @keepSamples . " haplotypes\n";
+    print "Keeping " . sum(@keepSamples) . " haplotypes\n";
     return $self->$orig( \@keepSamples );
 };
 
