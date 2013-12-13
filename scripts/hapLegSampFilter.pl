@@ -302,6 +302,7 @@ sub PrintFilterSamp {
     print $outFH $head;
 
   LINE: for my $rowNum ( 0 .. $#keepCols ) {
+        next unless $rowNum % 2 == 0; # only use even rows
         my $line = <$inFH>;
         croak "samp file only has $rowNum rows when it should have "
           . @keepCols . "!\n"
