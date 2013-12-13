@@ -249,7 +249,7 @@ sub PrintFilterHap {
         }
         print $outHapFH join( ' ', @outLine ) . "\n";
     }
-    print STDERR "$numRowsKept/".@keepRows."\n";
+    print STDERR "$numRowsKept/" . @keepRows . "\n";
 
     croak "hap file longer than legend!" if <$hapFH>;
     close($hapFH);
@@ -303,7 +303,8 @@ sub PrintFilterSamp {
 
   LINE: for my $rowNum ( 0 .. $#keepCols ) {
         my $line = <$inFH>;
-        croak "samp file has less rows than samp says it should have!"
+        croak "samp file only has $rowNum rows when it should have "
+          . @keepCols . "!\n"
           unless defined $line;
         next LINE unless $keepCols[$rowNum];
         print $outFH $line;
