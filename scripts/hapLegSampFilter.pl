@@ -198,13 +198,13 @@ sub keepSampLine {
     my $self   = shift;
     my $raLine = shift;
     my $keep   = 1;
-    if ( defined $self->keepPop ) {
+    if ( $self->keepPop =~ m/./) {
         $keep = 0 unless $self->keepPop eq $raLine->[1];
     }
-    if ( defined $self->keepGroup ) {
+    if ( $self->keepGroup =~ m/./ ) {
         $keep = 0 unless $self->keepGroup eq $raLine->[2];
     }
-    if ( defined $self->keepSex ) {
+    if ( $self->keepSex =~ m/./) {
         $keep = 0 unless $self->keepPop eq $raLine->[3];
     }
     return $keep;
