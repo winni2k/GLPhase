@@ -249,7 +249,7 @@ sub PrintFilterHap {
         }
         print $outHapFH join( ' ', @outLine ) . "\n";
     }
-    print STDERR "$numRowsKept/$rowNum\n";
+    print STDERR "$numRowsKept/".@keepRows."\n";
 
     croak "hap file longer than legend!" if <$hapFH>;
     close($hapFH);
