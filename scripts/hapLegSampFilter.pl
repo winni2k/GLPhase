@@ -299,7 +299,7 @@ sub PrintFilterSamp {
     open( my $outFH, $openCmd );
 
     my $head = <$inFH>;
-    print $head;
+    print $outFH $head;
 
   LINE: for my $rowNum ( 0 .. $#keepCols ) {
         my $line = <$inFH>;
