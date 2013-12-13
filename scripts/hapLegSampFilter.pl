@@ -50,18 +50,18 @@ sub _build_filterFiles {
 
 sub outHap {
     my $self = shift;
-    return $self->base . ".hap.gz"
+    return $self->base . ".hap.gz";
 }
+
 sub outSamp {
     my $self = shift;
-    return $self->base . ".samp.gz"
+    return $self->base . ".samp.gz";
 }
+
 sub outLeg {
     my $self = shift;
-    return $self->base . ".leg.gz"
+    return $self->base . ".leg.gz";
 }
-
-
 
 # internal variables
 has '_requiredFiles' => (
@@ -110,7 +110,7 @@ around keepHapRows => sub {
             push @keepSites, $keep;
         }
     }
-    print "Keeping " .sum( @keepSites) . " sites\n";
+    print "Keeping " . sum(@keepSites) . " sites\n";
     return $self->$orig( \@keepSites );
 };
 
@@ -131,7 +131,7 @@ around keepHapCols => sub {
         my $numLines = qx/$cmd/;
         chomp $numLines;
         croak "weird awk nf. hap empty?" unless $numLines > 0;
-        @keepSamples = map { 1 } 0 .. ( 2*$numLines - 1 );
+        @keepSamples = map { 1 } 0 .. ( 2 * $numLines - 1 );
     }
     else {
         my $openCmd = $self->openCmd( $self->samp, '<' );
@@ -147,7 +147,7 @@ around keepHapCols => sub {
             my @line = split(' ');
             my $keep = 0;
             $keep = 1 if $self->keepSampLine( \@line );
-            push @keepSamples, ($keep, $keep);
+            push @keepSamples, ( $keep, $keep );
         }
     }
     print "Keeping " . sum(@keepSamples) . " haplotypes\n";
@@ -198,13 +198,13 @@ sub keepSampLine {
     my $self   = shift;
     my $raLine = shift;
     my $keep   = 1;
-    if ( $self->keepPop =~ m/./) {
+    if ( $self->keepPop =~ m/./ ) {
         $keep = 0 unless $self->keepPop eq $raLine->[1];
     }
     if ( $self->keepGroup =~ m/./ ) {
         $keep = 0 unless $self->keepGroup eq $raLine->[2];
     }
-    if ( $self->keepSex =~ m/./) {
+    if ( $self->keepSex =~ m/./ ) {
         $keep = 0 unless $self->keepPop eq $raLine->[3];
     }
     return $keep;
@@ -216,19 +216,23 @@ sub PrintFilterHap {
     # don't print anything if the hap file wasn't required!
     return unless $self->_requiredFiles->{hap};
 
-    print "Printing hap output file to: ".$self->outHap."\n";
+    print "Printing hap output file to: " . $self->outHap . "\n";
     my @keepCols = @{ $self->keepHapCols };
     my @keepRows = @{ $self->keepHapRows };
 
-    my $openCmd  = $self->openCmd( $self->hap, '<' );
+    my $openCmd = $self->openCmd( $self->hap, '<' );
     open( my $hapFH, $openCmd );
     $openCmd = $self->openCmd( $self->outHap, '>' );
     open( my $outHapFH, $openCmd );
+    my $numRowsKept = 0;
   LINE: for my $rowNum ( 0 .. $#keepRows ) {
+        print STDERR "$numRowsKept/$rowNum\r" if $rowNum % 1000 == 0;
         my $line = <$hapFH>;
         croak "hap file has less rows than legend says it should have!"
           unless defined $line;
         next LINE unless $keepRows[$rowNum];
+
+        $numRowsKept++;
 
         chomp $line;
         my @line = split( ' ', $line );
@@ -245,6 +249,8 @@ sub PrintFilterHap {
         }
         print $outHapFH join( ' ', @outLine ) . "\n";
     }
+    print STDERR "$numRowsKept/$rowNum\n";
+
     croak "hap file longer than legend!" if <$hapFH>;
     close($hapFH);
     close($outHapFH);
@@ -256,7 +262,7 @@ sub PrintFilterLeg {
     # don't print anything if the hap file wasn't required!
     return unless $self->_requiredFiles->{leg};
 
-    print "Printing leg output file to: ".$self->outLeg."\n";
+    print "Printing leg output file to: " . $self->outLeg . "\n";
     my @keepRows = @{ $self->keepHapRows };
     my $openCmd = $self->openCmd( $self->leg, '<' );
     open( my $inFH, $openCmd );
@@ -285,7 +291,7 @@ sub PrintFilterSamp {
     # don't print anything if the samp file wasn't required!
     return unless $self->_requiredFiles->{samp};
 
-    print "Printing samp output file to: ".$self->outSamp."\n";
+    print "Printing samp output file to: " . $self->outSamp . "\n";
     my @keepCols = @{ $self->keepHapCols };
     my $openCmd = $self->openCmd( $self->samp, '<' );
     open( my $inFH, $openCmd );
