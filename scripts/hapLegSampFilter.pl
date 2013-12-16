@@ -291,7 +291,7 @@ sub PrintFilterLeg {
     my @keepRows = @{ $self->keepHapRows };
     my $openCmd = $self->openCmd( $self->leg, '<' );
     open( my $inFH, $openCmd );
-    $openCmd = $self->openCmd( $self->outleg, '>' );
+    $openCmd = $self->openCmd( $self->outLeg, '>' );
     open( my $outFH, $openCmd );
 
     #print header
