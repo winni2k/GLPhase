@@ -266,7 +266,7 @@ sub PrintFilterHap {
           . ") and cols according to sample file ("
           . @keepCols
           . ") do not agree!"
-          unless @keepCols == @line;
+          unless @keepCols == @line*2;
         my @outLine;
       COL: for my $colNum ( 0 .. $#line ) {
             next COL unless $keepCols[$colNum];
