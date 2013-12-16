@@ -1,9 +1,16 @@
 #!/usr/bin/perl
 # hapLegSampFilter.pl                   wkretzsch@gmail.com
 #                                       12 Dec 2013
-our $VERSION = '0.001';
+our $VERSION = '0.002';
 $VERSION = eval $VERSION;
 print STDERR "hapLegSampFilter.pl -- $VERSION\nBy\twkretzsch@gmail.com\n\n";
+
+=head1 CHANGES
+
+0.002  Mon Dec 16 13:30:16 GMT 2013
+       Removed unnecessary -r and -j options
+
+=cut
 
 package Runall;
 use warnings;
@@ -15,20 +22,17 @@ use File::Basename;
 use Env qw(HOME);
 use autodie;
 use Carp;
-use DM;
 use List::Util qw/sum/;
 $| = 1;
 
 #input variables
-has 'noDryRun' => ( is => 'ro', init_arg => 'r', isa => 'Bool', default => 0 );
-has 'numJobs'  => ( is => 'ro', init_arg => 'j', isa => 'Int',  default => 1 );
-has 'dm'        => ( is => 'rw', isa     => 'DM' );
 has 'hap'       => ( is => 'rw', default => q// );
 has 'leg'       => ( is => 'rw', default => q// );
 has 'samp'      => ( is => 'rw', default => q// );
 has 'keepPop'   => ( is => 'rw', default => q// );
 has 'keepGroup' => ( is => 'rw', default => q// );
 has 'keepSex'   => ( is => 'rw', default => q// );
+has 'keepSites'   => ( is => 'rw', default => q// );
 has base        => ( is => 'rw', default => 'out' );
 
 # constants
@@ -40,10 +44,14 @@ has _inputFiles => (
     default => sub { { hap => 1, samp => 1, leg => 1 } }
 );
 
+# build map of file dependencies for each filtering option
 sub _build_filterFiles {
     my %return;
     for (qw/keepPop keepGroup keepSex/) {
         $return{$_} = [qw/hap samp/];
+    }
+    for (qw/keepSites/) {
+        $return{$_} = [qw/hap leg/];
     }
     return \%return;
 }
@@ -70,7 +78,29 @@ has '_requiredFiles' => (
 );
 has keepHapCols => ( is => 'rw', isa => 'ArrayRef[Bool]' );
 has keepHapRows => ( is => 'rw', isa => 'ArrayRef[Bool]' );
+has keepSitesMap => (is=>'rw', isa => 'HashRef[Int]');
 
+around keepSitesMap =>sub{
+    my $orig = shift;
+    my $self = shift;
+
+    return $self->$orig() if defined $self->$orig();
+
+    confess "programming error: keepSites is undefined eventhough it should exist." unless $self->keepSites =~ m/./;
+
+    my %sites;
+    open (my $fh, '<' , $self->keepSites);
+    while(<$fh>){
+        chomp;
+        croak "keepSites should have only a single column" if =~ m/\s/;
+        $sites{$_} = $_;
+    }
+    close($fh);
+
+    return $self->$orig(\%sites);
+}
+
+# create array of sites to keep
 around keepHapRows => sub {
     my $orig = shift;
     my $self = shift;
@@ -105,9 +135,7 @@ around keepHapRows => sub {
         while (<$inFH>) {
             chomp;
             my @line = split(' ');
-            my $keep = 0;
-            $keep = 1 if $self->keepLegLine( \@line );
-            push @keepSites, $keep;
+            push @keepSites, $self->keepLegLine( \@line );
         }
     }
     print "Keeping " . sum(@keepSites) . " sites\n";
@@ -177,20 +205,16 @@ around _requiredFiles => sub {
     return $self->$orig( \%counts );
 };
 
-sub BUILD {
-
-    my $self = shift;
-    $self->dm(
-        DM->new( dryRun => !$self->noDryRun, numJobs => $self->numJobs ) );
-
-}
 
 # no filters implemented yet
 sub keepLegLine {
     my $self   = shift;
     my $raLine = shift;
 
-    return 1;
+    my $position = $raLine->[1];
+    return 1 if exists $self->keepSitesMap->{$position};
+
+    return 0;
 }
 
 # filtering sample line according to filters
@@ -354,14 +378,13 @@ use strict;
 use ParseArgs qw/getCommandArguments/;
 my %args = getCommandArguments(
     requiredArgs => {
-        r         => 0,
-        j         => 1,
         hap       => q//,
         leg       => q//,
         samp      => q//,
         keepPop   => q//,
         keepGroup => q//,
         keepSex   => q//,
+        keepSites => q//,
         base      => q/out/,
     }
 );
