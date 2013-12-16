@@ -32,7 +32,7 @@ has 'samp'      => ( is => 'rw', default => q// );
 has 'keepPop'   => ( is => 'rw', default => q// );
 has 'keepGroup' => ( is => 'rw', default => q// );
 has 'keepSex'   => ( is => 'rw', default => q// );
-has 'keepSites'   => ( is => 'rw', default => q// );
+has 'keepSites' => ( is => 'rw', default => q// );
 has base        => ( is => 'rw', default => 'out' );
 
 # constants
@@ -76,29 +76,31 @@ has '_requiredFiles' => (
     is  => 'rw',
     isa => 'HashRef',
 );
-has keepHapCols => ( is => 'rw', isa => 'ArrayRef[Bool]' );
-has keepHapRows => ( is => 'rw', isa => 'ArrayRef[Bool]' );
-has keepSitesMap => (is=>'rw', isa => 'HashRef[Int]');
+has keepHapCols  => ( is => 'rw', isa => 'ArrayRef[Bool]' );
+has keepHapRows  => ( is => 'rw', isa => 'ArrayRef[Bool]' );
+has keepSitesMap => ( is => 'rw', isa => 'HashRef[Int]' );
 
-around keepSitesMap =>sub{
+around keepSitesMap => sub {
     my $orig = shift;
     my $self = shift;
 
     return $self->$orig() if defined $self->$orig();
 
-    confess "programming error: keepSites is undefined eventhough it should exist." unless $self->keepSites =~ m/./;
+    confess
+      "programming error: keepSites is undefined eventhough it should exist."
+      unless $self->keepSites =~ m/./;
 
     my %sites;
-    open (my $fh, '<' , $self->keepSites);
-    while(<$fh>){
+    open( my $fh, '<', $self->keepSites );
+    while (<$fh>) {
         chomp;
-        croak "keepSites should have only a single column" if =~ m/\s/;
+        croak "keepSites should have only a single column" if $_ =~ m/\s/;
         $sites{$_} = $_;
     }
     close($fh);
 
-    return $self->$orig(\%sites);
-}
+    return $self->$orig( \%sites );
+};
 
 # create array of sites to keep
 around keepHapRows => sub {
@@ -204,7 +206,6 @@ around _requiredFiles => sub {
 
     return $self->$orig( \%counts );
 };
-
 
 # no filters implemented yet
 sub keepLegLine {
@@ -326,7 +327,7 @@ sub PrintFilterSamp {
     print $outFH $head;
 
   LINE: for my $rowNum ( 0 .. $#keepCols ) {
-        next unless $rowNum % 2 == 0; # only use even rows
+        next unless $rowNum % 2 == 0;    # only use even rows
         my $line = <$inFH>;
         croak "samp file only has $rowNum rows when it should have "
           . @keepCols . "!\n"
