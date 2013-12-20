@@ -6,8 +6,10 @@ using namespace std;
 // initialization for kMeans clustering
 void KMeans::init(const vector< uint64_t > & vuHaplotypes,
                   unsigned uNumWordsPerHap, unsigned uNumSites,
-                  double dFreqCutoff) {
+                  double dFreqCutoff)
+{
 
+    cerr << "[KMeans]: Initialization start\n";
     assert(m_bInitialized == false);
     assert(uNumWordsPerHap > 0);
 
@@ -29,10 +31,12 @@ void KMeans::init(const vector< uint64_t > & vuHaplotypes,
     ClusterHaps(vuHaplotypes);
 
     m_bInitialized = true;
+    cerr << "[KMeans]: Initialization complete\n";
 
 }
 
-unsigned KMeans::SampleHap(unsigned uInd, gsl_rng *rng) {
+unsigned KMeans::SampleHap(unsigned uInd, gsl_rng *rng)
+{
 
     // this should be out of bounds if left unchanged
     unsigned uPropHap = m_uNumHaps;
@@ -58,12 +62,14 @@ struct dist {
 };
 
 struct by_dist {
-    bool operator()(dist const &a, dist const &b) {
+    bool operator()(dist const &a, dist const &b)
+    {
         return a.distance < b.distance;
     }
 };
 
-void KMeans::ClusterHaps(const vector< uint64_t > & vuHaplotypes) {
+void KMeans::ClusterHaps(const vector< uint64_t > & vuHaplotypes)
+{
 
     if (UsingScaffold()) {
         m_vvuNeighbors.clear();
@@ -71,6 +77,9 @@ void KMeans::ClusterHaps(const vector< uint64_t > & vuHaplotypes) {
 
         for (unsigned uSampNum = 0; uSampNum < m_uNumHaps / 2; uSampNum ++) {
 
+            cerr << "[KMeans::ClusterHaps]: Finding " << m_uNumClusters <<
+                 " nearest neighbors for sample " << uSampNum << "/" << m_uNumHaps / 2 - 1 <<
+                 "\r";
 
             // assign only the common sites of each hap to new haps
             Haplotype hHapA(uNumCommonSites);
@@ -112,9 +121,15 @@ void KMeans::ClusterHaps(const vector< uint64_t > & vuHaplotypes) {
         cout << "kmeans without a scaffold is not implemented yet" << endl;
         exit(4);
     }
+
+    cerr << "[KMeans::ClusterHaps]: Finding " << m_uNumClusters <<
+         " nearest neighbors for sample " << m_uNumHaps / 2 - 1 << "/" << m_uNumHaps / 2
+         - 1 << "\n";
+
 }
 
-void KMeans::AssignHap(Haplotype &hHap, const uint64_t *oa) {
+void KMeans::AssignHap(Haplotype &hHap, const uint64_t *oa)
+{
     unsigned uSiteNum = 0;
 
     for (auto iHapNum : m_vuCommonSiteNums) {
@@ -124,7 +139,8 @@ void KMeans::AssignHap(Haplotype &hHap, const uint64_t *oa) {
 }
 
 
-void KMeans::CutDownHaps() {
+void KMeans::CutDownHaps()
+{
 
     for (unsigned uPosNum = 0; uPosNum < m_uNumSites; uPosNum ++) {
         if (m_vdVarAfs[uPosNum] >= m_dFreqCutoff)
@@ -135,7 +151,8 @@ void KMeans::CutDownHaps() {
 /*
   calculate the variant allele frequency from scaffold for each position and store it in m_vdVarAfs
 */
-void KMeans::CalculateVarAfs(const vector < uint64_t > & vuScaffoldHaps) {
+void KMeans::CalculateVarAfs(const vector < uint64_t > & vuScaffoldHaps)
+{
 
     m_vdVarAfs.resize(m_uNumSites);
     Haplotype hTestHap(m_uNumSites);
@@ -165,6 +182,7 @@ void KMeans::CalculateVarAfs(const vector < uint64_t > & vuScaffoldHaps) {
         }
     */
 }
+
 
 
 

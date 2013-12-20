@@ -26,7 +26,7 @@ class Relationship {
      3 = kmedoids
      4 = kmeans
     */
-    int m_iGraphType;
+    int m_graphType = -1;
     KMedoids m_oKMedoids;
     RelationshipGraph m_oRelGraph;
     KMeans m_oKMeans;
@@ -47,8 +47,9 @@ class Relationship {
 
     void SetIGraphType(int iGraphType){
         assert(iGraphType < 5);
-        assert(m_iGraphType == -1);
-        m_iGraphType = iGraphType;
+        assert(iGraphType >= 0);
+        assert(m_graphType == -1);
+        m_graphType = iGraphType;
     }
     
     // initialize relationship graph
@@ -91,7 +92,7 @@ class Relationship {
 
     // returns a haplotype sampled using the relationship graph, but only from the reference haplotypes
     unsigned SampleHap(unsigned uInd, gsl_rng *rng, bool bOnlyFromRef) {
-        switch(m_iGraphType){
+        switch(m_graphType){
         case 3:
             return m_oKMedoids.SampleHap(uInd, rng);
         case 4:
@@ -111,18 +112,18 @@ class Relationship {
 
     // update graph with number fRatio instead of 1
     void UpdateGraph(unsigned *p, bool bAccepted, unsigned uInd, float fRatio) {
-        if (m_iGraphType < 3)
+        if (m_graphType < 3)
             m_oRelGraph.UpdateGraph(p, bAccepted, uInd, fRatio);
     };
 
     // update medoids
     void UpdateGraph(const vector< uint64_t > * pvuHaplotypes) {
-        if (m_iGraphType == 3)
+        if (m_graphType == 3)
             m_oKMedoids.UpdateMedoids(pvuHaplotypes);
     };
 
     void Save(std::string fileName, const vector<std::string> & name) {
-        if (m_iGraphType < 3)
+        if (m_graphType < 3)
             m_oRelGraph.Save(fileName, name);
     };
 
