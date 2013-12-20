@@ -20,6 +20,9 @@ debug:
 test : insti.o impute.o emcchain.o olivier/utils.o haplotype.o kMeans.o relationship.hpp.gch
 	cd testing && make
 
+testDebug:insti.o impute.o emcchain.o olivier/utils.o haplotype.o kMeans.o relationship.hpp.gch
+	cd testing && make debug	
+
 clean:
 	rm -f *.o *.hpp.gch insti instiO0 olivier/utils.hpp.gch
 

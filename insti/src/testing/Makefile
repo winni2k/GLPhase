@@ -23,6 +23,9 @@ TESTS = insti_unittest1
 INSTI_O_FILES= $(SRC_DIR)/insti.o $(SRC_DIR)/impute.o $(SRC_DIR)/emcchain.o $(SRC_DIR)/kMedoids.o $(SRC_DIR)/relationshipGraph.o $(SRC_DIR)/haplotype.o
 test: $(TESTS)
 
+debug:
+	$(CXX) -E -x c++ - -v < /dev/null
+
 clean:
 	rm -f $(TESTS) gtest.a gtest_main.a *.o *.hpp.gch *.h.gch insti
 
