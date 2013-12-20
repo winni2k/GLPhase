@@ -1,11 +1,13 @@
 export CXX= g++-4.7+
 export DEBUGFLAGS= -ggdb
 export CXXFLAGS= -Wall -Wextra -std=c++11 -std=gnu++11 -mpopcnt $(DEBUGFLAGS)
-BOOSTLIB=-lboost_iostreams-mt #alternatively: /opt/boost/boost-1.54.0-intel/lib/libboost_iostreams.a
+BOOSTLIB = -lboost_iostreams-mt #alternatively: /opt/boost/boost-1.54.0-intel/lib/libboost_iostreams.a
 export LIBS += -lgsl -lgslcblas -lbam -ltabix -lbz2 $(BOOSTLIB) -lm -lstdc++ -lz
-export CPATH += u-wkretzsch-snptools/samtools-0.1.16:u-wkretzsch-snptools/tabix-0.2.5
-export CPLUS_INCLUDE_PATH += olivier
-export LIBRARY_PATH += u-wkretzsch-snptools/samtools-0.1.16:u-wkretzsch-snptools/tabix-0.2.5
+
+# path variables
+export CPATH += :u-wkretzsch-snptools/samtools-0.1.16:u-wkretzsch-snptools/tabix-0.2.5
+export CPLUS_INCLUDE_PATH += :olivier
+export LIBRARY_PATH += :u-wkretzsch-snptools/samtools-0.1.16:u-wkretzsch-snptools/tabix-0.2.5
 export LD_LIBRARY_PATH += $(LIBRARY_PATH)
 
 all: insti
