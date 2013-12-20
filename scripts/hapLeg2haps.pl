@@ -61,18 +61,6 @@ while ( my $hap = <$hapFH> ) {
 print STDERR "\n";
 croak "ERROR: $args{h} is shorter than $args{l}" if defined <$legFH>;
 
-sub openCmd {
-    my $file = shift;
-    my $cmd;
-    if ( $file =~ m/\.gz/ ) {
-        $cmd = "gzip -dc $file |";
-    }
-    else {
-        $cmd = " < $file";
-    }
-    return $cmd;
-}      
-
 sub getTokens{
     my $fh = shift;
     my $line = <$fh> || return undef;
