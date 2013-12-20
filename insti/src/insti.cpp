@@ -186,6 +186,9 @@ void Insti::OpenSample(string sampleFile, vector<string> & IDs)
 
     // read in sample file
     ifile sampleFD(sampleFile);
+    if(!sampleFD.isGood())
+        throw myException("Could not open file: " + sampleFile);
+
     string buffer;
 
     // discard header
@@ -241,6 +244,9 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > & loadHaps,
 
     cerr << "Loading haps file: " << hapsFile << endl;
     ifile hapsFD(hapsFile);
+    if(!hapsFD.isGood())
+        throw myException("Could not open file: " + hapsFile);
+
     string buffer;
     unsigned lineNum = 0;
     unsigned keptSites = 0;
@@ -682,6 +688,8 @@ vector<snp> Insti::OpenLegend(string legendFile)
 
     // read in legend file
     ifile legendFD(legendFile);
+    if(!legendFD.isGood())
+        throw myException("Could not open file: " + legendFile);
     string buffer;
     vector<snp> loadLeg;
 
@@ -726,13 +734,16 @@ vector<vector<char> > Insti::OpenHap(string hapFile)
 {
 
     // read in the hap file
-    ifile hapsFD(hapFile);
+    ifile hapFD(hapFile);
+    if(!hapFD.isGood())
+        throw myException("Could not open file: " + hapFile);
+
     string buffer;
     int lineNum = -1;
     unsigned uNumHaps = 0;
     vector<vector<char> > loadHaps;
 
-    while (getline(hapsFD, buffer, '\n')) {
+    while (getline(hapFD, buffer, '\n')) {
         lineNum++;
 
         // read line

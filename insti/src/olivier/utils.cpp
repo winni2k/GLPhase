@@ -403,7 +403,7 @@ ifile::ifile() {
 }
 
 ifile::ifile(string filename , bool binary) {
-	open(filename, binary);
+    m_isGood = open(filename, binary);
 }
 
 ifile::~ifile() {
