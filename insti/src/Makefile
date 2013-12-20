@@ -15,7 +15,7 @@ instiO0: CXXFLAGS += -O0
 
 
 debug:
-	echo $(CPATH)
+	$(CXX) -E -x c++ - -v < /dev/null
 
 test : insti.o impute.o emcchain.o olivier/utils.o haplotype.o kMeans.o relationship.hpp.gch
 	cd testing && make
