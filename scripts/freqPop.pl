@@ -1,9 +1,16 @@
 #!/usr/bin/perl
 # freqPop.pl                   wkretzsch@gmail.com
 #                              26 Nov 2013
-our $VERSION = '0.001';
+our $VERSION = '0.002';
 $VERSION = eval $VERSION;
 print STDERR "freqPop.pl -- $VERSION\nBy\twkretzsch@gmail.com\n\n";
+
+=head1 CHANGES
+
+0.2  Tue Dec 17 10:25:35 GMT 2013
+     Added support for filtering on -g instead of -l
+
+=cut
 
 use warnings;
 use strict;
@@ -18,20 +25,23 @@ use List::MoreUtils qw/firstidx/;
 
 use Getopt::Std;
 my %args;
-getopts( 'df:l:p:L:', \%args );
+getopts( 'g:df:l:p:L:', \%args );
 my $DEBUG = $args{d} || 1;
 
 my $freqFile = $args{f} || $args{L};
-croak "need to define a pop"        unless defined $args{p};
-croak "need to pass in freq file"   unless -e $freqFile;
-croak "need to pass in legend file" unless -e $args{l};
+croak "need to define a pop" unless defined $args{p};
+croak "need to pass in freq file" unless -e $freqFile;
+croak "need to pass in legend or gen file"
+  unless ( defined $args{l} xor defined $args{g} );
 
 my $openCmd;
-if ( $args{l} =~ m/\.gz$/ ) {
-    $openCmd = " gzip -dc $args{l} |";
+my $siteFile = defined $args{l} ? $args{l} : $args{g};
+croak "file does not exist: $siteFile" unless -e $siteFile;
+if ( $siteFile =~ m/\.gz$/ ) {
+    $openCmd = " gzip -dc $siteFile |";
 }
 else {
-    $openCmd = " < $args{l}";
+    $openCmd = " < $siteFile";
 }
 open( my $legFH, $openCmd );
 <$legFH>;    #remove header
@@ -59,6 +69,9 @@ LEGLINE: while (<$legFH>) {
     my $found = 0;
     chomp;
     my @L = split(q/ /);
+
+    # unshift chromosome id if legFH is a gen file
+    shift @L if defined $args{g}; 
   FREQLINE: while ( my $f = <$freqFH> ) {
         chomp $f;
         my @F = split( q/\s/, $f );
@@ -91,7 +104,7 @@ freqPop.pl -f freqFile -l legendFile -p EUR
 
 =head1 DESCRIPTION
 
-Pulls the frequencies from a freq file (-f) for all positions in the legend file (-l) and creates a population frequency file.
+Pulls the frequencies from a freq file (-f) for all positions in the legend (-l) or gen (-g) file and creates a population frequency file.
 
 =head1 AUTHOR
 

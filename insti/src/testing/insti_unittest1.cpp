@@ -177,24 +177,24 @@ TEST(Insti, loadHapsSamp)
 
     // test the scaffold loading
     lp2.LoadHapsSamp(scaffoldHaps, scaffHapsSampUnorderedSample, PanelType::SCAFFOLD);
-    ASSERT_EQ("samp1", lp.GetScaffoldID(0));
-    ASSERT_EQ("samp2", lp.GetScaffoldID(1));
-    ASSERT_EQ("samp3", lp.GetScaffoldID(2));
+    ASSERT_EQ("samp1", lp2.GetScaffoldID(0));
+    ASSERT_EQ("samp2", lp2.GetScaffoldID(1));
+    ASSERT_EQ("samp3", lp2.GetScaffoldID(2));
     for (unsigned i = 0; i != 26; i++) {
-        EXPECT_EQ(0, lp.TestScaffoldSite(4, i));
-        EXPECT_EQ(1, lp.TestScaffoldSite(5, i));
-        EXPECT_EQ(0, lp.TestScaffoldSite(0, i));
-        EXPECT_EQ(1, lp.TestScaffoldSite(1, i));
-        EXPECT_EQ(0, lp.TestScaffoldSite(2, i));
-        EXPECT_EQ(0, lp.TestScaffoldSite(3, i));
+        EXPECT_EQ(0, lp2.TestScaffoldSite(4, i));
+        EXPECT_EQ(1, lp2.TestScaffoldSite(5, i));
+        EXPECT_EQ(0, lp2.TestScaffoldSite(0, i));
+        EXPECT_EQ(1, lp2.TestScaffoldSite(1, i));
+        EXPECT_EQ(0, lp2.TestScaffoldSite(2, i));
+        EXPECT_EQ(0, lp2.TestScaffoldSite(3, i));
     }
     for (unsigned i = 26; i != 50; i++) {
-        EXPECT_EQ(1, lp.TestScaffoldSite(4, i));
-        EXPECT_EQ(0, lp.TestScaffoldSite(5, i));
-        EXPECT_EQ(0, lp.TestScaffoldSite(0, i));
-        EXPECT_EQ(1, lp.TestScaffoldSite(1, i));
-        EXPECT_EQ(1, lp.TestScaffoldSite(2, i));
-        EXPECT_EQ(0, lp.TestScaffoldSite(3, i));
+        EXPECT_EQ(1, lp2.TestScaffoldSite(4, i));
+        EXPECT_EQ(0, lp2.TestScaffoldSite(5, i));
+        EXPECT_EQ(0, lp2.TestScaffoldSite(0, i));
+        EXPECT_EQ(1, lp2.TestScaffoldSite(1, i));
+        EXPECT_EQ(1, lp2.TestScaffoldSite(2, i));
+        EXPECT_EQ(0, lp2.TestScaffoldSite(3, i));
     }
 }
 
