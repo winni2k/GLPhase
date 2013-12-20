@@ -336,3 +336,8 @@ using Omni 1M and 2.5M
 # Wed Dec 11 10:43:43 GMT 2013
 - try imputing from just european haplotypes
 - /gpfs1/well/marchini/olivier/HAPC/step7_ligated/ALL.chr20.unionAC10BGL.hap.gz
+
+###########
+# Fri Dec 20 09:23:54 GMT 2013
+# CONVERGE meeting
+- create flow chart of how to compare site accuracy
