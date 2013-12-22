@@ -1,0 +1,19 @@
+OUTLINE of insti (according to
+http://www.learncpp.com/cpp-tutorial/1-10a-how-to-design-your-first-programs/)
+
+PROBLEM DEFINITION
+
+I want to re-implement snptools impute and then build on it
+
+HIERARCHY OF TASKS
+
+phase and impute according to snptools
+      - parse input data
+        - read in GLs from VCF
+        - read in reference haplotypes from VCF
+      - phase and impute
+      - output results
+        - output haplotypes and genotype probabilities in VCF
+        - output haps and gprobs in impute2 format
+
+
