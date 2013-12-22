@@ -266,3 +266,15 @@ EOF
 ssh feng
 cd /homes/kretzsch/feng/marchini/haplotypeConsortium/results/chr20_pilot/2013-11-15_ST_imputation_with_scaffold
 ./runall.pl -m ~/feng/marchini -C 100 -I -n 100 -i
+
+
+###########
+# Fri Dec 20 16:35:35 GMT 2013
+# insti with scaffolding takes quite a bit of time, running on cluster
+ssh feng
+cd /homes/kretzsch/feng/marchini/haplotypeConsortium/results/chr20_pilot/2013-11-15_ST_imputation_with_scaffold
+rsync -navP ./ dense:/well/marchini/winni/proj/marchini/haplotypeConsortium/results/chr20_pilot/2013-11-15_ST_imputation_with_scaffold/
+
+ssh cluster3
+cd /well/marchini/winni/proj/marchini/haplotypeConsortium/results/chr20_pilot/2013-11-15_ST_imputation_with_scaffold
+./runall.pl -m /well/marchini/winni/proj/marchini -C 100 -I -n 100 -q 'short.qb' -P 'marchini.prjb' -i
