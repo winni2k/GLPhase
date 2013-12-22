@@ -1,11 +1,14 @@
 export CXX= g++-4.7+
 export DEBUGFLAGS= -ggdb
 export CXXFLAGS= -Wall -Wextra -std=c++11 -std=gnu++11 -mpopcnt $(DEBUGFLAGS)
-BOOSTLIB=-lboost_iostreams-mt #alternatively: /opt/boost/boost-1.54.0-intel/lib/libboost_iostreams.a
+BOOSTLIB = -lboost_iostreams-mt #alternatively: /opt/boost/boost-1.54.0-intel/lib/libboost_iostreams.a
 export LIBS += -lgsl -lgslcblas -lbam -ltabix -lbz2 $(BOOSTLIB) -lm -lstdc++ -lz
-export CPATH := u-wkretzsch-snptools/samtools-0.1.16:u-wkretzsch-snptools/tabix-0.2.5:olivier
-export LIBRARY_PATH := u-wkretzsch-snptools/samtools-0.1.16:u-wkretzsch-snptools/tabix-0.2.5
-export LD_LIBRARY_PATH := $(LIBRARY_PATH)
+
+# path variables
+export CPATH += :u-wkretzsch-snptools/samtools-0.1.16:u-wkretzsch-snptools/tabix-0.2.5
+export CPLUS_INCLUDE_PATH += :olivier
+export LIBRARY_PATH += :u-wkretzsch-snptools/samtools-0.1.16:u-wkretzsch-snptools/tabix-0.2.5
+export LD_LIBRARY_PATH += $(LIBRARY_PATH)
 
 all: insti
 
@@ -13,12 +16,14 @@ insti: CXXFLAGS += -O3
 
 instiO0: CXXFLAGS += -O0
 
-
 debug:
-	echo $(CPATH)
+	$(CXX) -E -x c++ - -v < /dev/null
 
 test : insti.o impute.o emcchain.o olivier/utils.o haplotype.o kMeans.o relationship.hpp.gch
-	cd testing && make
+	$(MAKE) -C testing
+
+testDebug:insti.o impute.o emcchain.o olivier/utils.o haplotype.o kMeans.o relationship.hpp.gch
+	$(MAKE) -C testing debug
 
 clean:
 	rm -f *.o *.hpp.gch insti instiO0 olivier/utils.hpp.gch

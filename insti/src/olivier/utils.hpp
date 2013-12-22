@@ -141,6 +141,7 @@ class ifile : public bio::filtering_istream {
 private:
 	string file;
 	ifstream fd;
+        bool m_isGood = false;
 
 public:
 	ifile();
@@ -150,6 +151,7 @@ public:
 	bool open(string filename, bool binary = false);
 	bool readString(string &);
 	void close();
+        bool isGood(){return m_isGood;};
 };
 
 /******************************************************/
