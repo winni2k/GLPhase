@@ -1,0 +1,187 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXFileReference section */
+		250F3A1C1721E93100A35BC9 /* wimpute.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = wimpute.1; sourceTree = "<group>"; };
+		252D9AA31721F5F500D762D2 /* makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; path = makefile; sourceTree = "<group>"; };
+		6BE522D776991635FA60EC9E /* impute.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = impute.cpp; path = main.cpp/impute.cpp; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		250F3A0E1721E93100A35BC9 = {
+			isa = PBXGroup;
+			children = (
+				250F3A191721E93100A35BC9 /* wimpute */,
+				250F3A181721E93100A35BC9 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		250F3A181721E93100A35BC9 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		250F3A191721E93100A35BC9 /* wimpute */ = {
+			isa = PBXGroup;
+			children = (
+				252D9AA31721F5F500D762D2 /* makefile */,
+				250F3A1C1721E93100A35BC9 /* wimpute.1 */,
+				6BE522D776991635FA60EC9E /* impute.cpp */,
+			);
+			path = wimpute;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXLegacyTarget section */
+		252D9A9F1721F2FC00D762D2 /* wimpute */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = "$(ACTION)";
+			buildConfigurationList = 252D9AA01721F2FC00D762D2 /* Build configuration list for PBXLegacyTarget "wimpute" */;
+			buildPhases = (
+			);
+			buildToolPath = /usr/bin/make;
+			buildWorkingDirectory = "/Volumes/mac-3/home/to_be_backupped_unsensitive/Projects/marchini/wimpute/wimpute";
+			dependencies = (
+			);
+			name = wimpute;
+			passBuildSettingsInEnvironment = 1;
+			productName = wimpute;
+		};
+/* End PBXLegacyTarget section */
+
+/* Begin PBXProject section */
+		250F3A0F1721E93100A35BC9 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0460;
+				ORGANIZATIONNAME = "warren kretzschmar";
+			};
+			buildConfigurationList = 250F3A121721E93100A35BC9 /* Build configuration list for PBXProject "wimpute" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 250F3A0E1721E93100A35BC9;
+			productRefGroup = 250F3A181721E93100A35BC9 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				252D9A9F1721F2FC00D762D2 /* wimpute */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin XCBuildConfiguration section */
+		250F3A1E1721E93100A35BC9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		250F3A1F1721E93100A35BC9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		252D9AA11721F2FC00D762D2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEBUGGING_SYMBOLS = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		252D9AA21721F2FC00D762D2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		250F3A121721E93100A35BC9 /* Build configuration list for PBXProject "wimpute" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				250F3A1E1721E93100A35BC9 /* Debug */,
+				250F3A1F1721E93100A35BC9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		252D9AA01721F2FC00D762D2 /* Build configuration list for PBXLegacyTarget "wimpute" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				252D9AA11721F2FC00D762D2 /* Debug */,
+				252D9AA21721F2FC00D762D2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 250F3A0F1721E93100A35BC9 /* Project object */;
+}
