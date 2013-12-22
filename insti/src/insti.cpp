@@ -637,7 +637,7 @@ void Insti::LoadHaps(vector<vector<char> > & inHaps, PanelType panelType)
         assert(WordMod >= 0);
         m_uNumScaffoldHaps = numHaps;
         Char2BitVec(inHaps,
-                    ceil(static_cast<double>(inHaps.size()) / (WordMod +1)),
+                    ceil(static_cast<double>(inHaps.size()) / (WordMod + 1)),
                     storeHaps);
         std::swap(m_scaffoldHaps, storeHaps);
         cerr << "Scaffold haplotypes\t" << m_uNumScaffoldHaps << endl;
@@ -1664,6 +1664,7 @@ void    Insti::document(void)
     cerr << "\n\n";
     exit(1);
 }
+
 
 
 
