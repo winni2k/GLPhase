@@ -75,11 +75,15 @@ void KMeans::ClusterHaps(const vector< uint64_t > & vuHaplotypes)
         m_vvuNeighbors.clear();
         unsigned uNumCommonSites = m_vuCommonSiteNums.size();
 
+        unsigned checkpointNum = static_cast<unsigned>(floor(m_uNumHaps/ 20.0f));
+        if(checkpointNum == 0)
+            checkpointNum = 1;
         for (unsigned uSampNum = 0; uSampNum < m_uNumHaps / 2; uSampNum ++) {
 
-            cerr << "[KMeans::ClusterHaps]: Finding " << m_uNumClusters <<
+            if(uSampNum % checkpointNum == 0)
+                cerr << "[KMeans::ClusterHaps]: Finding " << m_uNumClusters <<
                  " nearest neighbors for sample " << uSampNum << "/" << m_uNumHaps / 2 - 1 <<
-                 "\r";
+                 "\n";
 
             // assign only the common sites of each hap to new haps
             Haplotype hHapA(uNumCommonSites);
