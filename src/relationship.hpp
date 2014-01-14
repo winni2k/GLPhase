@@ -7,7 +7,11 @@
 #include        <vector>
 #include        "relationshipGraph.hpp"
 #include        "kMedoids.hpp"
+<<<<<<< HEAD
 #include        "kNN.hpp"
+=======
+#include        "kMeans.hpp"
+>>>>>>> refs/heads/synced/master
 
 
 //require c++11
@@ -24,23 +28,39 @@ class Relationship {
      1 = sample/haplotype graph
      2 = no graph - all samples are equally related
      3 = kmedoids
+<<<<<<< HEAD
      4 = kNN
+=======
+     4 = kmeans
+>>>>>>> refs/heads/synced/master
     */
     int m_graphType = -1;
     KMedoids m_oKMedoids;
     RelationshipGraph m_oRelGraph;
+<<<<<<< HEAD
     KNN m_oKNN;
+=======
+    KMeans m_oKMeans;
+>>>>>>> refs/heads/synced/master
 
   public:
 
     // call for clustering
     Relationship(unsigned uNumClusters, unsigned uClusterType)
         : m_oKMedoids(uClusterType, uNumClusters), m_oRelGraph(),
+<<<<<<< HEAD
           m_oKNN(uNumClusters) {};
 
     // call for relationship graph - ignore clustering
     Relationship(int iGraphType, unsigned uSamples, unsigned uHaplotypes)
         : m_oKMedoids(0, 0), m_oRelGraph(), m_oKNN(0) {
+=======
+          m_oKMeans(uNumClusters) {};
+
+    // call for relationship graph - ignore clustering
+    Relationship(int iGraphType, unsigned uSamples, unsigned uHaplotypes)
+        : m_oKMedoids(0, 0), m_oRelGraph(), m_oKMeans(0) {
+>>>>>>> refs/heads/synced/master
         SetIGraphType(iGraphType);
         m_oRelGraph.init(iGraphType, uSamples, uHaplotypes);
     }
@@ -58,7 +78,11 @@ class Relationship {
         m_oRelGraph.init(iGraphType, uSamples, uHaplotypes);
     };
 
+<<<<<<< HEAD
     // initialize kmedoids or kNN
+=======
+    // initialize kmedoids or kmeans
+>>>>>>> refs/heads/synced/master
     void init(int iGraphType, const vector< uint64_t > & vuHaplotypes,
               unsigned uNumWordsPerHap, unsigned uNumSites, gsl_rng *rng) {
 
@@ -68,7 +92,11 @@ class Relationship {
             m_oKMedoids.init(&vuHaplotypes, uNumWordsPerHap, uNumSites, rng);
             break;
         case 4:
+<<<<<<< HEAD
             m_oKNN.init(vuHaplotypes, uNumWordsPerHap, uNumSites, -1);
+=======
+            m_oKMeans.init(vuHaplotypes, uNumWordsPerHap, uNumSites, -1);
+>>>>>>> refs/heads/synced/master
             break;
         default:
             cout << "unexpected graph type: " << iGraphType << endl;
@@ -76,12 +104,20 @@ class Relationship {
         }
     }
 
+<<<<<<< HEAD
     // initialize kNN with scaffold
+=======
+    // initialize kmeans with scaffold
+>>>>>>> refs/heads/synced/master
     void init(int iGraphType,  const vector< uint64_t > & vuScaffoldHaplotypes, unsigned uNumWordsPerHap, unsigned uNumSites, double dScaffoldFreqCutoff) {
 
         SetIGraphType(iGraphType);
         assert(iGraphType == 4);
+<<<<<<< HEAD
         m_oKNN.init(vuScaffoldHaplotypes, uNumWordsPerHap, uNumSites,
+=======
+        m_oKMeans.init(vuScaffoldHaplotypes, uNumWordsPerHap, uNumSites,
+>>>>>>> refs/heads/synced/master
                        dScaffoldFreqCutoff);
     }
 
@@ -96,7 +132,11 @@ class Relationship {
         case 3:
             return m_oKMedoids.SampleHap(uInd, rng);
         case 4:
+<<<<<<< HEAD
             return m_oKNN.SampleHap(uInd, rng);
+=======
+            return m_oKMeans.SampleHap(uInd, rng);
+>>>>>>> refs/heads/synced/master
         default:
             return m_oRelGraph.SampleHap(uInd, rng, bOnlyFromRef);
         }

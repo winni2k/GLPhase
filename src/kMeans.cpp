@@ -1,15 +1,28 @@
+<<<<<<< HEAD
 #include "kNN.hpp"
+=======
+#include "kMeans.hpp"
+>>>>>>> refs/heads/synced/master
 #include <utility>
 
 using namespace std;
 
+<<<<<<< HEAD
 // initialization for kNN clustering
 void KNN::init(const vector< uint64_t > & vuHaplotypes,
+=======
+// initialization for kMeans clustering
+void KMeans::init(const vector< uint64_t > & vuHaplotypes,
+>>>>>>> refs/heads/synced/master
                   unsigned uNumWordsPerHap, unsigned uNumSites,
                   double dFreqCutoff)
 {
 
+<<<<<<< HEAD
     cerr << "[KNN]: Initialization start\n";
+=======
+    cerr << "[KMeans]: Initialization start\n";
+>>>>>>> refs/heads/synced/master
     assert(m_bInitialized == false);
     assert(uNumWordsPerHap > 0);
 
@@ -31,11 +44,19 @@ void KNN::init(const vector< uint64_t > & vuHaplotypes,
     ClusterHaps(vuHaplotypes);
 
     m_bInitialized = true;
+<<<<<<< HEAD
     cerr << "[KNN]: Initialization complete\n";
 
 }
 
 unsigned KNN::SampleHap(unsigned uInd, gsl_rng *rng)
+=======
+    cerr << "[KMeans]: Initialization complete\n";
+
+}
+
+unsigned KMeans::SampleHap(unsigned uInd, gsl_rng *rng)
+>>>>>>> refs/heads/synced/master
 {
 
     // this should be out of bounds if left unchanged
@@ -68,7 +89,11 @@ struct by_dist {
     }
 };
 
+<<<<<<< HEAD
 void KNN::ClusterHaps(const vector< uint64_t > & vuHaplotypes)
+=======
+void KMeans::ClusterHaps(const vector< uint64_t > & vuHaplotypes)
+>>>>>>> refs/heads/synced/master
 {
 
     if (UsingScaffold()) {
@@ -77,7 +102,11 @@ void KNN::ClusterHaps(const vector< uint64_t > & vuHaplotypes)
 
         for (unsigned uSampNum = 0; uSampNum < m_uNumHaps / 2; uSampNum ++) {
 
+<<<<<<< HEAD
             cerr << "[KNN::ClusterHaps]: Finding " << m_uNumClusters <<
+=======
+            cerr << "[KMeans::ClusterHaps]: Finding " << m_uNumClusters <<
+>>>>>>> refs/heads/synced/master
                  " nearest neighbors for sample " << uSampNum << "/" << m_uNumHaps / 2 - 1 <<
                  "\r";
 
@@ -122,13 +151,21 @@ void KNN::ClusterHaps(const vector< uint64_t > & vuHaplotypes)
         exit(4);
     }
 
+<<<<<<< HEAD
     cerr << "[KNN::ClusterHaps]: Finding " << m_uNumClusters <<
+=======
+    cerr << "[KMeans::ClusterHaps]: Finding " << m_uNumClusters <<
+>>>>>>> refs/heads/synced/master
          " nearest neighbors for sample " << m_uNumHaps / 2 - 1 << "/" << m_uNumHaps / 2
          - 1 << "\n";
 
 }
 
+<<<<<<< HEAD
 void KNN::AssignHap(Haplotype &hHap, const uint64_t *oa)
+=======
+void KMeans::AssignHap(Haplotype &hHap, const uint64_t *oa)
+>>>>>>> refs/heads/synced/master
 {
     unsigned uSiteNum = 0;
 
@@ -139,7 +176,11 @@ void KNN::AssignHap(Haplotype &hHap, const uint64_t *oa)
 }
 
 
+<<<<<<< HEAD
 void KNN::CutDownHaps()
+=======
+void KMeans::CutDownHaps()
+>>>>>>> refs/heads/synced/master
 {
 
     for (unsigned uPosNum = 0; uPosNum < m_uNumSites; uPosNum ++) {
@@ -151,7 +192,11 @@ void KNN::CutDownHaps()
 /*
   calculate the variant allele frequency from scaffold for each position and store it in m_vdVarAfs
 */
+<<<<<<< HEAD
 void KNN::CalculateVarAfs(const vector < uint64_t > & vuScaffoldHaps)
+=======
+void KMeans::CalculateVarAfs(const vector < uint64_t > & vuScaffoldHaps)
+>>>>>>> refs/heads/synced/master
 {
 
     m_vdVarAfs.resize(m_uNumSites);

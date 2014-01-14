@@ -1,8 +1,13 @@
 /* @(#)kMeans.hpp
  */
 
+<<<<<<< HEAD
 #ifndef _KNN_H
 #define _KNN_H 1
+=======
+#ifndef _KMEANS_H
+#define _KMEANS_H 1
+>>>>>>> refs/heads/synced/master
 
 #include        <gsl/gsl_rng.h>
 #include        <vector>
@@ -16,7 +21,11 @@
 //require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
+<<<<<<< HEAD
 class KNN {
+=======
+class KMeans {
+>>>>>>> refs/heads/synced/master
 
   private:
     bool m_bInitialized = false;
@@ -40,7 +49,11 @@ class KNN {
     
   public:
 
+<<<<<<< HEAD
     KNN(unsigned uNumClust)
+=======
+    KMeans(unsigned uNumClust)
+>>>>>>> refs/heads/synced/master
         : m_uNumClusters(uNumClust) {};
 
     void init(const std::vector< uint64_t > & vuHaplotypes,

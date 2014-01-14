@@ -1129,7 +1129,11 @@ void    Insti::estimate()
                 m_oRelationship.init(3, haps, wn, mn, rng);
                 break;
 
+<<<<<<< HEAD
             // use kNN
+=======
+            // use kmeans
+>>>>>>> refs/heads/synced/master
             case 2:
                 if (UsingScaffold())
                     m_oRelationship.init(4, m_scaffoldHaps, wn, m_uNumScaffoldHaps,
@@ -1663,7 +1667,11 @@ void    Insti::document(void)
     cerr << "\n\t-t <integer>    Cluster type (0)";
     cerr << "\n\t                0 - k-Medoids -- PAM";
     cerr << "\n\t                1 - k-Medoids -- Park and Jun 2008";
+<<<<<<< HEAD
     cerr << "\n\t                2 - k-Nearest Neighbors -- IMPUTE2 (-K is the number of haplotypes to keep)";
+=======
+    cerr << "\n\t                2 - k-Means -- IMPUTE2 (-K is the number of haplotypes to keep)";
+>>>>>>> refs/heads/synced/master
     cerr << "\n\n    REFERENCE PANEL OPTIONS";
     cerr << "\n\t-H <file>       IMPUTE2 style HAP file";
     cerr << "\n\t-L <file>       IMPUTE2 style LEGEND file";
