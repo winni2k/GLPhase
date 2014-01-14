@@ -2,11 +2,7 @@
 #include "gtest/gtest.h"
 #include "insti.hpp"
 #include "haplotype.hpp"
-<<<<<<< HEAD
 #include "kNN.hpp"
-=======
-#include "kMeans.hpp"
->>>>>>> refs/heads/synced/master
 #include "relationship.hpp"
 #include <algorithm>
 #include <gsl/gsl_rng.h>
@@ -265,11 +261,7 @@ TEST(Haplotype, StoresOK)
 
 }
 
-<<<<<<< HEAD
 TEST(KNN, clustersOK)
-=======
-TEST(KMeans, clustersOK)
->>>>>>> refs/heads/synced/master
 {
 
     gsl_rng_set(rng, time(NULL));
@@ -302,21 +294,12 @@ TEST(KMeans, clustersOK)
     for (unsigned j = 0; j < shuffledIndexes.size(); j++)
         passHaps.push_back(haplotypes[shuffledIndexes[j]].GetWord(0));
 
-<<<<<<< HEAD
     KNN kNN(numClusters);
     kNN.init(passHaps, 1, numSites, 0);
 
     // check to make sure kNN has the haps stored correctly
     vector< unsigned > neighborHapNums;
     kNN.Neighbors(0, neighborHapNums);
-=======
-    KMeans kMeans(numClusters);
-    kMeans.init(passHaps, 1, numSites, 0);
-
-    // check to make sure kMeans has the haps stored correctly
-    vector< unsigned > neighborHapNums;
-    kMeans.Neighbors(0, neighborHapNums);
->>>>>>> refs/heads/synced/master
 
     EXPECT_EQ(numClusters, neighborHapNums.size());
     EXPECT_EQ(2, shuffledIndexes[neighborHapNums[0]]);
@@ -325,11 +308,7 @@ TEST(KMeans, clustersOK)
 
     // testing sampling
     for (unsigned i = 0; i < 10; i++) {
-<<<<<<< HEAD
         unsigned sampHap = kNN.SampleHap(0, rng);
-=======
-        unsigned sampHap = kMeans.SampleHap(0, rng);
->>>>>>> refs/heads/synced/master
         EXPECT_LT(shuffledIndexes[sampHap], 5);
         EXPECT_GT(shuffledIndexes[sampHap], 1);
     }
@@ -378,27 +357,17 @@ TEST(KMeans, clustersOK)
     for (unsigned j = 0; j < shuffledIndexes.size(); j++)
         passHaps.push_back(haplotypes[shuffledIndexes[j]].GetWord(0));
 
-<<<<<<< HEAD
     KNN kNN2(numClusters);
     kNN2.init(passHaps, 1, numSites, 0.375);
 
     // check to make sure variant allele freqs are calculated correctly
     vector<double> varAfs;
     kNN2.VarAfs(varAfs);
-=======
-    KMeans kMeans2(numClusters);
-    kMeans2.init(passHaps, 1, numSites, 0.375);
-
-    // check to make sure variant allele freqs are calculated correctly
-    vector<double> varAfs;
-    kMeans2.VarAfs(varAfs);
->>>>>>> refs/heads/synced/master
     EXPECT_EQ(numSites, varAfs.size());
     EXPECT_EQ(0.4375, varAfs[0]);
     EXPECT_EQ(0.125, varAfs[1]);
     EXPECT_EQ(0.5, varAfs[2]);
 
-<<<<<<< HEAD
     // check to make sure kNN is thresholding the correct sites
     vector<unsigned> commonSites;
     kNN2.ClusterSites(commonSites);
@@ -407,16 +376,6 @@ TEST(KMeans, clustersOK)
     // check to make sure kNN has the haps stored correctly
     neighborHapNums.clear();
     kNN2.Neighbors(0, neighborHapNums);
-=======
-    // check to make sure kMeans is thresholding the correct sites
-    vector<unsigned> commonSites;
-    kMeans2.ClusterSites(commonSites);
-    EXPECT_EQ(4, commonSites.size());
-
-    // check to make sure kMeans has the haps stored correctly
-    neighborHapNums.clear();
-    kMeans2.Neighbors(0, neighborHapNums);
->>>>>>> refs/heads/synced/master
 
     EXPECT_EQ(numClusters, neighborHapNums.size());
     EXPECT_EQ(5, shuffledIndexes[neighborHapNums[0]]);
@@ -425,11 +384,7 @@ TEST(KMeans, clustersOK)
 
     // testing sampling
     for (unsigned i = 0; i < 10; i++) {
-<<<<<<< HEAD
         unsigned sampHap = kNN2.SampleHap(0, rng);
-=======
-        unsigned sampHap = kMeans2.SampleHap(0, rng);
->>>>>>> refs/heads/synced/master
         EXPECT_LT(shuffledIndexes[sampHap], 9);
         EXPECT_GT(shuffledIndexes[sampHap], 4);
         EXPECT_NE(shuffledIndexes[sampHap], 7);
