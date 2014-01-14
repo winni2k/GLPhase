@@ -55,7 +55,7 @@ unsigned KNN::SampleHap(unsigned uInd, gsl_rng *rng)
 
 }
 
-// returns the neighbors of haplotype uHapNum
+// returns the neighbors of haplotype hapNum
 struct dist {
     unsigned idx;
     unsigned distance;
@@ -91,13 +91,13 @@ void KNN::ClusterHaps(const vector< uint64_t > & vuHaplotypes)
             // hap number then distance
             vector < dist > vpDists;
 
-            for (unsigned uHapNum = 0; uHapNum < m_uNumHaps; uHapNum ++) {
-                if (floor(uHapNum / 2) == uSampNum) continue;
+            for (unsigned hapNum = 0; hapNum < m_uNumHaps; hapNum ++) {
+                if (floor(hapNum / 2) == uSampNum) continue;
 
                 Haplotype hCompHap(uNumCommonSites);
-                AssignHap(hCompHap, vuHaplotypes.data() + uHapNum * m_uNumWordsPerHap);
+                AssignHap(hCompHap, vuHaplotypes.data() + hapNum * m_uNumWordsPerHap);
                 dist dTemp;
-                dTemp.idx = uHapNum;
+                dTemp.idx = hapNum;
                 dTemp.distance =  min(hHapA.HammingDist(hCompHap),
                                       hHapB.HammingDist(hCompHap));
                 vpDists.push_back(dTemp);
@@ -162,9 +162,9 @@ void KNN::CalculateVarAfs(const vector < uint64_t > & vuScaffoldHaps)
 
         unsigned uAltAllNum = 0;
 
-        for (unsigned uHapNum = 0; uHapNum < m_uNumHaps; uHapNum ++) {
+        for (unsigned hapNum = 0; hapNum < m_uNumHaps; hapNum ++) {
             if (hTestHap.TestSite(uPosNum,
-                                  vuScaffoldHaps.data() + uHapNum * m_uNumWordsPerHap))
+                                  vuScaffoldHaps.data() + hapNum * m_uNumWordsPerHap))
                 uAltAllNum ++;
         }
 

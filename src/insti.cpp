@@ -1132,7 +1132,7 @@ void    Insti::estimate()
             // use kNN
             case 2:
                 if (UsingScaffold())
-                    m_oRelationship.init(4, m_scaffoldHaps, wn, m_uNumScaffoldHaps,
+                    m_oRelationship.init(4, m_scaffoldHaps, wn, mn,
                                          s_scaffoldFreqCutoff);
                 else
                     m_oRelationship.init(4, haps, wn, mn, rng);
