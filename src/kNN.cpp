@@ -1,15 +1,15 @@
-#include "kMeans.hpp"
+#include "kNN.hpp"
 #include <utility>
 
 using namespace std;
 
-// initialization for kMeans clustering
-void KMeans::init(const vector< uint64_t > & vuHaplotypes,
+// initialization for kNN clustering
+void KNN::init(const vector< uint64_t > & vuHaplotypes,
                   unsigned uNumWordsPerHap, unsigned uNumSites,
                   double dFreqCutoff)
 {
 
-    cerr << "[KMeans]: Initialization start\n";
+    cerr << "[KNN]: Initialization start\n";
     assert(m_bInitialized == false);
     assert(uNumWordsPerHap > 0);
 
@@ -31,11 +31,11 @@ void KMeans::init(const vector< uint64_t > & vuHaplotypes,
     ClusterHaps(vuHaplotypes);
 
     m_bInitialized = true;
-    cerr << "[KMeans]: Initialization complete\n";
+    cerr << "[KNN]: Initialization complete\n";
 
 }
 
-unsigned KMeans::SampleHap(unsigned uInd, gsl_rng *rng)
+unsigned KNN::SampleHap(unsigned uInd, gsl_rng *rng)
 {
 
     // this should be out of bounds if left unchanged
@@ -45,7 +45,7 @@ unsigned KMeans::SampleHap(unsigned uInd, gsl_rng *rng)
         uPropHap = m_vvuNeighbors[uInd][gsl_rng_uniform_int(rng,
                                         m_vvuNeighbors[uInd].size())];
     else {
-        cout << "kmeans without a scaffold is not implemented yet" << endl;
+        cout << "kNN without a scaffold is not implemented yet" << endl;
         exit(4);
     }
 
@@ -68,22 +68,18 @@ struct by_dist {
     }
 };
 
-void KMeans::ClusterHaps(const vector< uint64_t > & vuHaplotypes)
+void KNN::ClusterHaps(const vector< uint64_t > & vuHaplotypes)
 {
 
     if (UsingScaffold()) {
         m_vvuNeighbors.clear();
         unsigned uNumCommonSites = m_vuCommonSiteNums.size();
 
-        unsigned checkpointNum = static_cast<unsigned>(floor(m_uNumHaps/ 20.0f));
-        if(checkpointNum == 0)
-            checkpointNum = 1;
         for (unsigned uSampNum = 0; uSampNum < m_uNumHaps / 2; uSampNum ++) {
 
-            if(uSampNum % checkpointNum == 0)
-                cerr << "[KMeans::ClusterHaps]: Finding " << m_uNumClusters <<
+            cerr << "[KNN::ClusterHaps]: Finding " << m_uNumClusters <<
                  " nearest neighbors for sample " << uSampNum << "/" << m_uNumHaps / 2 - 1 <<
-                 "\n";
+                 "\r";
 
             // assign only the common sites of each hap to new haps
             Haplotype hHapA(uNumCommonSites);
@@ -122,17 +118,17 @@ void KMeans::ClusterHaps(const vector< uint64_t > & vuHaplotypes)
 
 
     } else {
-        cout << "kmeans without a scaffold is not implemented yet" << endl;
+        cout << "kNN without a scaffold is not implemented yet" << endl;
         exit(4);
     }
 
-    cerr << "[KMeans::ClusterHaps]: Finding " << m_uNumClusters <<
+    cerr << "[KNN::ClusterHaps]: Finding " << m_uNumClusters <<
          " nearest neighbors for sample " << m_uNumHaps / 2 - 1 << "/" << m_uNumHaps / 2
          - 1 << "\n";
 
 }
 
-void KMeans::AssignHap(Haplotype &hHap, const uint64_t *oa)
+void KNN::AssignHap(Haplotype &hHap, const uint64_t *oa)
 {
     unsigned uSiteNum = 0;
 
@@ -143,7 +139,7 @@ void KMeans::AssignHap(Haplotype &hHap, const uint64_t *oa)
 }
 
 
-void KMeans::CutDownHaps()
+void KNN::CutDownHaps()
 {
 
     for (unsigned uPosNum = 0; uPosNum < m_uNumSites; uPosNum ++) {
@@ -155,7 +151,7 @@ void KMeans::CutDownHaps()
 /*
   calculate the variant allele frequency from scaffold for each position and store it in m_vdVarAfs
 */
-void KMeans::CalculateVarAfs(const vector < uint64_t > & vuScaffoldHaps)
+void KNN::CalculateVarAfs(const vector < uint64_t > & vuScaffoldHaps)
 {
 
     m_vdVarAfs.resize(m_uNumSites);
