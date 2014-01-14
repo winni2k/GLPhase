@@ -5,8 +5,8 @@ using namespace std;
 
 // initialization for kNN clustering
 void KNN::init(const vector< uint64_t > & vuHaplotypes,
-                  unsigned uNumWordsPerHap, unsigned uNumSites,
-                  double dFreqCutoff)
+               unsigned uNumWordsPerHap, unsigned uNumSites,
+               double dFreqCutoff)
 {
 
     cerr << "[KNN]: Initialization start\n";
@@ -73,58 +73,65 @@ struct by_dist {
 void KNN::ClusterHaps(const vector< uint64_t > & vuHaplotypes)
 {
 
-    if (UsingScaffold()) {
-        m_vvuNeighbors.clear();
-        unsigned uNumCommonSites = m_vuCommonSiteNums.size();
-
-        for (unsigned uSampNum = 0; uSampNum < m_uNumHaps / 2; uSampNum ++) {
-
-            if(uSampNum % 1000 == 0 || uSampNum == m_uNumHaps / 2 - 1){
-                cerr << "[KNN::ClusterHaps]: Finding " << m_uNumClusters <<
-                 " nearest neighbors for sample " << uSampNum << "/" << m_uNumHaps / 2 - 1 <<
-                 "\n";
-            }
-
-            // assign only the common sites of each hap to new haps
-            Haplotype hHapA(uNumCommonSites);
-            Haplotype hHapB(uNumCommonSites);
-            AssignHap(hHapA, vuHaplotypes.data() + uSampNum * 2 * m_uNumWordsPerHap);
-            AssignHap(hHapB, vuHaplotypes.data() + (uSampNum * 2 + 1) * m_uNumWordsPerHap);
-
-            // calculate neighbors of this sample
-            // hap number then distance
-            vector < dist > vpDists;
-
-            for (unsigned hapNum = 0; hapNum < m_uNumHaps; hapNum ++) {
-                if (floor(hapNum / 2) == uSampNum) continue;
-
-                Haplotype hCompHap(uNumCommonSites);
-                AssignHap(hCompHap, vuHaplotypes.data() + hapNum * m_uNumWordsPerHap);
-                dist dTemp;
-                dTemp.idx = hapNum;
-                dTemp.distance =  min(hHapA.HammingDist(hCompHap),
-                                      hHapB.HammingDist(hCompHap));
-                vpDists.push_back(dTemp);
-            }
-
-            //sort the haplotypes by distance
-            sort(vpDists.begin(), vpDists.end(), by_dist());
-
-            // keep only the k samples with smallest distance
-            vector< unsigned > vuDists(m_uNumClusters);
-
-            for (unsigned idx = 0; idx != m_uNumClusters; ++idx)
-                vuDists[idx] = vpDists[idx].idx;
-
-            // put the closest k in m_vvuNeighbors
-            m_vvuNeighbors.push_back(vuDists);
-        }
-
-
-    } else {
+    if (!UsingScaffold()) {
         cout << "kNN without a scaffold is not implemented yet" << endl;
         exit(4);
     }
+
+
+    m_vvuNeighbors.clear();
+    unsigned numCommonSites = m_vuCommonSiteNums.size();
+
+    // create vector of comparison haplotypes
+    vector < Haplotype > commonSiteHaps;
+    for (unsigned hapNum = 0; hapNum < m_uNumHaps; hapNum ++) {
+        Haplotype compHap(numCommonSites);
+        AssignHap(compHap, vuHaplotypes.data() + hapNum * m_uNumWordsPerHap);
+        commonSiteHaps.push_back(compHap);
+    }
+
+    for (unsigned uSampNum = 0; uSampNum < m_uNumHaps / 2; uSampNum ++) {
+
+        if (uSampNum % 1000 == 0 || uSampNum == m_uNumHaps / 2 - 1) {
+            cerr << "[KNN::ClusterHaps]: Finding " << m_uNumClusters <<
+                 " nearest neighbors for sample " << uSampNum << "/" << m_uNumHaps / 2 - 1 <<
+                 "\n";
+        }
+
+        // assign only the common sites of each hap to new haps
+        Haplotype hHapA(numCommonSites);
+        Haplotype hHapB(numCommonSites);
+        AssignHap(hHapA, vuHaplotypes.data() + uSampNum * 2 * m_uNumWordsPerHap);
+        AssignHap(hHapB, vuHaplotypes.data() + (uSampNum * 2 + 1) * m_uNumWordsPerHap);
+
+        // calculate neighbors of this sample
+        // hap number then distance
+        vector < dist > vpDists;
+
+        for (unsigned hapNum = 0; hapNum < m_uNumHaps; hapNum ++) {
+            if (floor(hapNum / 2) == uSampNum) continue;
+
+            dist dTemp;
+            dTemp.idx = hapNum;
+            dTemp.distance =  min(hHapA.HammingDist(commonSiteHaps[hapNum]),
+                                  hHapB.HammingDist(commonSiteHaps[hapNum]));
+            vpDists.push_back(dTemp);
+        }
+
+        //sort the haplotypes by distance
+        sort(vpDists.begin(), vpDists.end(), by_dist());
+
+        // keep only the k samples with smallest distance
+        vector< unsigned > vuDists(m_uNumClusters);
+
+        for (unsigned idx = 0; idx != m_uNumClusters; ++idx)
+            vuDists[idx] = vpDists[idx].idx;
+
+        // put the closest k in m_vvuNeighbors
+        m_vvuNeighbors.push_back(vuDists);
+    }
+
+
 
     cerr << "[KNN::ClusterHaps]: Finding " << m_uNumClusters <<
          " nearest neighbors for sample " << m_uNumHaps / 2 - 1 << "/" << m_uNumHaps / 2
@@ -186,6 +193,7 @@ void KNN::CalculateVarAfs(const vector < uint64_t > & vuScaffoldHaps)
         }
     */
 }
+
 
 
 
