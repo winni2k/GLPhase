@@ -15,7 +15,7 @@ void KNN::init(const vector< uint64_t > & vuHaplotypes,
 
     // make sure uNumSites is a sensible number
     assert(uNumSites > 0);
-    assert(uNumWordsPerHap * (WordMod + 1) >= uNumSites);
+    assert(uNumWordsPerHap * (h_WordMod + 1) >= uNumSites);
     m_uNumSites = uNumSites;
 
     m_dFreqCutoff = dFreqCutoff;
