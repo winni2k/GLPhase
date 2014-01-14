@@ -1,15 +1,15 @@
-#include "kMeans.hpp"
+#include "kNN.hpp"
 #include <utility>
 
 using namespace std;
 
-// initialization for kMeans clustering
-void KMeans::init(const vector< uint64_t > & vuHaplotypes,
+// initialization for kNN clustering
+void KNN::init(const vector< uint64_t > & vuHaplotypes,
                   unsigned uNumWordsPerHap, unsigned uNumSites,
                   double dFreqCutoff)
 {
 
-    cerr << "[KMeans]: Initialization start\n";
+    cerr << "[KNN]: Initialization start\n";
     assert(m_bInitialized == false);
     assert(uNumWordsPerHap > 0);
 
@@ -31,11 +31,11 @@ void KMeans::init(const vector< uint64_t > & vuHaplotypes,
     ClusterHaps(vuHaplotypes);
 
     m_bInitialized = true;
-    cerr << "[KMeans]: Initialization complete\n";
+    cerr << "[KNN]: Initialization complete\n";
 
 }
 
-unsigned KMeans::SampleHap(unsigned uInd, gsl_rng *rng)
+unsigned KNN::SampleHap(unsigned uInd, gsl_rng *rng)
 {
 
     // this should be out of bounds if left unchanged
@@ -68,7 +68,7 @@ struct by_dist {
     }
 };
 
-void KMeans::ClusterHaps(const vector< uint64_t > & vuHaplotypes)
+void KNN::ClusterHaps(const vector< uint64_t > & vuHaplotypes)
 {
 
     if (UsingScaffold()) {
@@ -77,7 +77,7 @@ void KMeans::ClusterHaps(const vector< uint64_t > & vuHaplotypes)
 
         for (unsigned uSampNum = 0; uSampNum < m_uNumHaps / 2; uSampNum ++) {
 
-            cerr << "[KMeans::ClusterHaps]: Finding " << m_uNumClusters <<
+            cerr << "[KNN::ClusterHaps]: Finding " << m_uNumClusters <<
                  " nearest neighbors for sample " << uSampNum << "/" << m_uNumHaps / 2 - 1 <<
                  "\r";
 
@@ -122,13 +122,13 @@ void KMeans::ClusterHaps(const vector< uint64_t > & vuHaplotypes)
         exit(4);
     }
 
-    cerr << "[KMeans::ClusterHaps]: Finding " << m_uNumClusters <<
+    cerr << "[KNN::ClusterHaps]: Finding " << m_uNumClusters <<
          " nearest neighbors for sample " << m_uNumHaps / 2 - 1 << "/" << m_uNumHaps / 2
          - 1 << "\n";
 
 }
 
-void KMeans::AssignHap(Haplotype &hHap, const uint64_t *oa)
+void KNN::AssignHap(Haplotype &hHap, const uint64_t *oa)
 {
     unsigned uSiteNum = 0;
 
@@ -139,7 +139,7 @@ void KMeans::AssignHap(Haplotype &hHap, const uint64_t *oa)
 }
 
 
-void KMeans::CutDownHaps()
+void KNN::CutDownHaps()
 {
 
     for (unsigned uPosNum = 0; uPosNum < m_uNumSites; uPosNum ++) {
@@ -151,7 +151,7 @@ void KMeans::CutDownHaps()
 /*
   calculate the variant allele frequency from scaffold for each position and store it in m_vdVarAfs
 */
-void KMeans::CalculateVarAfs(const vector < uint64_t > & vuScaffoldHaps)
+void KNN::CalculateVarAfs(const vector < uint64_t > & vuScaffoldHaps)
 {
 
     m_vdVarAfs.resize(m_uNumSites);

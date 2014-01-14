@@ -1,8 +1,8 @@
 /* @(#)kMeans.hpp
  */
 
-#ifndef _KMEANS_H
-#define _KMEANS_H 1
+#ifndef _KNN_H
+#define _KNN_H 1
 
 #include        <gsl/gsl_rng.h>
 #include        <vector>
@@ -16,7 +16,7 @@
 //require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
-class KMeans {
+class KNN {
 
   private:
     bool m_bInitialized = false;
@@ -40,7 +40,7 @@ class KMeans {
     
   public:
 
-    KMeans(unsigned uNumClust)
+    KNN(unsigned uNumClust)
         : m_uNumClusters(uNumClust) {};
 
     void init(const std::vector< uint64_t > & vuHaplotypes,
