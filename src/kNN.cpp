@@ -79,9 +79,11 @@ void KNN::ClusterHaps(const vector< uint64_t > & vuHaplotypes)
 
         for (unsigned uSampNum = 0; uSampNum < m_uNumHaps / 2; uSampNum ++) {
 
-            cerr << "[KNN::ClusterHaps]: Finding " << m_uNumClusters <<
+            if(uSampNum % 1000 == 0 || uSampNum == m_uNumHaps / 2 - 1){
+                cerr << "[KNN::ClusterHaps]: Finding " << m_uNumClusters <<
                  " nearest neighbors for sample " << uSampNum << "/" << m_uNumHaps / 2 - 1 <<
-                 "\r";
+                 "\n";
+            }
 
             // assign only the common sites of each hap to new haps
             Haplotype hHapA(uNumCommonSites);
