@@ -1,5 +1,9 @@
+1.2.8   Fri Jan 17 15:47:24 GMT 2014
+        OpenHaps now accepts scaffolds that only contain a subset of
+        the GL sites.
+
 1.2.7   Thu Jan 16 14:20:38 GMT 2014
-        nearest neighbors are now calculated for each haplotype
+        Nearest neighbors are now calculated for each haplotype
         separately and then half the number of target haplotypes are
         kept from each list
 

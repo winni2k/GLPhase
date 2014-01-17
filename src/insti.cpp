@@ -255,6 +255,9 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > & loadHaps,
     loadHaps.clear();
     assert(m_sitesUnordered.size() == site.size());
 
+    // for making sure input file is sorted by position
+    unsigned previousPos = 0;
+        
     // create a map of site positions
     while (getline(hapsFD, buffer, '\n')) {
         if (keptSites == m_sitesUnordered.size())
@@ -267,13 +270,24 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > & loadHaps,
         vector<string> tokens;
         sutils::tokenize(buffer, tokens);
 
-        // only keep sites that we know of
-        auto foundSite = m_sitesUnordered.find(atoi(tokens[2].c_str()));
+        // make sure input sites are sorted by position
+        unsigned pos = atoi(tokens[2].c_str());
+        if(pos < previousPos)
+            throw myException("Input haplotypes file " + hapsFile + " needs to be sorted by position");
+        previousPos = pos;
 
-        if (foundSite == m_sitesUnordered.end())
+        // start loading only once we hit the first site
+        if(pos < site[0].pos)
             continue;
-        else
-            keptSites ++;
+        
+        // stop loading sites if the current site is past the last site position in the GLs
+        if (pos > site.back().pos)
+            break;
+
+        // only keep sites that we know of
+        auto foundSite = m_sitesUnordered.find(pos);
+        if (foundSite == m_sitesUnordered.end())
+                continue;
 
         // make sure header start is correct
         if (numHaps == 0) {
@@ -308,6 +322,10 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > & loadHaps,
         }
 
         loadHaps.push_back(loadSite);
+
+        // keeping this site
+        keptSites ++;
+
     }
 
     cout << "Sites kept:\t" << keptSites << " / " << lineNum << "\n";
