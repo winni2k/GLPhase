@@ -221,7 +221,7 @@ TEST(Insti, loadHapLegSampErrors)
                 "Error in sample file " + brokenHapsSampSample +
                 ": empty lines detected.");
 
-    ASSERT_EXIT(lp.LoadHapsSamp(unsortedRefHaps, refSamp,
+    ASSERT_EXIT(lp.LoadHapsSamp(unsortedRefHaps,  scaffHapsSampUnorderedSample,
                                 PanelType::SCAFFOLD), ::testing::ExitedWithCode(1),
                 "Input haplotypes file " + unsortedRefHaps + " needs to be sorted by position");
 
@@ -275,7 +275,7 @@ TEST(KNN, clustersOK)
     std::srand(1);
 
     // testing to see if nearest neighbor clustering works ok
-    unsigned numClusters = 3;
+    unsigned numClusters = 4;
     unsigned numHaps = 16;
     unsigned numSites = numHaps + numClusters * 2;
 
@@ -309,9 +309,10 @@ TEST(KNN, clustersOK)
     kNN.Neighbors(0, neighborHapNums);
 
     EXPECT_EQ(numClusters, neighborHapNums.size());
-    EXPECT_EQ(2, shuffledIndexes[neighborHapNums[0]]);
-    EXPECT_EQ(3, shuffledIndexes[neighborHapNums[1]]);
-    EXPECT_EQ(4, shuffledIndexes[neighborHapNums[2]]);
+    EXPECT_EQ(6, shuffledIndexes[neighborHapNums[0]]);
+    EXPECT_EQ(2, shuffledIndexes[neighborHapNums[1]]);
+    EXPECT_EQ(2, shuffledIndexes[neighborHapNums[2]]);
+    EXPECT_EQ(3, shuffledIndexes[neighborHapNums[4]]);
 
     // testing sampling
     for (unsigned i = 0; i < 10; i++) {
