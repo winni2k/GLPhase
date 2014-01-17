@@ -84,6 +84,7 @@ void KNN::ClusterHaps(const vector< uint64_t > & vuHaplotypes)
 
     // create vector of comparison haplotypes
     vector < Haplotype > commonSiteHaps;
+
     for (unsigned hapNum = 0; hapNum < m_uNumHaps; hapNum ++) {
         Haplotype compHap(numCommonSites);
         AssignHap(compHap, vuHaplotypes.data() + hapNum * m_uNumWordsPerHap);
@@ -106,26 +107,34 @@ void KNN::ClusterHaps(const vector< uint64_t > & vuHaplotypes)
 
         // calculate neighbors of this sample
         // hap number then distance
-        vector < dist > vpDists;
+        vector < dist > distsHapA;
+        vector < dist > distsHapB;
 
         for (unsigned hapNum = 0; hapNum < m_uNumHaps; hapNum ++) {
             if (floor(hapNum / 2) == uSampNum) continue;
 
-            dist dTemp;
-            dTemp.idx = hapNum;
-            dTemp.distance =  min(hHapA.HammingDist(commonSiteHaps[hapNum]),
-                                  hHapB.HammingDist(commonSiteHaps[hapNum]));
-            vpDists.push_back(dTemp);
+            dist distHapA;
+            dist distHapB;
+            distHapA.idx = hapNum;
+            distHapB.idx = hapNum;
+            distHapA.distance =  hHapA.HammingDist(commonSiteHaps[hapNum]);
+            distHapB.distance =  hHapB.HammingDist(commonSiteHaps[hapNum]);
+
+            distsHapA.push_back(distHapA);
+            distsHapB.push_back(distHapB);
         }
 
         //sort the haplotypes by distance
-        sort(vpDists.begin(), vpDists.end(), by_dist());
+        sort(distsHapA.begin(), distsHapA.end(), by_dist());
+        sort(distsHapB.begin(), distsHapB.end(), by_dist());
 
         // keep only the k samples with smallest distance
-        vector< unsigned > vuDists(m_uNumClusters);
+        vector< unsigned > vuDists(2 * ceil(m_uNumClusters / 2.0));
 
-        for (unsigned idx = 0; idx != m_uNumClusters; ++idx)
-            vuDists[idx] = vpDists[idx].idx;
+        for (unsigned idx = 0; idx != ceil(m_uNumClusters / 2.0); idx++) {
+            vuDists[2*idx] = distsHapA[idx].idx;
+            vuDists[2*idx + 1] = distsHapB[idx].idx;
+        }
 
         // put the closest k in m_vvuNeighbors
         m_vvuNeighbors.push_back(vuDists);
@@ -193,6 +202,7 @@ void KNN::CalculateVarAfs(const vector < uint64_t > & vuScaffoldHaps)
         }
     */
 }
+
 
 
 

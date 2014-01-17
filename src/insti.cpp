@@ -1496,7 +1496,7 @@ void    Insti::estimate_EMC()
         if (n >= bn) for (unsigned i = 0; i < in; i++) replace(i);  // call replace
 
         cerr << n << '\t' << pen << '\t' << sum / in / mn << '\t' << iter / in / in <<
-             '\r';
+             '\n';
     }
 
     cerr << endl;
