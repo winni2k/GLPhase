@@ -139,13 +139,7 @@ void KNN::ClusterHaps(const vector< uint64_t > & vuHaplotypes)
         // put the closest k in m_vvuNeighbors
         m_vvuNeighbors.push_back(vuDists);
     }
-
-
-
-    cerr << "[KNN::ClusterHaps]: Finding " << m_uNumClusters <<
-         " nearest neighbors for sample " << m_uNumHaps / 2 - 1 << "/" << m_uNumHaps / 2
-         - 1 << "\n";
-
+    
 }
 
 void KNN::AssignHap(Haplotype &hHap, const uint64_t *oa)
