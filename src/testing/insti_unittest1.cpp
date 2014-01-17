@@ -38,6 +38,9 @@ string brokenHapLegSampSample = brokenDir +
                                 "/onlyThree.hapLegSample.extraLine.sample";
 string brokenHapsSampSample = brokenDir +
                               "/onlyThree.hapsSample.extraLine.sample";
+string unsortedRefHaps = sampleDir +
+                 "/20_0_62000000.011976121_012173018.paste.onlyThree.unsorted.haps";
+
 
 gsl_rng *rng = gsl_rng_alloc(gsl_rng_default);
 
@@ -218,6 +221,10 @@ TEST(Insti, loadHapLegSampErrors)
                 "Error in sample file " + brokenHapsSampSample +
                 ": empty lines detected.");
 
+    ASSERT_EXIT(lp.LoadHapsSamp(unsortedRefHaps, refSamp,
+                                PanelType::SCAFFOLD), ::testing::ExitedWithCode(1),
+                "Input haplotypes file " + unsortedRefHaps + " needs to be sorted by position");
+
 }
 
 TEST(Haplotype, StoresOK)
@@ -344,13 +351,13 @@ TEST(KNN, clustersOK)
     haplotypes[5].Set(numSites - 2, true);
     haplotypes[8].Set(numSites - 2, true);
 
-    /*
+
         for(auto hap : haplotypes){
             for(unsigned i = 0; i < numSites; i++)
                 cerr << hap.TestSite(i);
             cerr << endl;
         }
-    */
+
 
     passHaps.clear();
 
