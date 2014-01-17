@@ -29,7 +29,10 @@ class KNN {
     double m_dFreqCutoff = -2;
     std::vector<double> m_vdVarAfs;
     std::vector<unsigned> m_vuCommonSiteNums;
-    std::vector < std::vector <unsigned> > m_vvuNeighbors; // sample then hap
+
+    // stores the list of haplotypes that are closest to each sample
+    // sample then hap
+    std::vector < std::vector <unsigned> > m_neighbors; 
 
     void CalculateVarAfs(const std::vector < uint64_t > & vuScaffoldHaps);
     void CutDownHaps();
@@ -53,7 +56,7 @@ class KNN {
     // fills returnHapNums with haplotypes closest to the sample that uHapNum is a part of
     void Neighbors(unsigned uHapNum, std::vector< unsigned > & returnHapNums){
         assert(m_bInitialized == true);
-        for(auto iter : m_vvuNeighbors[floor(uHapNum/2)])
+        for(auto iter : m_neighbors[floor(uHapNum/2)])
             returnHapNums.push_back(iter);
     };
 
