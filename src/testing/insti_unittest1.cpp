@@ -309,9 +309,9 @@ TEST(KNN, clustersOK)
     kNN.Neighbors(0, neighborHapNums);
 
     EXPECT_EQ(numClusters, neighborHapNums.size());
-    EXPECT_EQ(5, shuffledIndexes[neighborHapNums[0]]);
+    EXPECT_EQ(2, shuffledIndexes[neighborHapNums[0]]);
     EXPECT_EQ(2, shuffledIndexes[neighborHapNums[1]]);
-    EXPECT_EQ(2, shuffledIndexes[neighborHapNums[2]]);
+    EXPECT_EQ(3, shuffledIndexes[neighborHapNums[2]]);
     EXPECT_EQ(3, shuffledIndexes[neighborHapNums[3]]);
 
     // testing sampling

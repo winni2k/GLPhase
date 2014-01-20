@@ -44,8 +44,8 @@ unsigned KNN::SampleHap(unsigned uInd, gsl_rng *rng)
     unsigned uPropHap = m_uNumHaps;
 
     if (UsingScaffold())
-        uPropHap = m_vvuNeighbors[uInd][gsl_rng_uniform_int(rng,
-                                        m_vvuNeighbors[uInd].size())];
+        uPropHap = m_neighbors[uInd][gsl_rng_uniform_int(rng,
+                                        m_neighbors[uInd].size())];
     else {
         cout << "kNN without a scaffold is not implemented yet" << endl;
         exit(4);
@@ -79,7 +79,7 @@ void KNN::ClusterHaps(const vector< uint64_t > & vuHaplotypes)
     }
 
 
-    m_vvuNeighbors.clear();
+    m_neighbors.clear();
     unsigned numCommonSites = m_vuCommonSiteNums.size();
 
     // create vector of comparison haplotypes
@@ -130,14 +130,34 @@ void KNN::ClusterHaps(const vector< uint64_t > & vuHaplotypes)
 
         // keep only the k samples with smallest distance
         vector< unsigned > vuDists(2 * ceil(m_uNumClusters / 2.0));
-
+        
+        unordered_map<unsigned,bool> sampleList;
         for (unsigned idx = 0; idx != ceil(m_uNumClusters / 2.0); idx++) {
+            // insert hapA
             vuDists[2*idx] = distsHapA[idx].idx;
-            vuDists[2*idx + 1] = distsHapB[idx].idx;
+            sampleList.insert(make_pair<unsigned,bool>(distsHapA[idx].idx, true));
         }
 
-        // put the closest k in m_vvuNeighbors
-        m_vvuNeighbors.push_back(vuDists);
+        // insert only unique elements
+        unsigned hapIdx = 0;
+        for (unsigned idx = 0; idx != ceil(m_uNumClusters / 2.0); idx++) {
+
+            bool inserted = false;
+            while(!inserted){
+                auto retVal = sampleList.insert(make_pair<unsigned,bool>(distsHapB[hapIdx].idx, true));
+                hapIdx++;
+                if(retval.second)
+                    inserted = true;
+            }
+
+            // insert hapB            
+            vuDists[2*idx + 1] = distsHapB[hapIdx - 1].idx;
+        }
+
+        
+
+        // put the closest k in m_neighbors
+        m_neighbors.push_back(vuDists);
     }
     
 }

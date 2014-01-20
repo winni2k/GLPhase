@@ -10,6 +10,7 @@
 #include        <iostream>
 #include        <math.h>
 #include        <algorithm>
+#include        <unordered_map>
 #include        "haplotype.hpp"
 
 
