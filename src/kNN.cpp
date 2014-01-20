@@ -135,7 +135,7 @@ void KNN::ClusterHaps(const vector< uint64_t > & vuHaplotypes)
         for (unsigned idx = 0; idx != ceil(m_uNumClusters / 2.0); idx++) {
             // insert hapA
             vuDists[2*idx] = distsHapA[idx].idx;
-            sampleList.insert(make_pair<unsigned,bool>(distsHapA[idx].idx, true));
+            sampleList.emplace(distsHapA[idx].idx, true);
         }
 
         // insert only unique elements
@@ -144,7 +144,7 @@ void KNN::ClusterHaps(const vector< uint64_t > & vuHaplotypes)
 
             bool inserted = false;
             while(!inserted){
-                auto retVal = sampleList.insert(make_pair<unsigned,bool>(distsHapB[hapIdx].idx, true));
+                auto retVal = sampleList.emplace(distsHapB[hapIdx].idx, true);
                 hapIdx++;
                 if(retval.second)
                     inserted = true;
