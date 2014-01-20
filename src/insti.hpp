@@ -14,7 +14,6 @@
 #include <cassert>
 #include <stdint.h>
 #include <utility>
-#include <map>
 #include <unordered_map>
 #include "impute.hpp"
 #include "emcchain.hpp"
