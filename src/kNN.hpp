@@ -11,6 +11,7 @@
 #include        <math.h>
 #include        <algorithm>
 #include        <unordered_map>
+#include <utility>
 #include        "haplotype.hpp"
 
 
