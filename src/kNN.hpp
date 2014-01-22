@@ -56,10 +56,12 @@ class KNN {
     unsigned SampleHap(unsigned uInd, gsl_rng *rng);
 
     // fills returnHapNums with haplotypes closest to the sample that uHapNum is a part of
-    void Neighbors(unsigned uHapNum, std::vector< unsigned > & returnHapNums){
+    std::vector<unsigned> Neighbors(unsigned uHapNum){
+        std::vector< unsigned > returnHapNums;
         assert(m_bInitialized == true);
         for(auto iter : m_neighbors[floor(uHapNum/2)])
             returnHapNums.push_back(iter);
+        return returnHapNums;
     };
 
     // fills returnSiteNums with sites that are used for clustering

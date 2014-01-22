@@ -146,7 +146,7 @@ void KNN::ClusterHaps(const vector< uint64_t > & vuHaplotypes)
             while(!inserted){
                 auto retVal = sampleList.emplace(distsHapB[hapIdx].idx, true);
                 hapIdx++;
-                if(retval.second)
+                if(retVal.second)
                     inserted = true;
             }
 

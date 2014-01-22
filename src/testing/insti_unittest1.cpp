@@ -300,24 +300,31 @@ TEST(KNN, clustersOK)
 
     for (unsigned j = 0; j < shuffledIndexes.size(); j++)
         passHaps.push_back(haplotypes[shuffledIndexes[j]].GetWord(0));
+/*
+    for(unsigned idx = 0; idx != haplotypes.size(); idx++){
+        cerr << idx << ": ";
+        for(unsigned i = 0; i < numSites; i++)
+            cerr << haplotypes[shuffledIndexes[idx]].TestSite(i);
+        cerr << endl;
+    }
+*/
 
     KNN kNN(numClusters);
     kNN.init(passHaps, 1, numSites, 0);
-
+    
     // check to make sure kNN has the haps stored correctly
-    vector< unsigned > neighborHapNums;
-    kNN.Neighbors(0, neighborHapNums);
+    vector< unsigned > neighborHapNums = kNN.Neighbors(0);
 
     EXPECT_EQ(numClusters, neighborHapNums.size());
     EXPECT_EQ(2, shuffledIndexes[neighborHapNums[0]]);
-    EXPECT_EQ(2, shuffledIndexes[neighborHapNums[1]]);
+    EXPECT_EQ(4, shuffledIndexes[neighborHapNums[1]]);
     EXPECT_EQ(3, shuffledIndexes[neighborHapNums[2]]);
-    EXPECT_EQ(3, shuffledIndexes[neighborHapNums[3]]);
+    EXPECT_EQ(5, shuffledIndexes[neighborHapNums[3]]);
 
     // testing sampling
     for (unsigned i = 0; i < 10; i++) {
         unsigned sampHap = kNN.SampleHap(0, rng);
-        EXPECT_LT(shuffledIndexes[sampHap], 5);
+        EXPECT_LT(shuffledIndexes[sampHap], numClusters + 2);
         EXPECT_GT(shuffledIndexes[sampHap], 1);
     }
 
@@ -340,24 +347,26 @@ TEST(KNN, clustersOK)
     haplotypes[0].Set(numSites - 1, true);
     haplotypes[1].Set(numSites - 1, true);
     haplotypes[5].Set(numSites - 1, true);
+    haplotypes[7].Set(numSites - 1, true);
     haplotypes[15].Set(numSites - 1, true);
     haplotypes[14].Set(numSites - 1, true);
     haplotypes[13].Set(numSites - 1, true);
 
-
     haplotypes[0].Set(numSites - 2, true);
     haplotypes[1].Set(numSites - 2, true);
+    haplotypes[2].Set(numSites - 2, true);
     haplotypes[3].Set(numSites - 2, true);
     haplotypes[4].Set(numSites - 2, true);
     haplotypes[5].Set(numSites - 2, true);
     haplotypes[8].Set(numSites - 2, true);
+    
 
 
-        for(auto hap : haplotypes){
-            for(unsigned i = 0; i < numSites; i++)
-                cerr << hap.TestSite(i);
-            cerr << endl;
-        }
+/*    for(auto hap : haplotypes){
+        for(unsigned i = 0; i < numSites; i++)
+            cerr << hap.TestSite(i);
+        cerr << endl;
+        }*/
 
 
     passHaps.clear();
@@ -366,7 +375,7 @@ TEST(KNN, clustersOK)
         passHaps.push_back(haplotypes[shuffledIndexes[j]].GetWord(0));
 
     KNN kNN2(numClusters);
-    kNN2.init(passHaps, 1, numSites, 0.375);
+    kNN2.init(passHaps, 1, numSites, 0.4375);
 
     // check to make sure variant allele freqs are calculated correctly
     vector<double> varAfs;
@@ -382,19 +391,21 @@ TEST(KNN, clustersOK)
     EXPECT_EQ(4, commonSites.size());
 
     // check to make sure kNN has the haps stored correctly
-    neighborHapNums.clear();
-    kNN2.Neighbors(0, neighborHapNums);
+    neighborHapNums = kNN2.Neighbors(0);
 
     EXPECT_EQ(numClusters, neighborHapNums.size());
     EXPECT_EQ(5, shuffledIndexes[neighborHapNums[0]]);
-    EXPECT_EQ(8, shuffledIndexes[neighborHapNums[1]]);
-    EXPECT_EQ(6, shuffledIndexes[neighborHapNums[2]]);
+    EXPECT_EQ(6, shuffledIndexes[neighborHapNums[1]]);
+    EXPECT_EQ(8, shuffledIndexes[neighborHapNums[2]]);
+    EXPECT_EQ(2, shuffledIndexes[neighborHapNums[3]]);
 
     // testing sampling
     for (unsigned i = 0; i < 10; i++) {
         unsigned sampHap = kNN2.SampleHap(0, rng);
         EXPECT_LT(shuffledIndexes[sampHap], 9);
-        EXPECT_GT(shuffledIndexes[sampHap], 4);
+        EXPECT_GT(shuffledIndexes[sampHap], 1);
+        EXPECT_NE(shuffledIndexes[sampHap], 3);
+        EXPECT_NE(shuffledIndexes[sampHap], 4);
         EXPECT_NE(shuffledIndexes[sampHap], 7);
     }
 
