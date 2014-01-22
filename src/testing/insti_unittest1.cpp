@@ -155,6 +155,9 @@ TEST(Insti, loadHapsSamp)
     ASSERT_EQ("samp2", lp.GetScaffoldID(1));
     ASSERT_EQ("samp3", lp.GetScaffoldID(2));
 
+    ASSERT_EQ(6, lp.GetScaffoldNumHaps());
+    ASSERT_EQ(1, lp.GetScaffoldNumWordsPerHap());
+//    ASSERT_EQ(100, lp.GetScaffoldNumSites());
     for (unsigned i = 0; i != 26; i++) {
         EXPECT_EQ(0, lp.TestScaffoldSite(0, i));
         EXPECT_EQ(1, lp.TestScaffoldSite(1, i));

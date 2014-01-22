@@ -178,15 +178,16 @@ bool    Insti::load_bin(const char *F)
 }
 
 // HAPS/SAMPLE sample file
-void Insti::OpenSample(string sampleFile, vector<string> & IDs)
+vector<string> Insti::OpenSample(string sampleFile)
 {
 
     cerr << "Loading samples file: " << sampleFile << endl;
-    IDs.clear();
+    vector<string>IDs;
 
     // read in sample file
     ifile sampleFD(sampleFile);
-    if(!sampleFD.isGood())
+
+    if (!sampleFD.isGood())
         throw myException("Could not open file: " + sampleFile);
 
     string buffer;
@@ -234,6 +235,7 @@ void Insti::OpenSample(string sampleFile, vector<string> & IDs)
         // now add sample id to vector
         IDs.push_back(tokens[0]);
     }
+    return IDs;
 }
 
 //read in the haps file
@@ -244,7 +246,8 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > & loadHaps,
 
     cerr << "Loading haps file: " << hapsFile << endl;
     ifile hapsFD(hapsFile);
-    if(!hapsFD.isGood())
+
+    if (!hapsFD.isGood())
         throw myException("Could not open file: " + hapsFile);
 
     string buffer;
@@ -257,7 +260,7 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > & loadHaps,
 
     // for making sure input file is sorted by position
     unsigned previousPos = 0;
-        
+
     // create a map of site positions
     while (getline(hapsFD, buffer, '\n')) {
         if (keptSites == m_sitesUnordered.size())
@@ -272,22 +275,26 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > & loadHaps,
 
         // make sure input sites are sorted by position
         unsigned pos = atoi(tokens[2].c_str());
-        if(pos < previousPos)
-            throw myException("Input haplotypes file " + hapsFile + " needs to be sorted by position");
+
+        if (pos < previousPos)
+            throw myException("Input haplotypes file " + hapsFile +
+                              " needs to be sorted by position");
+
         previousPos = pos;
 
         // start loading only once we hit the first site
-        if(pos < site[0].pos)
+        if (pos < site[0].pos)
             continue;
-        
+
         // stop loading sites if the current site is past the last site position in the GLs
         if (pos > site.back().pos)
             break;
 
         // only keep sites that we know of
         auto foundSite = m_sitesUnordered.find(pos);
+
         if (foundSite == m_sitesUnordered.end())
-                continue;
+            continue;
 
         // make sure header start is correct
         if (numHaps == 0) {
@@ -364,10 +371,11 @@ bool Insti::LoadHapsSamp(string hapsFile, string sampleFile,
         // get sample information if we are using a scaffold
         // make sure samples match
         if (panelType == PanelType::SCAFFOLD) {
-            OpenSample(sampleFile, m_scaffoldIDs);
-            SubsetSamples(m_scaffoldIDs, loadHaps);
-            OrderSamples(m_scaffoldIDs, loadHaps);
-            MatchSamples(m_scaffoldIDs, loadHaps[0].size());
+            vector<string> scaffoldIDs = OpenSample(sampleFile);
+            SubsetSamples(scaffoldIDs, loadHaps);
+            OrderSamples(scaffoldIDs, loadHaps);
+            MatchSamples(scaffoldIDs, loadHaps[0].size());
+            m_scaffold.swapIDs(scaffoldIDs);
         }
 
         vector<vector<char> > filtHaps;
@@ -614,31 +622,6 @@ void Insti::MatchSamples(const vector<std::string> & IDs, unsigned numHaps)
                           ") do not match.");
 }
 
-void Insti::Char2BitVec(const vector<vector<char> > & inHaps,
-                        unsigned numWords, vector<uint64_t> & storeHaps)
-{
-
-    assert(ceil(static_cast<double>(inHaps.size()) / (WordMod + 1)) == numWords);
-
-    unsigned numSites = inHaps.size();
-    unsigned numHaps = inHaps[0].size();
-    storeHaps.clear();
-    storeHaps.resize(numWords * numHaps);
-
-    for (unsigned siteNum = 0; siteNum < numSites; siteNum++) {
-        for (unsigned hapNum = 0; hapNum < numHaps; hapNum ++) {
-            if (inHaps[siteNum][hapNum] == 0)
-                set0(&storeHaps[hapNum * numWords], siteNum);
-            else if (inHaps[siteNum][hapNum] == 1)
-                set1(&storeHaps[hapNum * numWords], siteNum);
-            else {
-                cout << "programming error";
-                throw 1;
-            }
-        }
-    }
-
-}
 
 // put the haplotypes in the right place in the program structure
 void Insti::LoadHaps(vector<vector<char> > & inHaps, PanelType panelType)
@@ -646,28 +629,25 @@ void Insti::LoadHaps(vector<vector<char> > & inHaps, PanelType panelType)
 
     // convert char based haplotypes to bitvector
     unsigned numHaps = inHaps[0].size();
-    vector< uint64_t > storeHaps;
 
     // store the haplotypes in the correct place based on what type of panel we are loading
     switch (panelType) {
-    case PanelType::REFERENCE:
-        Char2BitVec(inHaps, GetNumWords(), storeHaps);
+    case PanelType::REFERENCE: {
+        HapPanel temp;
+        vector< uint64_t > storeHaps = temp.Char2BitVec(inHaps, GetNumWords(), WordMod + 1);
         storeHaps.swap(m_vRefHaps);
         m_uNumRefHaps = numHaps;
         cerr << "Reference panel haplotypes\t" << m_uNumRefHaps << endl;
         return;
+    }
 
-    case PanelType::SCAFFOLD:
+    case PanelType::SCAFFOLD: {
         assert(WordMod >= 0);
-        m_uNumScaffoldHaps = numHaps;
-        Char2BitVec(inHaps,
-                    ceil(static_cast<double>(inHaps.size()) / (WordMod + 1)),
-                    storeHaps);
-        std::swap(m_scaffoldHaps, storeHaps);
-        cerr << "Scaffold haplotypes\t" << m_uNumScaffoldHaps << endl;
+        m_scaffold.Init(inHaps);
+        cerr << "Scaffold haplotypes\t" << m_scaffold.NumHaps() << endl;
 
         try {
-            if (m_uNumScaffoldHaps != hn)
+            if (m_scaffold.NumHaps() != hn)
                 throw myException("Error while reading scaffold: Scaffold needs to have two haplotypes for every input sample");
         } catch (exception& e) {
             cout << e.what() << endl;
@@ -675,6 +655,7 @@ void Insti::LoadHaps(vector<vector<char> > & inHaps, PanelType panelType)
         };
 
         return;
+    }
 
     default:
         assert(false); // this should not happen
@@ -690,10 +671,7 @@ void Insti::CheckPanelPrereqs(PanelType panelType)
         break;
 
     case PanelType::SCAFFOLD:
-        m_bUsingScaffold = true;
-        assert(m_vuScaffoldPositions.size() == 0);
-        assert(m_scaffoldHaps.size() == 0);
-        assert(m_scaffoldIDs.size() == 0);
+        assert(!m_scaffold.Initialized());
         break;
 
     default:
@@ -706,8 +684,10 @@ vector<snp> Insti::OpenLegend(string legendFile)
 
     // read in legend file
     ifile legendFD(legendFile);
-    if(!legendFD.isGood())
+
+    if (!legendFD.isGood())
         throw myException("Could not open file: " + legendFile);
+
     string buffer;
     vector<snp> loadLeg;
 
@@ -753,7 +733,8 @@ vector<vector<char> > Insti::OpenHap(string hapFile)
 
     // read in the hap file
     ifile hapFD(hapFile);
-    if(!hapFD.isGood())
+
+    if (!hapFD.isGood())
         throw myException("Could not open file: " + hapFile);
 
     string buffer;
@@ -1150,8 +1131,7 @@ void    Insti::estimate()
             // use kNN
             case 2:
                 if (UsingScaffold())
-                    m_oRelationship.init(4, m_scaffoldHaps, wn, mn,
-                                         s_scaffoldFreqCutoff);
+                    m_oRelationship.init(4, m_scaffold, s_scaffoldFreqCutoff);
                 else
                     m_oRelationship.init(4, haps, wn, mn, rng);
 
@@ -1693,6 +1673,7 @@ void    Insti::document(void)
     cerr << "\n\n";
     exit(1);
 }
+
 
 
 

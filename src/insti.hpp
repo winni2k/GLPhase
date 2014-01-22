@@ -22,6 +22,7 @@
 #include "version.hpp"
 #include "enums.hpp"
 #include "snp.hpp"
+#include "hapPanel.hpp"
 
 //require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
@@ -36,7 +37,7 @@ private:
     unsigned m_nIteration;
     unsigned m_uCycles;
     bool m_bUsingRefHaps = false;
-    bool m_bUsingScaffold = false;
+//    bool m_bUsingScaffold = false;
 
     // keep track of relationship graph
     Relationship m_oRelationship;
@@ -52,10 +53,7 @@ private:
     unsigned m_uNumRefHaps = 0;
 
     // scaffold haplotypes
-    vector<uint64_t> m_scaffoldHaps;
-    vector<unsigned> m_vuScaffoldPositions;
-    vector<std::string> m_scaffoldIDs;
-    unsigned m_uNumScaffoldHaps = 0;
+    HapPanel m_scaffold;
 
     // Insti redefinition of hmm_like
     // so far it only adds logging
@@ -79,7 +77,7 @@ private:
     vector<snp> OpenLegend(string legendFile);
     void OpenHaps(string hapFile, vector<vector<char> > & loadHaps,
                   vector <snp> & sites);
-    void OpenSample(string sampleFile, vector<string> & IDs);
+    vector<string> OpenSample(string sampleFile);
     void MatchSamples(const vector<std::string> & IDs, unsigned numHaps);
     void SubsetSamples(vector<string> & loadIDs, vector<vector< char> > & loadHaps);
     void OrderSamples(vector<string> & loadIDs,
@@ -90,20 +88,21 @@ private:
 
 public:
 
-    unsigned GetScaffoldNumWords(){
-        assert(m_scaffoldHaps.size() > 0);
-        assert(m_scaffoldHaps.size() % m_uNumScaffoldHaps == 0);
-        return (m_scaffoldHaps.size() / m_uNumScaffoldHaps);
+    unsigned GetScaffoldNumWordsPerHap(){
+        return m_scaffold.NumWordsPerHap();
     }
     string GetScaffoldID(unsigned idx){
-        assert(idx < m_scaffoldIDs.size());
-        return m_scaffoldIDs[idx];
+        return m_scaffold.GetID(idx);
     }
     bool TestScaffoldSite(unsigned hapNum, unsigned siteNum){
-        assert(hapNum * GetScaffoldNumWords() < m_scaffoldHaps.size());
-        assert(siteNum < GetScaffoldNumWords() * (WordMod + 1));
-        return test(&m_scaffoldHaps[hapNum * GetScaffoldNumWords()], siteNum);
+        assert(hapNum < m_scaffold.NumHaps());
+        assert(siteNum < m_scaffold.MaxSites());
+        vector <uint64_t> * scaffoldHaps = m_scaffold.Haplotypes();
+        uint64_t * scaffoldHapsPointer = scaffoldHaps->data();
+        return test(&scaffoldHapsPointer[hapNum * m_scaffold.NumWordsPerHap()], siteNum);
     }
+    unsigned GetScaffoldNumHaps(){return m_scaffold.NumHaps();}
+    unsigned GetScaffoldNumSites(){return m_scaffold.NumSites();}
 
     
     Insti()
@@ -129,12 +128,12 @@ public:
 
     void CheckPanelPrereqs(PanelType panelType);
 
-    void Char2BitVec(const vector<vector<char> > & inHaps, double numWords, vector<uint64_t> & storeHaps){
+    vector< uint64_t > Char2BitVec(const vector<vector<char> > & inHaps, double numWords){
         assert(numWords >= 0);
-        Char2BitVec(inHaps, static_cast<unsigned>(numWords), storeHaps);
+        return Char2BitVec(inHaps, static_cast<unsigned>(numWords));
     }
     
-    void Char2BitVec(const vector<vector<char> > & inHaps, unsigned numWords, vector<uint64_t> & storeHaps);
+    vector< uint64_t > Char2BitVec(const vector<vector<char> > & inHaps, unsigned numWords);
 
     void CalculateVarAfs();
 
@@ -214,7 +213,7 @@ public:
 
     bool UsingScaffold()
     {
-        return (m_uNumScaffoldHaps > 0);
+        return (m_scaffold.Initialized());
     };
 };
 

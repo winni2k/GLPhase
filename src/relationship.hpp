@@ -8,6 +8,7 @@
 #include        "relationshipGraph.hpp"
 #include        "kMedoids.hpp"
 #include        "kNN.hpp"
+#include        "hapPanel.hpp"
 
 
 //require c++11
@@ -16,7 +17,7 @@ static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
 class Relationship {
 
-  private:
+private:
 
     /*
      -1 = undefined
@@ -31,7 +32,7 @@ class Relationship {
     RelationshipGraph m_oRelGraph;
     KNN m_oKNN;
 
-  public:
+public:
 
     // call for clustering
     Relationship(unsigned uNumClusters, unsigned uClusterType)
@@ -40,36 +41,43 @@ class Relationship {
 
     // call for relationship graph - ignore clustering
     Relationship(int iGraphType, unsigned uSamples, unsigned uHaplotypes)
-        : m_oKMedoids(0, 0), m_oRelGraph(), m_oKNN(0) {
+        : m_oKMedoids(0, 0), m_oRelGraph(), m_oKNN(0)
+    {
         SetIGraphType(iGraphType);
         m_oRelGraph.init(iGraphType, uSamples, uHaplotypes);
     }
 
-    void SetIGraphType(int iGraphType){
+    void SetIGraphType(int iGraphType)
+    {
         assert(iGraphType < 5);
         assert(iGraphType >= 0);
         assert(m_graphType == -1);
         m_graphType = iGraphType;
     }
-    
+
     // initialize relationship graph
-    void init(int iGraphType, unsigned uSamples, unsigned uHaplotypes) {
+    void init(int iGraphType, unsigned uSamples, unsigned uHaplotypes)
+    {
         SetIGraphType(iGraphType);
         m_oRelGraph.init(iGraphType, uSamples, uHaplotypes);
     };
 
     // initialize kmedoids or kNN
     void init(int iGraphType, const vector< uint64_t > & vuHaplotypes,
-              unsigned uNumWordsPerHap, unsigned uNumSites, gsl_rng *rng) {
+              unsigned uNumWordsPerHap, unsigned uNumSites, gsl_rng *rng)
+    {
 
         SetIGraphType(iGraphType);
-        switch(iGraphType){
+
+        switch (iGraphType) {
         case 3:
             m_oKMedoids.init(&vuHaplotypes, uNumWordsPerHap, uNumSites, rng);
             break;
+
         case 4:
             m_oKNN.init(vuHaplotypes, uNumWordsPerHap, uNumSites, -1);
             break;
+
         default:
             cout << "unexpected graph type: " << iGraphType << endl;
             exit(3);
@@ -77,33 +85,39 @@ class Relationship {
     }
 
     // initialize kNN with scaffold
-    void init(int iGraphType,  const vector< uint64_t > & vuScaffoldHaplotypes, unsigned uNumWordsPerHap, unsigned uNumSites, double dScaffoldFreqCutoff) {
+    void init(int iGraphType,  HapPanel & scaffold, double dScaffoldFreqCutoff)
+    {
 
-        SetIGraphType(iGraphType);
         assert(iGraphType == 4);
-        m_oKNN.init(vuScaffoldHaplotypes, uNumWordsPerHap, uNumSites,
-                       dScaffoldFreqCutoff);
+        SetIGraphType(iGraphType);
+        m_oKNN.init(*scaffold.Haplotypes(), scaffold.NumWordsPerHap(),
+                    scaffold.NumSites(), dScaffoldFreqCutoff);
     }
 
     // sample from cluster graph
-    unsigned SampleHap(unsigned uInd, gsl_rng *rng) {
+    unsigned SampleHap(unsigned uInd, gsl_rng *rng)
+    {
         return SampleHap(uInd, rng, false);
     }
 
     // returns a haplotype sampled using the relationship graph, but only from the reference haplotypes
-    unsigned SampleHap(unsigned uInd, gsl_rng *rng, bool bOnlyFromRef) {
-        switch(m_graphType){
+    unsigned SampleHap(unsigned uInd, gsl_rng *rng, bool bOnlyFromRef)
+    {
+        switch (m_graphType) {
         case 3:
             return m_oKMedoids.SampleHap(uInd, rng);
+
         case 4:
             return m_oKNN.SampleHap(uInd, rng);
+
         default:
             return m_oRelGraph.SampleHap(uInd, rng, bOnlyFromRef);
         }
     }
 
     // update graph with proposal
-    void UpdateGraph(unsigned * p, bool bAccepted, unsigned uInd) {
+    void UpdateGraph(unsigned * p, bool bAccepted, unsigned uInd)
+    {
         UpdateGraph(p, bAccepted, uInd, 1.0f);
     };
 
@@ -111,18 +125,21 @@ class Relationship {
     //    void UpdateGraph( unsigned *p, bool bAccepted, unsigned uInd, float dUpdateProb, gsl_rng *rng){ m_oRelGraph.UpdateGraph(p, bAccepted, uInd, dUpdateProb, rng); };
 
     // update graph with number fRatio instead of 1
-    void UpdateGraph(unsigned *p, bool bAccepted, unsigned uInd, float fRatio) {
+    void UpdateGraph(unsigned *p, bool bAccepted, unsigned uInd, float fRatio)
+    {
         if (m_graphType < 3)
             m_oRelGraph.UpdateGraph(p, bAccepted, uInd, fRatio);
     };
 
     // update medoids
-    void UpdateGraph(const vector< uint64_t > * pvuHaplotypes) {
+    void UpdateGraph(const vector< uint64_t > * pvuHaplotypes)
+    {
         if (m_graphType == 3)
             m_oKMedoids.UpdateMedoids(pvuHaplotypes);
     };
 
-    void Save(std::string fileName, const vector<std::string> & name) {
+    void Save(std::string fileName, const vector<std::string> & name)
+    {
         if (m_graphType < 3)
             m_oRelGraph.Save(fileName, name);
     };
@@ -130,5 +147,7 @@ class Relationship {
 };
 
 #endif /* _RELATIONSHIP_H */
+
+
 
 
