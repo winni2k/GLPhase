@@ -296,6 +296,13 @@ TEST(KNN, clustersOK)
         haplotypes.push_back(temp);
     }
 
+    // make the second haplotype match hap number 16 and 15 (0 based) closest
+    // but not as well as hap 0 would match hap 4
+    for(unsigned i = numSites - 6; i < numSites; i++){
+        haplotypes[1].Set(i-numSites + 7,false);
+        haplotypes[1].Set(i,true);
+    }
+        
     // shuffle the haplotypes except for the first two
     std::random_shuffle(shuffledIndexes.begin() + 2, shuffledIndexes.end());
 
@@ -303,14 +310,14 @@ TEST(KNN, clustersOK)
 
     for (unsigned j = 0; j < shuffledIndexes.size(); j++)
         passHaps.push_back(haplotypes[shuffledIndexes[j]].GetWord(0));
-/*
+
     for(unsigned idx = 0; idx != haplotypes.size(); idx++){
         cerr << idx << ": ";
         for(unsigned i = 0; i < numSites; i++)
             cerr << haplotypes[shuffledIndexes[idx]].TestSite(i);
         cerr << endl;
     }
-*/
+
 
     KNN kNN(numClusters);
     kNN.init(passHaps, 1, numSites, 0);
@@ -320,17 +327,26 @@ TEST(KNN, clustersOK)
 
     EXPECT_EQ(numClusters, neighborHapNums.size());
     EXPECT_EQ(2, shuffledIndexes[neighborHapNums[0]]);
-    EXPECT_EQ(4, shuffledIndexes[neighborHapNums[1]]);
+    EXPECT_EQ(15, shuffledIndexes[neighborHapNums[1]]);
     EXPECT_EQ(3, shuffledIndexes[neighborHapNums[2]]);
-    EXPECT_EQ(5, shuffledIndexes[neighborHapNums[3]]);
+    EXPECT_EQ(14, shuffledIndexes[neighborHapNums[3]]);
 
     // testing sampling
     for (unsigned i = 0; i < 10; i++) {
         unsigned sampHap = kNN.SampleHap(0, rng);
-        EXPECT_LT(shuffledIndexes[sampHap], numClusters + 2);
+        EXPECT_LT(shuffledIndexes[sampHap], numHaps);
         EXPECT_GT(shuffledIndexes[sampHap], 1);
+        for(unsigned i = 4; i < numHaps -2; i++)
+            EXPECT_NE(shuffledIndexes[sampHap], i);
     }
 
+    // undo change of hap 1
+    for(unsigned i = numSites - 6; i < numSites; i++){
+        haplotypes[1].Set(i-numSites + 7, true);
+        haplotypes[1].Set(i, false);
+    }
+
+    
     // now test the thresholding option
     // first site above threshold
     haplotypes[1].Set(0, true);
