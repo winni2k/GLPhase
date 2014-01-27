@@ -339,7 +339,7 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > & loadHaps,
     cout << "Sites kept:\t" << keptSites << " / " << lineNum << "\n";
 
     if (numHaps == 0)
-        throw myException("Number of haplotypes in haps file is 0.  Haps file empty?");
+        cerr << "Number of haplotypes in haps file is 0.  Haps file empty?";
 
     assert(loadHaps[0].size() == numHaps);
 }
