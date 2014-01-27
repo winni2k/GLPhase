@@ -338,9 +338,10 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > & loadHaps,
 
     cout << "Sites kept:\t" << keptSites << " / " << lineNum << "\n";
 
-    if (numHaps == 0)
-        cerr << "Number of haplotypes in haps file is 0.  Haps file empty?";
-
+    if (numHaps == 0){
+        cerr << "Number of haplotypes in haps file is 0.  Haps file empty?\n";
+        exit(1);
+    }
     assert(loadHaps[0].size() == numHaps);
 }
 
@@ -375,14 +376,20 @@ bool Insti::LoadHapsSamp(string hapsFile, string sampleFile,
             vector<string> scaffoldIDs = OpenSample(sampleFile);
             SubsetSamples(scaffoldIDs, loadHaps);
             OrderSamples(scaffoldIDs, loadHaps);
-            MatchSamples(scaffoldIDs, loadHaps[0].size());
+
+            if (!loadHaps.empty())
+                MatchSamples(scaffoldIDs, loadHaps[0].size());
+
             m_scaffold.swapIDs(scaffoldIDs);
         }
 
-        vector<vector<char> > filtHaps;
-        vector<snp>filtSites;
-        FilterSites(loadHaps, loadSites, filtHaps, filtSites,  panelType);
-        LoadHaps(filtHaps, panelType);
+        if (!loadHaps.empty()) {
+            vector<vector<char> > filtHaps;
+            vector<snp>filtSites;
+
+            FilterSites(loadHaps, loadSites, filtHaps, filtSites,  panelType);
+            LoadHaps(filtHaps, panelType);
+        }
 
     } catch (exception& e) {
         cerr << e.what() << endl;
@@ -397,7 +404,9 @@ void Insti::OrderSamples(vector<string> & loadIDs,
 {
 
     assert(loadIDs.size() == m_namesUnordered.size());
-    assert(loadIDs.size() * 2  == loadHaps[0].size());
+
+    if (!loadHaps.empty())
+        assert(loadIDs.size() * 2  == loadHaps[0].size());
 
 
     vector<unsigned> orderedLoadNameIdxs;
@@ -441,9 +450,8 @@ void Insti::OrderSamples(vector<string> & loadIDs,
         assert(loadHaps[siteIdx].size() == orderedLoadNameIdxs.size() * 2);
     }
 
-    assert(loadIDs.size() * 2 == loadHaps[0].size());
-
-
+    if (!loadHaps.empty())
+        assert(loadIDs.size() * 2 == loadHaps[0].size());
 
 }
 void Insti::SubsetSamples(vector<string> & loadIDs,
@@ -451,7 +459,10 @@ void Insti::SubsetSamples(vector<string> & loadIDs,
 {
 
     assert(loadIDs.size() >= m_namesUnordered.size());
-    assert(loadIDs.size() * 2  == loadHaps[0].size());
+
+    if (!loadHaps.empty())
+        assert(loadIDs.size() * 2  == loadHaps[0].size());
+
     vector<unsigned> idIdxsToKeep;
 
     for (unsigned idIdx = 0; idIdx < loadIDs.size(); idIdx++) {
@@ -491,7 +502,8 @@ void Insti::SubsetSamples(vector<string> & loadIDs,
         assert(loadHaps[siteIdx].size() == idIdxsToKeep.size() * 2);
     }
 
-    assert(loadIDs.size() * 2 == loadHaps[0].size());
+    if (!loadHaps.empty())
+        assert(loadIDs.size() * 2 == loadHaps[0].size());
 
 }
 
@@ -782,8 +794,10 @@ vector<vector<char> > Insti::OpenHap(string hapFile)
         loadHaps.push_back(inSite);
     }
 
-    if (uNumHaps == 0)
-        cerr<< "num haps is 0.  Haps file empty? Continuing without use of scaffold";
+    if (uNumHaps == 0){
+        cerr << "num haps is 0.  Haps file empty?\n";
+        exit(1);
+    }
 
     return loadHaps;
 }
@@ -1205,7 +1219,8 @@ void    Insti::estimate()
         gettimeofday(&currentTime, NULL);
         double runTimeInMin = static_cast<double>(currentTime.tv_sec -
                               startTime.tv_sec) / 60;
-        cerr << m_tag << ":\t" << n << '\t' << pen << '\t' << sum / in / mn << '\t' << iter / in / in <<
+        cerr << m_tag << ":\t" << n << '\t' << pen << '\t' << sum / in / mn << '\t' <<
+             iter / in / in <<
              "\t" << runTimeInMin  << "m\t" << runTimeInMin / (n + 1) *
              (bn + sn) << "m\t" <<  endl;
     }
@@ -1684,6 +1699,8 @@ void    Insti::document(void)
     cerr << "\n\n";
     exit(1);
 }
+
+
 
 
 

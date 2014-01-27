@@ -26,11 +26,13 @@ string scaffHapsSampUnorderedSample = sampleDir +
                                       "/onlyThree.hapsSample.unordered.sample";
 
 string scaffoldUnorderedHaps = sampleDir +
-    "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted.unordered.haps";
+                               "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted.unordered.haps";
 string scaffoldHap = sampleDir +
                      "/20_011976121_012173018.bin.onlyThree.scaffold50.hap";
 string scaffoldHaps = sampleDir +
                       "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted.haps";
+string scaffoldHapsWrongReg = sampleDir +
+                              "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted.wrongRegion.haps";
 string scaffoldLegend = sampleDir +
                         "/20_011976121_012173018.bin.onlyThree.scaffold50.legend";
 
@@ -39,7 +41,7 @@ string brokenHapLegSampSample = brokenDir +
 string brokenHapsSampSample = brokenDir +
                               "/onlyThree.hapsSample.extraLine.sample";
 string unsortedRefHaps = sampleDir +
-                 "/20_0_62000000.011976121_012173018.paste.onlyThree.unsorted.haps";
+                         "/20_0_62000000.011976121_012173018.paste.onlyThree.unsorted.haps";
 
 
 gsl_rng *rng = gsl_rng_alloc(gsl_rng_default);
@@ -158,6 +160,7 @@ TEST(Insti, loadHapsSamp)
     ASSERT_EQ(6, lp.GetScaffoldNumHaps());
     ASSERT_EQ(1, lp.GetScaffoldNumWordsPerHap());
     ASSERT_EQ(50, lp.GetScaffoldNumSites());
+
     for (unsigned i = 0; i != 26; i++) {
         EXPECT_EQ(0, lp.TestScaffoldSite(0, i));
         EXPECT_EQ(1, lp.TestScaffoldSite(1, i));
@@ -166,6 +169,7 @@ TEST(Insti, loadHapsSamp)
         EXPECT_EQ(0, lp.TestScaffoldSite(4, i));
         EXPECT_EQ(0, lp.TestScaffoldSite(5, i));
     }
+
     for (unsigned i = 26; i != 50; i++) {
         EXPECT_EQ(1, lp.TestScaffoldSite(0, i));
         EXPECT_EQ(0, lp.TestScaffoldSite(1, i));
@@ -176,16 +180,18 @@ TEST(Insti, loadHapsSamp)
     }
 
 
-    // unordered haps test        
+    // unordered haps test
     Insti lp2;
     lp2.load_bin(sampleBin.c_str());
     lp2.initialize();
 
     // test the scaffold loading
-    lp2.LoadHapsSamp(scaffoldHaps, scaffHapsSampUnorderedSample, PanelType::SCAFFOLD);
+    lp2.LoadHapsSamp(scaffoldHaps, scaffHapsSampUnorderedSample,
+                     PanelType::SCAFFOLD);
     ASSERT_EQ("samp1", lp2.GetScaffoldID(0));
     ASSERT_EQ("samp2", lp2.GetScaffoldID(1));
     ASSERT_EQ("samp3", lp2.GetScaffoldID(2));
+
     for (unsigned i = 0; i != 26; i++) {
         EXPECT_EQ(0, lp2.TestScaffoldSite(4, i));
         EXPECT_EQ(1, lp2.TestScaffoldSite(5, i));
@@ -194,6 +200,7 @@ TEST(Insti, loadHapsSamp)
         EXPECT_EQ(0, lp2.TestScaffoldSite(2, i));
         EXPECT_EQ(0, lp2.TestScaffoldSite(3, i));
     }
+
     for (unsigned i = 26; i != 50; i++) {
         EXPECT_EQ(1, lp2.TestScaffoldSite(4, i));
         EXPECT_EQ(0, lp2.TestScaffoldSite(5, i));
@@ -202,6 +209,18 @@ TEST(Insti, loadHapsSamp)
         EXPECT_EQ(1, lp2.TestScaffoldSite(2, i));
         EXPECT_EQ(0, lp2.TestScaffoldSite(3, i));
     }
+
+    // try some quirky input
+    Insti lp3;
+    lp3.load_bin(sampleBin.c_str());
+    lp3.initialize();
+    lp3.LoadHapsSamp(refHaps, "",  PanelType::REFERENCE);
+
+    // test the scaffold loading
+    ASSERT_EXIT(lp3.LoadHapsSamp(scaffoldHapsWrongReg, scaffHapsSampSample,
+                                 PanelType::SCAFFOLD), ::testing::ExitedWithCode(1),
+                "Number of haplotypes in haps file is 0.  Haps file empty?");
+
 }
 
 
@@ -298,11 +317,11 @@ TEST(KNN, clustersOK)
 
     // make the second haplotype match hap number 16 and 15 (0 based) closest
     // but not as well as hap 0 would match hap 4
-    for(unsigned i = numSites - 6; i < numSites; i++){
-        haplotypes[1].Set(i-numSites + 7,false);
-        haplotypes[1].Set(i,true);
+    for (unsigned i = numSites - 6; i < numSites; i++) {
+        haplotypes[1].Set(i - numSites + 7, false);
+        haplotypes[1].Set(i, true);
     }
-        
+
     // shuffle the haplotypes except for the first two
     std::random_shuffle(shuffledIndexes.begin() + 2, shuffledIndexes.end());
 
@@ -311,17 +330,19 @@ TEST(KNN, clustersOK)
     for (unsigned j = 0; j < shuffledIndexes.size(); j++)
         passHaps.push_back(haplotypes[shuffledIndexes[j]].GetWord(0));
 
-    for(unsigned idx = 0; idx != haplotypes.size(); idx++){
+    for (unsigned idx = 0; idx != haplotypes.size(); idx++) {
         cerr << idx << ": ";
-        for(unsigned i = 0; i < numSites; i++)
+
+        for (unsigned i = 0; i < numSites; i++)
             cerr << haplotypes[shuffledIndexes[idx]].TestSite(i);
+
         cerr << endl;
     }
 
 
     KNN kNN(numClusters);
     kNN.init(passHaps, 1, numSites, 0);
-    
+
     // check to make sure kNN has the haps stored correctly
     vector< unsigned > neighborHapNums = kNN.Neighbors(0);
 
@@ -336,17 +357,18 @@ TEST(KNN, clustersOK)
         unsigned sampHap = kNN.SampleHap(0, rng);
         EXPECT_LT(shuffledIndexes[sampHap], numHaps);
         EXPECT_GT(shuffledIndexes[sampHap], 1);
-        for(unsigned i = 4; i < numHaps -2; i++)
+
+        for (unsigned i = 4; i < numHaps - 2; i++)
             EXPECT_NE(shuffledIndexes[sampHap], i);
     }
 
     // undo change of hap 1
-    for(unsigned i = numSites - 6; i < numSites; i++){
-        haplotypes[1].Set(i-numSites + 7, true);
+    for (unsigned i = numSites - 6; i < numSites; i++) {
+        haplotypes[1].Set(i - numSites + 7, true);
         haplotypes[1].Set(i, false);
     }
 
-    
+
     // now test the thresholding option
     // first site above threshold
     haplotypes[1].Set(0, true);
@@ -378,14 +400,14 @@ TEST(KNN, clustersOK)
     haplotypes[4].Set(numSites - 2, true);
     haplotypes[5].Set(numSites - 2, true);
     haplotypes[8].Set(numSites - 2, true);
-    
 
 
-/*    for(auto hap : haplotypes){
-        for(unsigned i = 0; i < numSites; i++)
-            cerr << hap.TestSite(i);
-        cerr << endl;
-        }*/
+
+    /*    for(auto hap : haplotypes){
+            for(unsigned i = 0; i < numSites; i++)
+                cerr << hap.TestSite(i);
+            cerr << endl;
+            }*/
 
 
     passHaps.clear();
@@ -430,6 +452,7 @@ TEST(KNN, clustersOK)
 
 
 }
+
 
 
 
