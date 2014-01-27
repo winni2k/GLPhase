@@ -184,10 +184,10 @@ int main(int ac, char **av) {
         */
         for (uint j = 0; j < Impute::vcf_file.size(); j++)
             cerr << Impute::vcf_file[j] << '\t' << lp.load_vcf(Impute::vcf_file[j].c_str()) << endl;
-        cerr << "initializing..\n";
+        cerr << lp.m_tag << ": initializing..\n";
 
         lp.initialize();
-        cerr << "estimating..\n";
+        cerr << lp.m_tag << ": estimating..\n";
 
         // choose which estimation method to use
         lp.estimate();
@@ -199,7 +199,7 @@ int main(int ac, char **av) {
 //        sprintf(temp, "mv %s %s.ok", file[i].c_str(), file[i].c_str());
 //        cerr << "rename\t" << system(temp) << endl;
         gettimeofday(&end, NULL);
-        cerr << "time\t" << end.tv_sec - sta.tv_sec + 1e-6 * (end.tv_usec - sta.tv_usec) << endl << endl;
+        cerr << lp.m_tag << ": time\t" << end.tv_sec - sta.tv_sec + 1e-6 * (end.tv_usec - sta.tv_usec) << endl << endl;
     }
     return 0;
 }

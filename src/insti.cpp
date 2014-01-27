@@ -235,6 +235,7 @@ vector<string> Insti::OpenSample(string sampleFile)
         // now add sample id to vector
         IDs.push_back(tokens[0]);
     }
+
     return IDs;
 }
 
@@ -634,7 +635,8 @@ void Insti::LoadHaps(vector<vector<char> > & inHaps, PanelType panelType)
     switch (panelType) {
     case PanelType::REFERENCE: {
         HapPanel temp;
-        vector< uint64_t > storeHaps = temp.Char2BitVec(inHaps, GetNumWords(), WordMod + 1);
+        vector< uint64_t > storeHaps = temp.Char2BitVec(inHaps, GetNumWords(),
+                                       WordMod + 1);
         storeHaps.swap(m_vRefHaps);
         m_uNumRefHaps = numHaps;
         cerr << "Reference panel haplotypes\t" << m_uNumRefHaps << endl;
@@ -781,7 +783,7 @@ vector<vector<char> > Insti::OpenHap(string hapFile)
     }
 
     if (uNumHaps == 0)
-        throw myException("num haps is 0.  Haps file empty?");
+        cerr<< "num haps is 0.  Haps file empty? Continuing without use of scaffold";
 
     return loadHaps;
 }
@@ -1165,9 +1167,12 @@ void    Insti::estimate()
         document();
     }
 
+    timeval startTime, currentTime;
+    gettimeofday(&startTime, NULL);
+
     cerr.setf(ios::fixed);
     cerr.precision(3);
-    cerr << "iter\tpress\tlike\tfold\trunTime\texpectedRunTime" << endl;
+    cerr << m_tag << ":\titer\tpress\tlike\tfold\trunTime\texpectedRunTime" << endl;
 
     // n is number of cycles = burnin + sampling cycles
     // increase penalty from 2/bn to 1 as we go through burnin
@@ -1195,8 +1200,14 @@ void    Insti::estimate()
         if (n >= bn) for (unsigned i = 0; i < in; i++) replace(i);  // call replace
 
         m_oRelationship.UpdateGraph(&haps);
-        cerr << n << '\t' << pen << '\t' << sum / in / mn << '\t' << iter / in / in <<
-             endl;
+
+        // give an update
+        gettimeofday(&currentTime, NULL);
+        double runTimeInMin = static_cast<double>(currentTime.tv_sec -
+                              startTime.tv_sec) / 60;
+        cerr << m_tag << ":\t" << n << '\t' << pen << '\t' << sum / in / mn << '\t' << iter / in / in <<
+             "\t" << runTimeInMin  << "m\t" << runTimeInMin / (n + 1) *
+             (bn + sn) << "m\t" <<  endl;
     }
 
     cerr << endl;
@@ -1673,6 +1684,9 @@ void    Insti::document(void)
     cerr << "\n\n";
     exit(1);
 }
+
+
+
 
 
 

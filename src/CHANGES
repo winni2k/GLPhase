@@ -1,3 +1,6 @@
+1.2.11  Mon Jan 27 14:11:35 GMT 2014
+        OpenHaps now accepts scaffolds that don't contain any sites
+
 1.2.8   Fri Jan 17 15:47:24 GMT 2014
         OpenHaps now accepts scaffolds that only contain a subset of
         the GL sites.

@@ -23,6 +23,10 @@
 #include "enums.hpp"
 #include "snp.hpp"
 #include "hapPanel.hpp"
+#include <boost/uuid/uuid.hpp>            // uuid class
+#include <boost/uuid/uuid_generators.hpp> // generators
+#include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
+
 
 //require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
@@ -37,7 +41,8 @@ private:
     unsigned m_nIteration;
     unsigned m_uCycles;
     bool m_bUsingRefHaps = false;
-//    bool m_bUsingScaffold = false;
+
+    //    bool m_bUsingScaffold = false;
 
     // keep track of relationship graph
     Relationship m_oRelationship;
@@ -47,7 +52,7 @@ private:
 
     // name -> name index in global variable "name"
     unordered_map<string, unsigned> m_namesUnordered;
-    
+
     // reference haplotypes
     vector<uint64_t> m_vRefHaps;
     unsigned m_uNumRefHaps = 0;
@@ -83,30 +88,43 @@ private:
     void OrderSamples(vector<string> & loadIDs,
                       vector<vector<char> > & loadHaps);
     bool SwapMatch(const snp & loadSite,
-                      const Site & existSite, vector<char>  & loadHap,
-                       vector<char> & existHap);
+                   const Site & existSite, vector<char>  & loadHap,
+                   vector<char> & existHap);
 
 public:
 
-    unsigned GetScaffoldNumWordsPerHap(){
+    // uuid
+    const boost::uuids::uuid m_tag;
+
+    Insti()
+        : m_oRelationship(Insti::s_uNumClusters, Insti::s_uClusterType),
+          m_tag(boost::uuids::random_generator()()) {};
+    
+    unsigned GetScaffoldNumWordsPerHap()
+    {
         return m_scaffold.NumWordsPerHap();
     }
-    string GetScaffoldID(unsigned idx){
+    string GetScaffoldID(unsigned idx)
+    {
         return m_scaffold.GetID(idx);
     }
-    bool TestScaffoldSite(unsigned hapNum, unsigned siteNum){
+    bool TestScaffoldSite(unsigned hapNum, unsigned siteNum)
+    {
         assert(hapNum < m_scaffold.NumHaps());
         assert(siteNum < m_scaffold.MaxSites());
         vector <uint64_t> * scaffoldHaps = m_scaffold.Haplotypes();
         uint64_t * scaffoldHapsPointer = scaffoldHaps->data();
-        return test(&scaffoldHapsPointer[hapNum * m_scaffold.NumWordsPerHap()], siteNum);
+        return test(&scaffoldHapsPointer[hapNum * m_scaffold.NumWordsPerHap()],
+                    siteNum);
     }
-    unsigned GetScaffoldNumHaps(){return m_scaffold.NumHaps();}
-    unsigned GetScaffoldNumSites(){return m_scaffold.NumSites();}
-
-    
-    Insti()
-        : m_oRelationship(Insti::s_uNumClusters, Insti::s_uClusterType) {};
+    unsigned GetScaffoldNumHaps()
+    {
+        return m_scaffold.NumHaps();
+    }
+    unsigned GetScaffoldNumSites()
+    {
+        return m_scaffold.NumSites();
+    }
 
     // data loading
     // haps/sample
@@ -128,12 +146,15 @@ public:
 
     void CheckPanelPrereqs(PanelType panelType);
 
-    vector< uint64_t > Char2BitVec(const vector<vector<char> > & inHaps, double numWords){
+    vector< uint64_t > Char2BitVec(const vector<vector<char> > & inHaps,
+                                   double numWords)
+    {
         assert(numWords >= 0);
         return Char2BitVec(inHaps, static_cast<unsigned>(numWords));
     }
-    
-    vector< uint64_t > Char2BitVec(const vector<vector<char> > & inHaps, unsigned numWords);
+
+    vector< uint64_t > Char2BitVec(const vector<vector<char> > & inHaps,
+                                   unsigned numWords);
 
     void CalculateVarAfs();
 
@@ -218,6 +239,7 @@ public:
 };
 
 #endif /* _INSTI_H */
+
 
 
 
