@@ -117,6 +117,9 @@ int main(int ac, char **av) {
         case 'q':
             Insti::s_scaffoldFreqCutoff = std::stod(optarg);
             break;
+        case 'f':
+            Insti::s_initPhaseFromScaffold = std::stod(optarg);
+            break;
         default:
             Insti::document();
         }

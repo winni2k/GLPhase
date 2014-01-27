@@ -91,6 +91,8 @@ private:
                    const Site & existSite, vector<char>  & loadHap,
                    vector<char> & existHap);
 
+    void SetHapsAccordingToScaffold();
+
 public:
 
     // uuid
@@ -187,6 +189,7 @@ public:
     static string s_scaffoldHapsFile; // location of scaffold haps file
     static string s_scaffoldSampleFile; // location of scaffold sample file
     static double s_scaffoldFreqCutoff; // cutoff MAF for what to fix in scaffold
+    static bool s_initPhaseFromScaffold;
 
     unsigned GetNumWords()
     {

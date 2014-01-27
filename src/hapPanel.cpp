@@ -22,7 +22,7 @@ void HapPanel::Init(vector<vector<char>> & inHaps){
 
 }
 
-
+// converts a vector of vectors of chars (0,1) to a bitvector
 vector< uint64_t > HapPanel::Char2BitVec(const vector<vector<char> > & inHaps,
                                          unsigned numWords, unsigned wordSize)
 {

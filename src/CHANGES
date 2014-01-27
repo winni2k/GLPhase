@@ -1,3 +1,7 @@
+1.2.14  Mon Jan 27 17:23:53 GMT 2014
+        First go at setting sites to scaffold if scaffold is available
+        still need to implement unit tests for this
+
 1.2.13  Mon Jan 27 16:34:12 GMT 2014
         Accepting empty scaffolds was a bad idea.  Now exiting in this case again
 

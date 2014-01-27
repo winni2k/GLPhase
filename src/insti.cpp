@@ -44,6 +44,7 @@ string Insti::s_sRefHapFile = "";
 string Insti::s_scaffoldHapsFile = "";
 string Insti::s_scaffoldSampleFile = "";
 double Insti::s_scaffoldFreqCutoff = 0.05;
+bool Insti::s_initPhaseFromScaffold = false;
 unsigned Insti::s_uNumClusters = 0;
 unsigned Insti::s_uClusterType = 0;
 unsigned Insti::s_uSABurninGen = 28;
@@ -268,7 +269,7 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > & loadHaps,
             break;
 
         if (lineNum % 1000 == 0)
-            cerr << "Sites kept:\t" << keptSites << " / " << lineNum << "\r";
+            cerr << "Sites kept:\t" << keptSites << " / " << lineNum << "\n";
 
         lineNum++;
         vector<string> tokens;
@@ -338,10 +339,11 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > & loadHaps,
 
     cout << "Sites kept:\t" << keptSites << " / " << lineNum << "\n";
 
-    if (numHaps == 0){
+    if (numHaps == 0) {
         cerr << "Number of haplotypes in haps file is 0.  Haps file empty?\n";
         exit(1);
     }
+
     assert(loadHaps[0].size() == numHaps);
 }
 
@@ -794,7 +796,7 @@ vector<vector<char> > Insti::OpenHap(string hapFile)
         loadHaps.push_back(inSite);
     }
 
-    if (uNumHaps == 0){
+    if (uNumHaps == 0) {
         cerr << "num haps is 0.  Haps file empty?\n";
         exit(1);
     }
@@ -883,8 +885,8 @@ void Insti::initialize()
     tran.resize(pn);  // tran looks like the transition matrix,
 
     // i.e. recombination rate
-    vector<fast> temp(in *
-                      pn);   // transitions between 3 types of genotypes P(RR), P(RA) P(AA)
+    // transitions between 3 types of genotypes P(RR), P(RA) P(AA)
+    vector<fast> temp(in * pn);
 
     // initialize emission matrix
     // 4 emissions, for each site 4 emissions * number of samples.  (0|0, 1|1 0|1 1|0)
@@ -1042,6 +1044,11 @@ void Insti::initialize()
     // load the scaffold
     if (s_scaffoldSampleFile.size() > 0 || s_scaffoldHapsFile.size() > 0)
         LoadHapsSamp(s_scaffoldHapsFile, s_scaffoldSampleFile, PanelType::SCAFFOLD);
+
+    // change phase and genotype of main haps to that from scaffold
+    if (s_initPhaseFromScaffold && m_scaffold.Initialized())
+        SetHapsAccordingToScaffold();
+
 }
 
 // this part of the code seems to be responsible for:
@@ -1650,6 +1657,51 @@ void    Insti::save_vcf(const char *F)
 }
 
 
+void Insti::SetHapsAccordingToScaffold()
+{
+
+    assert(m_scaffold.Initialized());
+
+    if (m_scaffold.NumHaps() == 0)
+        return;
+
+    assert(m_scaffold.NumHaps() == hn);
+
+    // pull out each hap and change it to match information contained in the scaffold
+    for (unsigned indNum = 0; indNum < in; indNum++) {
+
+        for (unsigned hapNum = 0; hapNum < 2; hapNum ++) {
+
+            // define pointers to an individual's two haplotype hap
+            uint64_t *hap = &haps[indNum * 2 * wn + hapNum * wn];
+            uint64_t *scaffHap = m_scaffold.Hap(indNum * 2 + hapNum);
+
+            // check each site if it needs to be replaced
+            unsigned scaffoldSiteIdx = 0;
+
+            for (unsigned scaffoldPositionIdx = 0; scaffoldPositionIdx < m_scaffold.NumSites(); scaffoldPositionIdx++){
+
+                // find the site in site that matches the scaffold position
+                unsigned siteIdx = 0;
+
+                for (; siteIdx < site.size(); siteIdx ++) {
+                    if (site[siteIdx].pos == m_scaffold.Position(scaffoldPositionIdx))
+                        break;
+                }
+
+                // if this is not true, then the scaffold position could not be found in site
+                assert(siteIdx < site.size());
+
+                // set the site to what is in the scaffold
+                if (test(scaffHap, scaffoldSiteIdx))
+                    set1(hap, siteIdx);
+
+                ++scaffoldSiteIdx;
+            }
+        }
+    }
+}
+
 void    Insti::document(void)
 {
     cerr << "Author\tWarren W. Kretzschmar @ Marchini Group @ Universiy of Oxford - Statistics";
@@ -1696,100 +1748,8 @@ void    Insti::document(void)
     cerr << "\n\t-h <file>       WTCCC style HAPS file";
     cerr << "\n\t-s <file>       WTCCC style SAMPLE file";
     cerr << "\n\t-q <float>      Minor allele frequency ([0-1], default 0.05) above which sites are fixed (using -c) according to scaffold.";
+    cerr << "\n\t-f              Fix phase according to scaffold (default off).";
     cerr << "\n\n";
     exit(1);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

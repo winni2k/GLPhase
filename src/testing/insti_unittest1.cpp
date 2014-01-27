@@ -209,6 +209,7 @@ TEST(Insti, loadHapsSamp)
         EXPECT_EQ(1, lp2.TestScaffoldSite(2, i));
         EXPECT_EQ(0, lp2.TestScaffoldSite(3, i));
     }
+    
 
     // try some quirky input
     Insti lp3;
