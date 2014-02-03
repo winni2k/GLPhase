@@ -28,7 +28,7 @@ int main(int ac, char **av) {
     
     string sLogFile;
     int opt;
-    while ((opt = getopt(ac, av, "d:l:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:")) >= 0) {
+    while ((opt = getopt(ac, av, "d:l:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:f")) >= 0) {
         switch (opt) {
         case    'd':
             Impute::density = atof(optarg);
@@ -118,7 +118,7 @@ int main(int ac, char **av) {
             Insti::s_scaffoldFreqCutoff = std::stod(optarg);
             break;
         case 'f':
-            Insti::s_initPhaseFromScaffold = std::stod(optarg);
+            Insti::s_initPhaseFromScaffold = true;
             break;
         default:
             Insti::document();
