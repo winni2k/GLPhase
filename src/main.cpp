@@ -16,6 +16,15 @@
 int main(int ac, char **av) {
 
     cerr<< "INSTI -- v" << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_REVISION << endl;
+
+    stringstream commandLine = av[0];
+    if(ac){
+        for(int i = 1; i < ac; ++i){
+            commandLine << " " << av[i];
+        }
+    }
+    cerr << "Call: " << commandLine.str() << endl;
+        
     Impute::sn = 200;
     Impute::nn = 2;
     Impute::density = 1.0;
@@ -196,7 +205,7 @@ int main(int ac, char **av) {
         lp.estimate();
 
         // save results of estimation
-        lp.save_vcf(file[i].c_str());
+        lp.save_vcf(file[i].c_str(), commandLine.str());
         lp.save_relationship_graph(file[i]);
 //        char temp[256];
 //        sprintf(temp, "mv %s %s.ok", file[i].c_str(), file[i].c_str());

@@ -496,8 +496,14 @@ void    Impute::estimate(void) {
 // keep a count of the number of 1s at each site for each haplotype
 // ha will always have more or as many 1 alleles as hb
 void    Impute::replace(unsigned I) {
-    uint64_t *oa = &haps[I * 2 * wn], *ob = oa + wn;  // observations?
+
+    // oa and ob are the observed haplotypes for individual I
+    uint64_t *oa = &haps[I * 2 * wn], *ob = oa + wn;
+
+    // ha and hb are the running tally of individual I's haplotypes 
     unsigned *ha = &hsum[I * 2 * mn], *hb = ha + mn;
+
+    // sis and tra are used to match the haplotypes found with the correct sum of haplotypes
     unsigned sis = 0, tra = 0;
     for (unsigned m = 0; m < mn; m++) {
         if (test(oa, m)) {

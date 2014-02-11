@@ -858,7 +858,7 @@ void Insti::initialize() {
   // shifter to right....
   // we define a minimum block size of 64.
   wn = (mn & WordMod) ? (mn >> WordShift) + 1 : (mn >> WordShift);
-  hn = in * 2;  // number of haps
+  hn = in * 2;              // number of haps
   haps.resize(hn * wn);     // space to store all haplotypes
   hnew.resize(hn * wn);     // number of haplotypes = 2 * number of samples  ...
                             // haps mn is # of sites,
@@ -933,13 +933,13 @@ void Insti::initialize() {
   // all other entries are chance of just one mutation
   pc[0][0] = pc[1][1] = pc[2][2] = pc[3][3] =
       (1 - mu) * (1 - mu);  //	  probability of mutating no positions for each
-                            //parents haplotype
+  // parents haplotype
   pc[0][1] = pc[0][2] = pc[1][0] = pc[1][3] = pc[2][0] = pc[2][3] = pc[3][1] =
       pc[3][2] = mu * (1 - mu);  //	  probability of mutating one position
-                                 //for each parental haplotype
+  // for each parental haplotype
   pc[0][3] = pc[1][2] = pc[2][1] = pc[3][0] =
       mu * mu;  //	  probability of mutating both positions for each
-                //parental haplotype
+  // parental haplotype
 
   // initialize individual haplotypes
   for (unsigned i = 0; i < in; i++) {
@@ -1134,6 +1134,7 @@ void Insti::estimate() {
   // -M option says not to.
   Relationship oUniformRel(2, in, hn + m_uNumRefHaps);
 
+  // choose a sampling scheme
   switch (s_iEstimator) {
 
     // simulated annealing MH
@@ -1606,7 +1607,7 @@ void Insti::save_relationship_graph(string sOutputFile) {
   m_oRelationship.Save(sOutputFile, vsSampNames);
 }
 
-void Insti::save_vcf(const char* F) {
+void Insti::save_vcf(const char* F, string commandLine) {
   string temp = F;
   temp += ".vcf.gz";
   gzFile f = gzopen(temp.c_str(), "wt");
@@ -1617,12 +1618,14 @@ void Insti::save_vcf(const char* F) {
   gzprintf(f, source.str().c_str());
 
   //    gzprintf(f, "##reference=1000Genomes-NCBI37\n");
+  gzprintf(f, "##phaseAndImputeCall=" + commandLine + "\n";)
   gzprintf(f, "##iteration=%u\n", sn);
   gzprintf(f,
            "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n");
 
-  //    gzprintf(f, "##FORMAT=<ID=AP,Number=2,Type=Float,Description=\"Allelic
-  // Probability, P(Allele=1|Haplotype)\">\n");
+  gzprintf(f,
+           "##FORMAT=<ID=APP,Number=2,Type=Float,Description=\"Phred-scaled " +
+               "allelic posterior probability, P(Allele=1|Haplotype)\">\n");
   gzprintf(f,
            "##FORMAT=<ID=GP,Number=3,Type=Float,Description=\"Phred-scaled "
            "genotype posterior probability\">\n");
