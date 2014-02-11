@@ -1,3 +1,6 @@
+1.2.15  Tue Feb 11 15:07:31 GMT 2014
+        VCF output is now in GT:GP:APP format
+
 1.2.14  Mon Jan 27 17:23:53 GMT 2014
         First go at setting sites to scaffold if scaffold is available
         still need to implement unit tests for this

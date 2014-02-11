@@ -26,6 +26,7 @@
 #include <boost/uuid/uuid.hpp>            // uuid class
 #include <boost/uuid/uuid_generators.hpp> // generators
 #include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
+#include <cfloat>
 
 
 //require c++11
@@ -233,7 +234,7 @@ public:
                          const vector<unsigned> & vuRetMatDen, unsigned I, unsigned hn, gsl_rng * rng);
 
     void save_relationship_graph(string sOutputFile);
-    void save_vcf(const char *F);
+    void save_vcf(const char *F, string commandLine);
 
     bool UsingScaffold()
     {
