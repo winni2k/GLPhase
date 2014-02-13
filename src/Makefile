@@ -1,6 +1,6 @@
 export CXX= g++-4.7+
 export DEBUGFLAGS= -ggdb
-export CXXFLAGS= -Wall -Wextra -std=c++11 -std=gnu++11 -mpopcnt $(DEBUGFLAGS)
+export CXXFLAGS= -Wall -Wextra -std=c++11 -std=gnu++11 -mpopcnt
 BOOSTLIB = -lboost_iostreams-mt #alternatively: /opt/boost/boost-1.54.0-intel/lib/libboost_iostreams.a
 export LIBS += -lgsl -lgslcblas -lbam -ltabix -lbz2 $(BOOSTLIB) -lm -lstdc++ -lz
 
@@ -10,23 +10,27 @@ export CPLUS_INCLUDE_PATH += :olivier
 export LIBRARY_PATH += :u-wkretzsch-snptools/samtools-0.1.16:u-wkretzsch-snptools/tabix-0.2.5
 export LD_LIBRARY_PATH += $(LIBRARY_PATH)
 
-all: insti
+BDIR = ../bin
+VERSION := $(shell grep VERSION_MAJOR version.hpp | cut -f3 -d' ').$(shell grep VERSION_MINOR version.hpp | cut -f3 -d' ').$(shell grep VERSION_REVISION version.hpp | cut -f3 -d' ')
 
-insti: CXXFLAGS += -O3
+all: $(BDIR)/insti.$(VERSION)
 
-instiO0: CXXFLAGS += -O0
+$(BDIR)/insti.$(VERSION): CXXFLAGS += -O3
 
-debug:
+debug: CXXFLAGS += -O1
+debug: CXXFLAGS += $(DEBUGFLAGS)
+
+debug: $(BIN)/insti.$(VERSION).debug
 	$(CXX) -E -x c++ - -v < /dev/null
 
 test : insti.o impute.o emcchain.o olivier/utils.o haplotype.o kNN.o relationship.hpp.gch
 	$(MAKE) -C testing
 
-testDebug:insti.o impute.o emcchain.o olivier/utils.o haplotype.o kNN.o relationship.hpp.gch
+testDebug: insti.o impute.o emcchain.o olivier/utils.o haplotype.o kNN.o relationship.hpp.gch debug
 	$(MAKE) -C testing debug
 
 clean:
-	rm -f *.o *.hpp.gch insti instiO0 olivier/utils.hpp.gch
+	rm -f *.o *.hpp.gch olivier/utils.hpp.gch
 
 .PHONY: clean
 
@@ -69,10 +73,18 @@ main.o: main.cpp version.hpp.gch impute.hpp.gch insti.hpp.gch
 
 OBJECT_FILES = main.o impute.o insti.o emcchain.o relationshipGraph.o olivier/utils.o haplotype.o kMedoids.o kNN.o hapPanel.o
 
-insti: $(OBJECT_FILES)
-	$(CXX) $(CXXFLAGS) $(OBJECT_FILES)  -o $@ $(LIBS)
 
-instiO0: $(OBJECT_FILES)
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJECT_FILES) $(LIBS)
+## binaries
+$(BDIR)/insti.$(VERSION): $(OBJECT_FILES)
+	$(CXX) $(CXXFLAGS) $(OBJECT_FILES) -o $@ $(LIBS)
+	cd $(BDIR) && rm -f insti && ln -s insti.$(VERSION) insti
 
+$(BDIR)/insti.$(VERSION).debug: $(OBJECT_FILES)
+	$(CXX) $(CXXFLAGS) $(OBJECT_FILES) -o $@ $(OBJECT_FILES) $(LIBS)
+
+
+## installation
+oxford: all
+	cd $(BDIR) && cp insti.$(VERSION) ~/bin/
+	cd ~/bin && rm -f insti && ln -s insti.$(VERSION) insti
 
