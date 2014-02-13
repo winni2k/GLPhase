@@ -41,7 +41,7 @@ int main(int ac, char **av) {
   string sLogFile;
   int opt;
   while ((opt = getopt(
-              ac, av, "d:l:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:f:o:")) >= 0) {
+              ac, av, "d:l:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:fo:")) >= 0) {
     switch (opt) {
     case 'd':
       Impute::density = atof(optarg);
