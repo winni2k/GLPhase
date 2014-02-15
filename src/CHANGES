@@ -1,3 +1,8 @@
+1.2.16  Sat Feb 15 22:50:02 GMT 2014
+        Added Unit tests for initializing sites to scaffold if scaffold is available.
+        Fixed bug where only scaffold sites equal to 1 were set.
+        Removed "using namespace std" from olivier/utils.hpp ...
+
 1.2.15  Tue Feb 11 15:07:31 GMT 2014
         VCF output is now in GT:GP:APP format
 
