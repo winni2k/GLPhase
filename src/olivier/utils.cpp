@@ -7,6 +7,8 @@
 /******************************************************/
 long seed = -123456789;
 
+using namespace std;
+
 namespace putils {
 	void initRandom(long s) {
 		seed = - s;

@@ -1,3 +1,6 @@
+#ifndef _SNP_H
+#define _SNP_H 1
+
 #include <string>
 
 class snp {
@@ -20,3 +23,4 @@ public:
     }
 };
 
+#endif

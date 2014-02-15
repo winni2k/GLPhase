@@ -63,7 +63,7 @@ public:
     };
 
     // initialize kmedoids or kNN
-    void init(int iGraphType, const vector< uint64_t > & vuHaplotypes,
+    void init(int iGraphType, const std::vector< uint64_t > & vuHaplotypes,
               unsigned uNumWordsPerHap, unsigned uNumSites, gsl_rng *rng)
     {
 
@@ -79,7 +79,7 @@ public:
             break;
 
         default:
-            cout << "unexpected graph type: " << iGraphType << endl;
+            std::cerr << "unexpected graph type: " << iGraphType << std::endl;
             exit(3);
         }
     }
@@ -132,13 +132,13 @@ public:
     };
 
     // update medoids
-    void UpdateGraph(const vector< uint64_t > * pvuHaplotypes)
+    void UpdateGraph(const std::vector< uint64_t > * pvuHaplotypes)
     {
         if (m_graphType == 3)
             m_oKMedoids.UpdateMedoids(pvuHaplotypes);
     };
 
-    void Save(std::string fileName, const vector<std::string> & name)
+    void Save(std::string fileName, const std::vector<std::string> & name)
     {
         if (m_graphType < 3)
             m_oRelGraph.Save(fileName, name);

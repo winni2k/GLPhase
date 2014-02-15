@@ -5,13 +5,13 @@
 
 #define IA 16807
 #define IM 2147483647
-#define AM (1.0/IM)
+#define AM (1.0 / IM)
 #define IQ 127773
 #define IR 2836
 #define NTAB 32
-#define NDIV (1+(IM-1)/NTAB)
+#define NDIV (1 + (IM - 1) / NTAB)
 #define EPS 1.2e-7
-#define RNMX (1.0-EPS)
+#define RNMX (1.0 - EPS)
 #define PI 3.14159265358979323846
 
 #define LOW_POS_DOUBLE 1e-300
@@ -56,8 +56,7 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/lexical_cast.hpp>
 
-
-using namespace std;
+// using namespace std;
 namespace bio = boost::iostreams;
 namespace bpo = boost::program_options;
 namespace bid = boost::uuids;
@@ -66,72 +65,70 @@ namespace bid = boost::uuids;
 /*                  UTILS STATISTICS                  */
 /******************************************************/
 namespace putils {
-	void initRandom(long s);
-	double getRandom();
-	string getRandomID();
-	int getRandom(int);
-	long getSeed();
-	void normalise(vector < double > & v);
-	int sample(vector< double > & v, double sum);
-	double entropy(vector < double > & v);
-	double KLdistance(vector < double > & P, vector < double > & Q);
+void initRandom(long s);
+double getRandom();
+std::string getRandomID();
+int getRandom(int);
+long getSeed();
+void normalise(std::vector<double> &v);
+int sample(std::vector<double> &v, double sum);
+double entropy(std::vector<double> &v);
+double KLdistance(std::vector<double> &P, std::vector<double> &Q);
 };
 
 /******************************************************/
 /*                  UTILS ALGORITHM                   */
 /******************************************************/
 namespace autils {
-	int max(vector < double > & v);
-	int max(vector < int > & v);
-    void findUniqueSet(vector < bool > & B, vector < int > & U); // ?
-    void decompose(int min, vector < vector < int > > & B, vector < vector < vector < int > > > & BB);//?
-	int checkDuo (int pa1, int pa2, int ca1, int ca2);
-	int checkTrio (int fa1, int fa2, int ma1, int ma2, int ca1, int ca2);
+int max(std::vector<double> &v);
+int max(std::vector<int> &v);
+void findUniqueSet(std::vector<bool> &B, std::vector<int> &U); // ?
+void decompose(int min, std::vector<std::vector<int> > &B,
+               std::vector<std::vector<std::vector<int> > > &BB); //?
+int checkDuo(int pa1, int pa2, int ca1, int ca2);
+int checkTrio(int fa1, int fa2, int ma1, int ma2, int ca1, int ca2);
 };
 
 /******************************************************/
 /*                  UTILS STRING                      */
 /******************************************************/
 namespace sutils {
-	int tokenize(string &, vector < string > &);
-	int tokenize(string &, vector < string > &, int);
-	string uint2str(unsigned int n);
-	string int2str(int n);
-	string int2str(vector < int > & v);
-	string long2str(long int n);
-	string double2str(double n, int prc = 4);
-	string double2str(vector < double > &v, int prc = 4);
-	string bool2str(vector<bool> & v);
-	string date2str(time_t * t, string format);
+int tokenize(std::string &, std::vector<std::string> &);
+int tokenize(std::string &, std::vector<std::string> &, int);
+std::string uint2str(unsigned int n);
+std::string int2str(int n);
+std::string int2str(std::vector<int> &v);
+std::string long2str(long int n);
+std::string double2str(double n, int prc = 4);
+std::string double2str(std::vector<double> &v, int prc = 4);
+std::string bool2str(std::vector<bool> &v);
+std::string date2str(time_t *t, std::string format);
 };
 
 /******************************************************/
 /*                  UTILS FILE                        */
 /******************************************************/
 namespace futils {
-	bool isFile(string f);
-	bool createFile(string f);
-	string extensionFile(string & filename);
-	void bool2binary(vector < bool > & V, ostream &fd);
-	bool binary2bool(vector < bool > & V, istream & fd);
+bool isFile(std::string f);
+bool createFile(std::string f);
+std::string extensionFile(std::string &filename);
+void bool2binary(std::vector<bool> &V, std::ostream &fd);
+bool binary2bool(std::vector<bool> &V, std::istream &fd);
 };
-
 
 /******************************************************/
 /*                  EXCEPTIONS                        */
 /******************************************************/
-class myException : public exception {
+class myException : public std::exception {
 public:
-   explicit myException(std::string msg) : msg_(msg) {}
+  explicit myException(std::string msg) : msg_(msg) {}
 
-   virtual ~myException() throw() {}
+  virtual ~myException() throw() {}
 
-   virtual const char* what() const throw() {
-      return msg_.c_str();
-   }
+  virtual const char *what() const throw() { return msg_.c_str(); }
 
 private:
-   std::string msg_;
+  std::string msg_;
 };
 
 /******************************************************/
@@ -139,19 +136,21 @@ private:
 /******************************************************/
 class ifile : public bio::filtering_istream {
 private:
-	string file;
-	ifstream fd;
-        bool m_isGood = false;
+  std::string file;
+  std::ifstream fd;
+  bool m_isGood = false;
 
 public:
-	ifile();
-	ifile(string filename , bool binary = false);
-	~ifile();
-	string name();
-	bool open(string filename, bool binary = false);
-	bool readString(string &);
-	void close();
-        bool isGood(){return m_isGood;};
+  ifile();
+  ifile(std::string filename, bool binary = false);
+  ~ifile();
+  std::string name();
+  bool open(std::string filename, bool binary = false);
+  bool readString(std::string &);
+  void close();
+  bool isGood() {
+    return m_isGood;
+  };
 };
 
 /******************************************************/
@@ -159,17 +158,17 @@ public:
 /******************************************************/
 class ofile : public bio::filtering_ostream {
 private:
-	string file;
-	ofstream fd;
+  std::string file;
+  std::ofstream fd;
 
 public:
-	ofile();
-	ofile(string filename , bool binary = false);
-	~ofile();
-	string name();
-	bool open(string filename, bool binary = false);
-	void writeString(string &);
-	void close();
+  ofile();
+  ofile(std::string filename, bool binary = false);
+  ~ofile();
+  std::string name();
+  bool open(std::string filename, bool binary = false);
+  void writeString(std::string &);
+  void close();
 };
 
 /******************************************************/
@@ -177,30 +176,30 @@ public:
 /******************************************************/
 class lfile {
 private:
-	string file;
-	ofstream fd;
-	bool verboseC;
-	bool verboseL;
+  std::string file;
+  std::ofstream fd;
+  bool verboseC;
+  bool verboseL;
 
 public:
-	lfile();
-	~lfile();
-	string name();
-	bool open(string filename = "file.log");
-	void close();
-	string getPrefix();
-	void muteL();
-	void unmuteL();
-	void muteC();
-	void unmuteC();
-	void print(string s);
-	void printC(string s);
-	void printL(string s);
-	void println(string s);
-	void printlnC(string s);
-	void printlnL(string s);
-	void warning(string s);
-	void error(string s);
+  lfile();
+  ~lfile();
+  std::string name();
+  bool open(std::string filename = "file.log");
+  void close();
+  std::string getPrefix();
+  void muteL();
+  void unmuteL();
+  void muteC();
+  void unmuteC();
+  void print(std::string s);
+  void printC(std::string s);
+  void printL(std::string s);
+  void println(std::string s);
+  void printlnC(std::string s);
+  void printlnL(std::string s);
+  void warning(std::string s);
+  void error(std::string s);
 };
 
 #endif

@@ -12,6 +12,9 @@ SRC_DIR= ..
 # Remember to tweak this if you move this file.
 GTEST_DIR = $(SRC_DIR)/gtest-1.7.0
 
+# google test throwing warnings, workaround is to mark the dir as a system header dir
+export CXXFLAGS += -isystem $(GTEST_DIR)
+
 export CPATH += :$(GTEST_DIR)/include:$(SRC_DIR)/u-wkretzsch-snptools/samtools-0.1.16:$(SRC_DIR)/u-wkretzsch-snptools/tabix-0.2.5:$(GTEST_DIR)
 export CPLUS_INCLUDE_PATH += :$(SRC_DIR):$(SRC_DIR)/olivier:$(GTEST_DIR)/src
 export LIBRARY_PATH += :$(SRC_DIR)/u-wkretzsch-snptools/samtools-0.1.16:$(SRC_DIR)/u-wkretzsch-snptools/tabix-0.2.5
@@ -19,10 +22,12 @@ AR= ar
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
-TESTS = insti_unittest1
+TESTS = insti_unittests other_unittests
 
-INSTI_O_FILES= $(SRC_DIR)/insti.o $(SRC_DIR)/impute.o $(SRC_DIR)/emcchain.o $(SRC_DIR)/kMedoids.o $(SRC_DIR)/relationshipGraph.o $(SRC_DIR)/haplotype.o $(SRC_DIR)/hapPanel.o
+INSTI_O_FILES= $(SRC_DIR)/insti.o $(SRC_DIR)/impute.o $(SRC_DIR)/emcchain.o $(SRC_DIR)/kMedoids.o $(SRC_DIR)/relationshipGraph.o $(SRC_DIR)/haplotype.o $(SRC_DIR)/hapPanel.o $(SRC_DIR)/olivier/utils.o $(SRC_DIR)/kNN.o $(SRC_DIR)/haplotype.o
+
 test: $(TESTS)
+	for i in $(TESTS); do echo $$i; ./$$i; done
 
 debug:
 	$(CXX) -E -x c++ - -v < /dev/null
@@ -30,7 +35,7 @@ debug:
 clean:
 	rm -f $(TESTS) gtest.a gtest_main.a *.o *.hpp.gch *.h.gch insti
 
-.PHONY: clean $(TESTS)
+.PHONY: clean test
 
 
 # All Google Test headers.  Usually you shouldn't change this
@@ -65,11 +70,17 @@ gtest_main.a : gtest-all.o gtest_main.o
 # gtest_main.a, depending on whether it defines its own main()
 # function.
 
-insti_unittest1.o : insti_unittest1.cpp $(SRC_DIR)/insti.hpp.gch $(SRC_DIR)/haplotype.hpp.gch $(SRC_DIR)/kNN.hpp.gch $(SRC_DIR)/relationship.hpp.gch $(GTEST_HEADERS)
+insti_unittests.o : insti_unittests.cpp $(SRC_DIR)/insti.hpp.gch $(SRC_DIR)/haplotype.hpp.gch $(SRC_DIR)/kNN.hpp.gch $(SRC_DIR)/relationship.hpp.gch $(GTEST_HEADERS)
 	$(CXX) $(CXXFLAGS) -c $<
 
-insti_unittest1 : $(INSTI_O_FILES) insti_unittest1.o gtest_main.a $(SRC_DIR)/olivier/utils.o $(SRC_DIR)/kNN.o $(SRC_DIR)/haplotype.o
-	$(CXX) $(CXXFLAGS) -lpthread $^ -o $@ $(LIBS) && ./$@
+insti_unittests : $(INSTI_O_FILES) insti_unittests.o gtest_main.a 
+	$(CXX) $(CXXFLAGS) -lpthread $^ -o $@ $(LIBS)
+
+other_unittests.o : other_unittests.cpp $(SRC_DIR)/haplotype.hpp.gch $(SRC_DIR)/kNN.hpp.gch $(SRC_DIR)/relationship.hpp.gch $(GTEST_HEADERS)
+	$(CXX) $(CXXFLAGS) -c $<
+
+other_unittests : other_unittests.o gtest_main.a $(SRC_DIR)/olivier/utils.o $(SRC_DIR)/kNN.o $(SRC_DIR)/haplotype.o
+	$(CXX) $(CXXFLAGS) -lpthread $^ -o $@ $(LIBS)
 
 
 

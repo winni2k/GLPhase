@@ -13,6 +13,8 @@
 #include "insti.hpp"
 #include <chrono>
 
+using namespace std;
+
 int main(int ac, char **av) {
 
   cerr << "INSTI -- v" << VERSION_MAJOR << "." << VERSION_MINOR << "."
@@ -25,7 +27,6 @@ int main(int ac, char **av) {
       commandLine << " " << av[i];
     }
   }
-  cerr << "Call: " << commandLine.str() << endl;
 
   Impute::sn = 200;
   Impute::nn = 2;
@@ -41,7 +42,7 @@ int main(int ac, char **av) {
   string sLogFile;
   int opt;
   while ((opt = getopt(
-              ac, av, "d:l:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:fo:")) >= 0) {
+              ac, av, "Vd:l:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:fo:")) >= 0) {
     switch (opt) {
     case 'd':
       Impute::density = atof(optarg);
@@ -131,15 +132,22 @@ int main(int ac, char **av) {
       Insti::s_scaffoldFreqCutoff = std::stod(optarg);
       break;
     case 'f':
-      Insti::s_initPhaseFromScaffold = true;
+
+        Insti::s_initPhaseFromScaffold = true;
       break;
     case 'o':
       outBase = optarg;
       break;
+    case 'V':
+        exit(0);
+        break;
     default:
       Insti::document();
     }
   }
+
+    cerr << "Call: " << commandLine.str() << endl;
+
 
   // need to specify burnin generations as sum of SA and non-SA gens
   Impute::bn = Insti::s_uSABurninGen + Insti::s_uNonSABurninGen;
@@ -195,17 +203,6 @@ int main(int ac, char **av) {
       continue;
     }
 
-    /* debugging
-    cout << "name\tsite\tprob\tposi"<<endl;
-    for ( auto x: lp.name) cout << x << " ";
-    cout << endl;
-    for ( auto x: lp.site) cout << x.chr << "\t" << x.all << "\t" << x.pos <<
-    endl;
-    for ( auto x: lp.prob) cout << x << " ";
-    cout << endl;
-    for ( auto x: lp.posi) cout << x << " ";
-    cout << endl;
-    */
     for (uint j = 0; j < Impute::vcf_file.size(); j++)
       cerr << Impute::vcf_file[j] << '\t'
            << lp.load_vcf(Impute::vcf_file[j].c_str()) << endl;

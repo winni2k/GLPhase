@@ -187,10 +187,9 @@ bool Insti::load_bin(const char *F) {
 }
 
 // HAPS/SAMPLE sample file
-vector<string> Insti::OpenSample(string sampleFile) {
+void Insti::OpenSample(string sampleFile, vector<string> &fillSampleIDs) {
 
   cerr << "Loading samples file: " << sampleFile << endl;
-  vector<string> IDs;
 
   // read in sample file
   ifile sampleFD(sampleFile);
@@ -243,10 +242,8 @@ vector<string> Insti::OpenSample(string sampleFile) {
       continue;
 
     // now add sample id to vector
-    IDs.push_back(tokens[0]);
+    fillSampleIDs.push_back(tokens[0]);
   }
-
-  return IDs;
 }
 
 // read in the haps file
@@ -381,27 +378,29 @@ bool Insti::LoadHapsSamp(string hapsFile, string sampleFile,
 
   try {
     OpenHaps(hapsFile, loadHaps, loadSites);
+    if (loadHaps.empty())
+      throw myException("Haplotypes file is empty: " + hapsFile);
 
     // get sample information if we are using a scaffold
     // make sure samples match
+    vector<string> scaffoldSampleIDs;
     if (panelType == PanelType::SCAFFOLD) {
-      vector<string> scaffoldIDs = OpenSample(sampleFile);
-      SubsetSamples(scaffoldIDs, loadHaps);
-      OrderSamples(scaffoldIDs, loadHaps);
+      OpenSample(sampleFile, scaffoldSampleIDs);
+      SubsetSamples(scaffoldSampleIDs, loadHaps);
+      OrderSamples(scaffoldSampleIDs, loadHaps);
 
-      if (!loadHaps.empty())
-        MatchSamples(scaffoldIDs, loadHaps[0].size());
-
-      m_scaffold.swapIDs(scaffoldIDs);
+      assert(!loadHaps.empty());
+      MatchSamples(scaffoldSampleIDs, loadHaps[0].size());
     }
 
-    if (!loadHaps.empty()) {
-      vector<vector<char> > filtHaps;
-      vector<snp> filtSites;
+    assert(!loadHaps.empty());
+    vector<vector<char> > filtHaps;
+    vector<snp> filtSites;
 
-      FilterSites(loadHaps, loadSites, filtHaps, filtSites, panelType);
-      LoadHaps(filtHaps, panelType);
-    }
+    FilterSites(loadHaps, loadSites, filtHaps, filtSites, panelType);
+
+    // loading haplotypes into place
+    LoadHaps(filtHaps, filtSites, scaffoldSampleIDs, panelType);
   }
   catch (exception &e) {
     cerr << e.what() << endl;
@@ -638,8 +637,10 @@ void Insti::MatchSamples(const vector<std::string> &IDs, unsigned numHaps) {
 }
 
 // put the haplotypes in the right place in the program structure
-void Insti::LoadHaps(vector<vector<char> > &inHaps, PanelType panelType) {
+void Insti::LoadHaps(vector<vector<char> > &inHaps, vector<snp> &inSites,
+                     vector<string> &inSampleIDs, PanelType panelType) {
 
+  assert(inHaps.size() == inSites.size());
   // convert char based haplotypes to bitvector
   unsigned numHaps = inHaps[0].size();
 
@@ -658,7 +659,7 @@ void Insti::LoadHaps(vector<vector<char> > &inHaps, PanelType panelType) {
 
   case PanelType::SCAFFOLD: {
     assert(WordMod >= 0);
-    m_scaffold.Init(inHaps);
+    m_scaffold.Init(inHaps, inSites, inSampleIDs);
     cerr << "Scaffold haplotypes\t" << m_scaffold.NumHaps() << endl;
 
     try {
@@ -827,12 +828,14 @@ bool Insti::LoadHapLegSamp(string legendFile, string hapFile, string sampleFile,
 
   // for now sample loading is not implemented
   if (sampleFile.size() > 0) {
-    cout << "for now sample loading is not implemented in the sampleghap "
+    cerr << "for now sample loading is not implemented in the sampleghap "
             "paradigm";
     document();
   }
-
   CheckPanelPrereqs(panelType);
+
+  // Load Samples (not implemented)
+  vector<string> sampleIDs;
 
   // Load the site list in the legend
   cerr << "Loading legend file: " << legendFile << endl;
@@ -852,10 +855,11 @@ bool Insti::LoadHapLegSamp(string legendFile, string hapFile, string sampleFile,
     vector<snp> filtSites;
     FilterSites(loadHaps, legend, filtHaps, filtSites, panelType);
 
-    LoadHaps(filtHaps, panelType);
+    LoadHaps(filtHaps, filtSites, sampleIDs, panelType);
   }
   catch (exception &e) {
-    cout << e.what() << endl;
+    cerr << "Error loading haplotypes file " << hapFile << ": " << e.what()
+         << endl;
     exit(2);
   }
 
@@ -1066,8 +1070,10 @@ void Insti::initialize() {
     LoadHapsSamp(s_scaffoldHapsFile, s_scaffoldSampleFile, PanelType::SCAFFOLD);
 
   // change phase and genotype of main haps to that from scaffold
-  if (s_initPhaseFromScaffold && m_scaffold.Initialized())
+
+  if (s_initPhaseFromScaffold) {
     SetHapsAccordingToScaffold();
+  }
 }
 
 // this part of the code seems to be responsible for:
@@ -1714,38 +1720,37 @@ void Insti::SetHapsAccordingToScaffold() {
 
   // pull out each hap and change it to match information contained in the
   // scaffold
-  for (unsigned indNum = 0; indNum < in; indNum++) {
+  for (unsigned hapNum = 0; hapNum < 2 * in; hapNum++) {
 
-    for (unsigned hapNum = 0; hapNum < 2; hapNum++) {
+    // define pointers to an individual's two haplotype hap
+    uint64_t *hap = &haps[hapNum * wn];
+    uint64_t *scaffHap = m_scaffold.Hap(hapNum);
 
-      // define pointers to an individual's two haplotype hap
-      uint64_t *hap = &haps[indNum * 2 * wn + hapNum * wn];
-      uint64_t *scaffHap = m_scaffold.Hap(indNum * 2 + hapNum);
+    // check each site if it needs to be replaced
+    unsigned scaffoldSiteIdx = 0;
 
-      // check each site if it needs to be replaced
-      unsigned scaffoldSiteIdx = 0;
 
-      for (unsigned scaffoldPositionIdx = 0;
-           scaffoldPositionIdx < m_scaffold.NumSites(); scaffoldPositionIdx++) {
+    unsigned siteIdx = 0;
+    for (unsigned scaffoldPositionIdx = 0;
+         scaffoldPositionIdx < m_scaffold.NumSites(); scaffoldPositionIdx++) {
 
-        // find the site in site that matches the scaffold position
-        unsigned siteIdx = 0;
-
-        for (; siteIdx < site.size(); siteIdx++) {
-          if (site[siteIdx].pos == m_scaffold.Position(scaffoldPositionIdx))
-            break;
-        }
-
-        // if this is not true, then the scaffold position could not be found in
-        // site
-        assert(siteIdx < site.size());
-
-        // set the site to what is in the scaffold
-        if (test(scaffHap, scaffoldSiteIdx))
-          set1(hap, siteIdx);
-
-        ++scaffoldSiteIdx;
+      // find the site in site that matches the scaffold position
+      for (; siteIdx < site.size(); siteIdx++) {
+        if (site[siteIdx].pos == m_scaffold.Position(scaffoldPositionIdx))
+          break;
       }
+
+      // if this is not true, then the scaffold position could not be found in
+      // site
+      assert(siteIdx < site.size());
+
+      // set the site to what is in the scaffold
+      if (test(scaffHap, scaffoldSiteIdx))
+        set1(hap, siteIdx);
+      else
+        set0(hap, siteIdx);
+
+      ++scaffoldSiteIdx;
     }
   }
 }

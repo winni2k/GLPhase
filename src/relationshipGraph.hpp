@@ -74,7 +74,7 @@ public:
 
     void init(int iGraphType, unsigned uSamples, unsigned uHaplotypes);
 
-    void init(int iGraphType, unsigned uNumClust, const vector< uint64_t > * pvuHaplotypes, unsigned uNumWordsPerHap, unsigned uNumSites, gsl_rng *rng);
+    void init(int iGraphType, unsigned uNumClust, const std::vector< uint64_t > * pvuHaplotypes, unsigned uNumWordsPerHap, unsigned uNumSites, gsl_rng *rng);
 
     // returns a haplotype sampled using the relationship graph
     unsigned SampleHap(unsigned uInd, gsl_rng *rng);
@@ -92,9 +92,9 @@ public:
     void UpdateGraph( unsigned *p, bool bAccepted, unsigned uInd, float fRatio);
 
     // update medoids
-    void UpdateGraph( const vector< uint64_t > * pvuHaplotypes );
+    void UpdateGraph( const std::vector< uint64_t > * pvuHaplotypes );
 
-    void Save(std::string fileName, const vector<std::string> & name);
+    void Save(std::string fileName, const std::vector<std::string> & name);
 
 };
 

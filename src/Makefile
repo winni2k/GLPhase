@@ -17,11 +17,11 @@ all: $(BDIR)/insti.$(VERSION)
 
 $(BDIR)/insti.$(VERSION): CXXFLAGS += -O3
 
-debug: CXXFLAGS += -O1
-debug: CXXFLAGS += $(DEBUGFLAGS)
-
-debug: $(BIN)/insti.$(VERSION).debug
+debug:
 	$(CXX) -E -x c++ - -v < /dev/null
+
+test: CXXFLAGS += -O1
+test: CXXFLAGS += $(DEBUGFLAGS)
 
 test : insti.o impute.o emcchain.o olivier/utils.o haplotype.o kNN.o relationship.hpp.gch
 	$(MAKE) -C testing
@@ -40,6 +40,9 @@ clean:
 
 ## precompile headers
 %.hpp.gch: %.hpp
+	$(CXX) $(CXXFLAGS) -x c++-header $<
+
+hapPanel.hpp.gch: hapPanel.hpp snp.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
 olivier/utils.hpp.gch: olivier/utils.hpp
@@ -80,7 +83,7 @@ $(BDIR)/insti.$(VERSION): $(OBJECT_FILES)
 	cd $(BDIR) && rm -f insti && ln -s insti.$(VERSION) insti
 
 $(BDIR)/insti.$(VERSION).debug: $(OBJECT_FILES)
-	$(CXX) $(CXXFLAGS) $(OBJECT_FILES) -o $@ $(OBJECT_FILES) $(LIBS)
+	$(CXX) $(CXXFLAGS) $(OBJECT_FILES) -o $@ $(LIBS)
 
 
 ## installation
