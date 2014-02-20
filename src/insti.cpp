@@ -1695,11 +1695,11 @@ void Insti::save_vcf(const char *F, string commandLine) {
       }
 
       // print a sample's GP and APP fields
-      for (int i = 0; i < 5; ++i) {
+      for (unsigned i = 0; i < vfProb.size(); ++i) {
         if (i == 0 || i == 3)
           vcfFD << ":";
         vcfFD << vfProb[i];
-        if (i != 2 && i != 5)
+        if (i != 2 && i != 4)
           vcfFD << ",";
       }
     }
