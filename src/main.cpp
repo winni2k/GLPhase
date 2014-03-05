@@ -41,8 +41,9 @@ int main(int ac, char **av) {
 
   string sLogFile;
   int opt;
-  while ((opt = getopt(
-              ac, av, "Vd:l:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:fo:")) >= 0) {
+  while ((opt = getopt(ac, av,
+                       "Vd:l:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:fo:")) >=
+         0) {
     switch (opt) {
     case 'd':
       Impute::density = atof(optarg);
@@ -132,22 +133,20 @@ int main(int ac, char **av) {
       Insti::s_scaffoldFreqCutoff = std::stod(optarg);
       break;
     case 'f':
-
-        Insti::s_initPhaseFromScaffold = true;
+      Insti::s_initPhaseFromScaffold = true;
       break;
     case 'o':
       outBase = optarg;
       break;
     case 'V':
-        exit(0);
-        break;
+      exit(0);
+      break;
     default:
       Insti::document();
     }
   }
 
-    cerr << "Call: " << commandLine.str() << endl;
-
+  cerr << "Call: " << commandLine.str() << endl;
 
   // need to specify burnin generations as sum of SA and non-SA gens
   Impute::bn = Insti::s_uSABurninGen + Insti::s_uNonSABurninGen;

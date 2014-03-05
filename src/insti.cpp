@@ -1093,7 +1093,6 @@ void Insti::initialize() {
     LoadHapsSamp(s_scaffoldHapsFile, s_scaffoldSampleFile, PanelType::SCAFFOLD);
 
   // change phase and genotype of main haps to that from scaffold
-
   if (s_initPhaseFromScaffold) {
     SetHapsAccordingToScaffold();
   }
