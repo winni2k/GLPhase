@@ -273,32 +273,45 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > &loadHaps,
     if (keptSites == m_sitesUnordered.size())
       break;
 
-//    if (lineNum % 1000 == 0)
-//      cout << "Sites kept:\t" << keptSites << " / " << lineNum << "\n";
+    //    if (lineNum % 1000 == 0)
+    //      cout << "Sites kept:\t" << keptSites << " / " << lineNum << "\n";
 
     lineNum++;
 
     //// only read position
-    // extract chromosome
-    size_t firstSpaceIdx = buffer.find_first_of(" ");
-    if (firstSpaceIdx == string::npos)
-      throw myException("No space in Haps file");
-    string chr = buffer.substr(0, firstSpaceIdx);
+    // figure out where the first three spaces are located
+    vector<size_t> spaceIdxs;
+    size_t nextStartIdx = 0;
+    for (unsigned i = 0; i < 3; ++i) {
+      if (i == 0)
+        spaceIdxs.push_back(buffer.find_first_of(" "));
+      else
+        spaceIdxs.push_back(buffer.find_first_of(" ", nextStartIdx));
+      if (spaceIdxs[i] == string::npos)
+        throw myException("Space in Haps file not found where expected");
+      nextStartIdx = spaceIdxs[i] + 1;
+    }
 
-    // check input haps is correct chrom
+    // load chrom and check input haps is correct chrom
+    string chr = buffer.substr(0, spaceIdxs[0]);
     if (chr != site[0].chr)
       throw myException("Found site on chromosome '" + chr +
                         "' when chromosome '" + site[0].chr + "' was expected");
 
     // move ahead and extract position from third field
-    size_t secSpaceIdx = buffer.find_first_of(" ", firstSpaceIdx + 1);
-    size_t thirdSpaceIdx = buffer.find_first_of(" ", secSpaceIdx + 1);
-    if (thirdSpaceIdx == string::npos)
-      throw myException("No third space in Haps file");
-    unsigned pos =
-        strtoul(buffer.substr(secSpaceIdx + 1,
-                              thirdSpaceIdx - (secSpaceIdx + 1)).c_str(),
-                NULL, 0);
+    size_t endReadIdx = 0;
+    unsigned pos = stoul(
+        buffer.substr(spaceIdxs[1] + 1, spaceIdxs[2] - (spaceIdxs[1] + 1)),
+        &endReadIdx, 0);
+
+    // make sure the whole field was parsed!
+    if (endReadIdx != spaceIdxs[2] - (spaceIdxs[1] + 1))
+      throw myException("Input haplotypes line field three was read as " +
+                        sutils::uint2str(pos) +
+                        " and does not seem to be an unsigned integer.\n" +
+                        "Read was " + sutils::uint2str(endReadIdx) +
+                        " char(s) long" + "\nThe field was actually " +
+                        sutils::uint2str(spaceIdxs[2]) + " char(s) long");
 
     // make sure input sites are sorted by position
     if (pos < previousPos)
