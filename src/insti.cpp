@@ -103,7 +103,7 @@ void Insti::SetLog(const string &sLogFile) {
     }
   }
 
-  cerr << "Logging to:\t" << m_sLogFile << endl;
+  cout << "Logging to:\t" << m_sLogFile << endl;
 };
 
 void Insti::WriteToLog(const string &tInput) {
@@ -189,7 +189,7 @@ bool Insti::load_bin(const char *F) {
 // HAPS/SAMPLE sample file
 void Insti::OpenSample(string sampleFile, vector<string> &fillSampleIDs) {
 
-  cerr << "Loading samples file: " << sampleFile << endl;
+  cout << "Loading samples file: " << sampleFile << endl;
 
   // read in sample file
   ifile sampleFD(sampleFile);
@@ -251,7 +251,7 @@ void Insti::OpenSample(string sampleFile, vector<string> &fillSampleIDs) {
 void Insti::OpenHaps(string hapsFile, vector<vector<char> > &loadHaps,
                      vector<snp> &sites) {
 
-  cerr << "Loading haps file: " << hapsFile << endl;
+  cout << "Loading haps file: " << hapsFile << endl;
   ifile hapsFD(hapsFile);
 
   if (!hapsFD.isGood())
@@ -273,8 +273,8 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > &loadHaps,
     if (keptSites == m_sitesUnordered.size())
       break;
 
-    if (lineNum % 1000 == 0)
-      cerr << "Sites kept:\t" << keptSites << " / " << lineNum << "\n";
+//    if (lineNum % 1000 == 0)
+//      cout << "Sites kept:\t" << keptSites << " / " << lineNum << "\n";
 
     lineNum++;
 
@@ -600,11 +600,11 @@ void Insti::FilterSites(vector<vector<char> > &loadHaps, vector<snp> &loadSites,
 
   assert(filtSites.size() == targetSiteIdx);
 
-  cerr << "Number of loaded haplotypes: " << numHaplotypesLoaded << endl;
-  cerr << "Number of haplotypes left after filtering: " << filtHaps[0].size()
+  cout << "Number of loaded haplotypes: " << numHaplotypesLoaded << endl;
+  cout << "Number of haplotypes left after filtering: " << filtHaps[0].size()
        << endl;
-  cerr << "Number of candidate sites: " << numCandidateSitesToSearch << endl;
-  cerr << "Number of sites kept: " << numTargetSitesSearchable << endl;
+  cout << "Number of candidate sites: " << numCandidateSitesToSearch << endl;
+  cout << "Number of sites kept: " << numTargetSitesSearchable << endl;
   assert(loadHaps[0].size() == 0);
 
   if (filtHaps[0].size() != numHaplotypesLoaded)
@@ -676,14 +676,14 @@ void Insti::LoadHaps(vector<vector<char> > &inHaps, vector<snp> &inSites,
         temp.Char2BitVec(inHaps, GetNumWords(), WordMod + 1);
     storeHaps.swap(m_vRefHaps);
     m_uNumRefHaps = numHaps;
-    cerr << "Reference panel haplotypes\t" << m_uNumRefHaps << endl;
+    cout << "Reference panel haplotypes\t" << m_uNumRefHaps << endl;
     return;
   }
 
   case PanelType::SCAFFOLD: {
     assert(WordMod >= 0);
     m_scaffold.Init(inHaps, inSites, inSampleIDs);
-    cerr << "Scaffold haplotypes\t" << m_scaffold.NumHaps() << endl;
+    cout << "Scaffold haplotypes\t" << m_scaffold.NumHaps() << endl;
 
     try {
       if (m_scaffold.NumHaps() != hn)
@@ -861,7 +861,7 @@ bool Insti::LoadHapLegSamp(string legendFile, string hapFile, string sampleFile,
   vector<string> sampleIDs;
 
   // Load the site list in the legend
-  cerr << "Loading legend file: " << legendFile << endl;
+  cout << "Loading legend file: " << legendFile << endl;
 
   try {
     auto legend = OpenLegend(legendFile);
@@ -871,7 +871,7 @@ bool Insti::LoadHapLegSamp(string legendFile, string hapFile, string sampleFile,
         exit(1);
         }*/
 
-    cerr << "Loading hap file: " << hapFile << endl;
+    cout << "Loading hap file: " << hapFile << endl;
     auto loadHaps = OpenHap(hapFile);
 
     vector<vector<char> > filtHaps;
@@ -1239,9 +1239,9 @@ void Insti::estimate() {
   timeval startTime, currentTime;
   gettimeofday(&startTime, NULL);
 
-  cerr.setf(ios::fixed);
-  cerr.precision(3);
-  cerr << m_tag << ":\titer\tpress\tlike\tfold\trunTime\texpectedRunTime"
+  cout.setf(ios::fixed);
+  cout.precision(3);
+  cout << m_tag << ":\titer\tpress\tlike\tfold\trunTime\texpectedRunTime"
        << endl;
 
   // n is number of cycles = burnin + sampling cycles
@@ -1277,12 +1277,12 @@ void Insti::estimate() {
     gettimeofday(&currentTime, NULL);
     double runTimeInMin =
         static_cast<double>(currentTime.tv_sec - startTime.tv_sec) / 60;
-    cerr << m_tag << ":\t" << n << '\t' << pen << '\t' << sum / in / mn << '\t'
+    cout << m_tag << ":\t" << n << '\t' << pen << '\t' << sum / in / mn << '\t'
          << iter / in / in << "\t" << runTimeInMin << "m\t"
          << runTimeInMin / (n + 1) * (bn + sn) << "m\t" << endl;
   }
 
-  cerr << endl;
+  cout << endl;
   result(); // call result
 }
 
@@ -1564,10 +1564,10 @@ fast Insti::solve_EMC(unsigned I, unsigned N, fast S) {
 */
 
 void Insti::estimate_EMC() {
-  cerr.setf(ios::fixed);
-  cerr.precision(3);
-  cerr << "Running Evolutionary Monte Carlo\n";
-  cerr << "iter\tpress\tlike\tfold\n";
+  cout.setf(ios::fixed);
+  cout.precision(3);
+  cout << "Running Evolutionary Monte Carlo\n";
+  cout << "iter\tpress\tlike\tfold\n";
 
   // n is number of cycles = burnin + sampling cycles
   // increase penalty from 2/bn to 1 as we go through burnin
@@ -1589,11 +1589,11 @@ void Insti::estimate_EMC() {
       for (unsigned i = 0; i < in; i++)
         replace(i); // call replace
 
-    cerr << n << '\t' << pen << '\t' << sum / in / mn << '\t' << iter / in / in
+    cout << n << '\t' << pen << '\t' << sum / in / mn << '\t' << iter / in / in
          << '\n';
   }
 
-  cerr << endl;
+  cout << endl;
   result(); // call result
 }
 
@@ -1606,10 +1606,10 @@ void Insti::estimate_EMC() {
    first edition?, 2010, pp. 309
 */
 void Insti::estimate_AMH(unsigned uRelMatType) {
-  cerr.setf(ios::fixed);
-  cerr.precision(3);
-  cerr << "Running Adaptive Metropolis Hastings\n";
-  cerr << "iter\tpress\tlike\tfold" << endl;
+  cout.setf(ios::fixed);
+  cout.precision(3);
+  cout << "Running Adaptive Metropolis Hastings\n";
+  cout << "iter\tpress\tlike\tfold" << endl;
 
   // create a relationshipGraph object
   // initialize relationship matrix
@@ -1621,7 +1621,7 @@ void Insti::estimate_AMH(unsigned uRelMatType) {
   // iterations.
   for (unsigned n = 0; n < bn + sn; n++) {
 
-    //        cerr << "iter\t" << n << endl;
+    //        cout << "iter\t" << n << endl;
     m_nIteration = n;
     fast sum = 0, pen = min<fast>(2 * (n + 1.0f) / bn, 1), iter = 0;
     pen *= pen; // pen = 1 after bn/2 iterations
@@ -1630,7 +1630,7 @@ void Insti::estimate_AMH(unsigned uRelMatType) {
     for (unsigned i = 0; i < in; i++) {
 
       //            if( i % 1000 == 0)
-      //                cerr << "cycle\t" << i << endl;
+      //                cout << "cycle\t" << i << endl;
       sum += solve(i, m_uCycles, pen, m_oRelationship);
       iter += m_uCycles;
     }
@@ -1641,11 +1641,11 @@ void Insti::estimate_AMH(unsigned uRelMatType) {
       for (unsigned i = 0; i < in; i++)
         replace(i); // call replace
 
-    cerr << n << '\t' << pen << '\t' << sum / in / mn << '\t' << iter / in / in
+    cout << n << '\t' << pen << '\t' << sum / in / mn << '\t' << iter / in / in
          << endl;
   }
 
-  cerr << endl;
+  cout << endl;
   result(); // call result
 }
 
