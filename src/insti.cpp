@@ -277,16 +277,33 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > &loadHaps,
       cerr << "Sites kept:\t" << keptSites << " / " << lineNum << "\n";
 
     lineNum++;
-    vector<string> tokens;
-    sutils::tokenize(buffer, tokens);
+
+    //// only read position
+    // extract chromosome
+    size_t firstSpaceIdx = buffer.find_first_of(" ");
+    if (firstSpaceIdx == string::npos)
+      throw myException("No space in Haps file");
+    string chr = buffer.substr(0, firstSpaceIdx);
+
+    // check input haps is correct chrom
+    if (chr != site[0].chr)
+      throw myException("Found site on chromosome '" + chr +
+                        "' when chromosome '" + site[0].chr + "' was expected");
+
+    // move ahead and extract position from third field
+    size_t secSpaceIdx = buffer.find_first_of(" ", firstSpaceIdx + 1);
+    size_t thirdSpaceIdx = buffer.find_first_of(" ", secSpaceIdx + 1);
+    if (thirdSpaceIdx == string::npos)
+      throw myException("No third space in Haps file");
+    unsigned pos =
+        strtoul(buffer.substr(secSpaceIdx + 1,
+                              thirdSpaceIdx - (secSpaceIdx + 1)).c_str(),
+                NULL, 0);
 
     // make sure input sites are sorted by position
-    unsigned pos = atoi(tokens[2].c_str());
-
     if (pos < previousPos)
       throw myException("Input haplotypes file " + hapsFile +
                         " needs to be sorted by position");
-
     previousPos = pos;
 
     // start loading only once we hit the first site
@@ -303,6 +320,10 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > &loadHaps,
 
     if (foundSite == m_sitesUnordered.end())
       continue;
+
+    // split entire line for processing
+    vector<string> tokens;
+    sutils::tokenize(buffer, tokens);
 
     // make sure header start is correct
     if (numHaps == 0) {
@@ -322,7 +343,7 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > &loadHaps,
     }
 
     // store site of haplotype
-    sites.push_back(snp(atoi(tokens[2].c_str()), tokens[3], tokens[4]));
+    sites.push_back(snp(chr, pos, tokens[3], tokens[4]));
     vector<char> loadSite;
     loadSite.reserve(numHaps);
 
@@ -377,6 +398,8 @@ bool Insti::LoadHapsSamp(string hapsFile, string sampleFile,
   vector<snp> loadSites;
 
   try {
+
+    // read the haps and sites from a haps file
     OpenHaps(hapsFile, loadHaps, loadSites);
     if (loadHaps.empty())
       throw myException("Haplotypes file is empty: " + hapsFile);
@@ -739,8 +762,8 @@ vector<snp> Insti::OpenLegend(string legendFile) {
     }
 
     // add each site to loadLeg
-    int pos = atoi(tokens[1].c_str());
-    loadLeg.push_back(snp(pos, tokens[2], tokens[3]));
+    loadLeg.push_back(snp(tokens[0], strtoul(tokens[1].c_str(), NULL, 0),
+                          tokens[2], tokens[3]));
   }
 
   return loadLeg;
@@ -1036,9 +1059,9 @@ void Insti::initialize() {
   assert(m_sitesUnordered.size() == 0);
 
   for (auto oneSite : site)
-    m_sitesUnordered.insert(
-        std::make_pair(oneSite.pos, snp(oneSite.pos, oneSite.all.substr(0, 1),
-                                        oneSite.all.substr(1, 1))));
+    m_sitesUnordered.insert(std::make_pair(
+        oneSite.pos, snp(oneSite.chr, oneSite.pos, oneSite.all.substr(0, 1),
+                         oneSite.all.substr(1, 1))));
 
   assert(m_sitesUnordered.size() == site.size());
 
@@ -1728,7 +1751,6 @@ void Insti::SetHapsAccordingToScaffold() {
 
     // check each site if it needs to be replaced
     unsigned scaffoldSiteIdx = 0;
-
 
     unsigned siteIdx = 0;
     for (unsigned scaffoldPositionIdx = 0;

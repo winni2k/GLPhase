@@ -5,22 +5,22 @@
 
 class snp {
 public:
-    unsigned pos;
-    std::string ref, alt;
+  unsigned pos;
+  std::string chr, ref, alt;
 
-    snp(int pos, std::string ref, std::string alt)
-    {
-        this->pos = pos;
-        this->ref = ref;
-        this->alt = alt;
-    }
+  snp(std::string chr, int pos, std::string ref, std::string alt) {
+    this->chr = chr;
+    this->pos = pos;
+    this->ref = ref;
+    this->alt = alt;
+  }
 
-    bool strand(std::string & r, std::string & a)
-    {
-        if (ref == r && alt == a) return true;
+  bool strand(std::string &r, std::string &a) {
+    if (ref == r && alt == a)
+      return true;
 
-        return false;
-    }
+    return false;
+  }
 };
 
 #endif

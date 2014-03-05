@@ -10,7 +10,7 @@ export CPLUS_INCLUDE_PATH += :olivier
 export LIBRARY_PATH += :u-wkretzsch-snptools/samtools-0.1.16:u-wkretzsch-snptools/tabix-0.2.5
 export LD_LIBRARY_PATH += $(LIBRARY_PATH)
 
-BDIR = ../bin
+BDIR := ../bin
 VERSION := $(shell grep VERSION_MAJOR version.hpp | cut -f3 -d' ').$(shell grep VERSION_MINOR version.hpp | cut -f3 -d' ').$(shell grep VERSION_REVISION version.hpp | cut -f3 -d' ')
 
 all: $(BDIR)/insti.$(VERSION)
@@ -32,7 +32,7 @@ testDebug: insti.o impute.o emcchain.o olivier/utils.o haplotype.o kNN.o relatio
 clean:
 	rm -f *.o *.hpp.gch olivier/utils.hpp.gch
 
-.PHONY: clean
+.PHONY: clean test all testDebug debug
 
 .DELETE_ON_ERROR:
 

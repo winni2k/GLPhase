@@ -6,7 +6,7 @@
 ## X-URL: 
 
 # where to find src code to be tested
-SRC_DIR= ..
+SRC_DIR := ..
 
 # Points to the root of Google Test, relative to where this file is.
 # Remember to tweak this if you move this file.
@@ -22,12 +22,10 @@ AR= ar
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
-TESTS = insti_unittests other_unittests
-
+TESTS := insti_unittests other_unittests
 INSTI_O_FILES= $(SRC_DIR)/insti.o $(SRC_DIR)/impute.o $(SRC_DIR)/emcchain.o $(SRC_DIR)/kMedoids.o $(SRC_DIR)/relationshipGraph.o $(SRC_DIR)/haplotype.o $(SRC_DIR)/hapPanel.o $(SRC_DIR)/olivier/utils.o $(SRC_DIR)/kNN.o $(SRC_DIR)/haplotype.o
 
-test: $(TESTS)
-	for i in $(TESTS); do echo $$i; ./$$i; done
+all: $(TESTS)
 
 debug:
 	$(CXX) -E -x c++ - -v < /dev/null
@@ -35,7 +33,6 @@ debug:
 clean:
 	rm -f $(TESTS) gtest.a gtest_main.a *.o *.hpp.gch *.h.gch insti
 
-.PHONY: clean test
 
 
 # All Google Test headers.  Usually you shouldn't change this
@@ -75,14 +72,14 @@ insti_unittests.o : insti_unittests.cpp $(SRC_DIR)/insti.hpp.gch $(SRC_DIR)/hapl
 
 insti_unittests : $(INSTI_O_FILES) insti_unittests.o gtest_main.a 
 	$(CXX) $(CXXFLAGS) -lpthread $^ -o $@ $(LIBS)
+	./$@
 
 other_unittests.o : other_unittests.cpp $(SRC_DIR)/haplotype.hpp.gch $(SRC_DIR)/kNN.hpp.gch $(SRC_DIR)/relationship.hpp.gch $(GTEST_HEADERS)
 	$(CXX) $(CXXFLAGS) -c $<
 
 other_unittests : other_unittests.o gtest_main.a $(SRC_DIR)/olivier/utils.o $(SRC_DIR)/kNN.o $(SRC_DIR)/haplotype.o
 	$(CXX) $(CXXFLAGS) -lpthread $^ -o $@ $(LIBS)
+	./$@
 
-
-
-
+.PHONY: clean all debug $(TESTS)
 ### Makefile ends here

@@ -13,7 +13,10 @@ void HapPanel::Init(vector<vector<char> > &inHaps, vector<snp> &inSites,
   // assume sample IDs are OK and work from there
   std::swap(m_sampleIDs, inSampleIDs);
 
-  assert(inSites.size() == inHaps.size());
+  if (inSites.size() != inHaps.size())
+      throw myException("inSites size (" + sutils::uint2str(inSites.size()) +
+                      ") is not equal to inHaps size (" +
+                        sutils::uint2str(inHaps.size()) + ")");
 
   // fill the sites of the ref panel
   assert(inSites.size() > 0);

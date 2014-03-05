@@ -1,3 +1,6 @@
 *.o
 *.gch
 /bin
+/src/testing/gtest_main.a
+/src/testing/insti_unittests
+/src/testing/other_unittests
