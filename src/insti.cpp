@@ -1126,9 +1126,13 @@ void Insti::initialize() {
 fast Insti::solve(unsigned I, unsigned N, fast pen, Relationship &oRel) {
 
   // write log header
-  stringstream message;
-  message << "##iteration\tindividual\tproposal" << endl;
-  WriteToLog(message.str());
+  if (s_bIsLogging) {
+    stringstream message;
+    message
+        << "##iteration\tindividual\tproposal\taccepted\tind1\tind2\tind3\tind4"
+        << endl;
+    WriteToLog(message.str());
+  }
 
   // pick 4 haplotype indices at random not from individual
   unsigned p[4];
@@ -1144,12 +1148,12 @@ fast Insti::solve(unsigned I, unsigned N, fast pen, Relationship &oRel) {
   // those haplotypes.
   // accept new set if probability has increased.
   // otherwise, accept with penalized probability
-  for (unsigned n = 0; n < N; n++) { // fixed number of iterations
+  for (unsigned n = 0; n < N; n++) { // iterate through all samples
     unsigned rp = gsl_rng_get(rng) & 3, oh = p[rp];
 
     // kickstart phasing and imputation by only sampling haps
     // from ref panel in first round
-    if (s_bKickStartFromRef && n == 0)
+    if (n == 0 && s_bKickStartFromRef)
       p[rp] = oRel.SampleHap(I, rng, true);
     else
       p[rp] = oRel.SampleHap(I, rng);
@@ -1160,18 +1164,24 @@ fast Insti::solve(unsigned I, unsigned N, fast pen, Relationship &oRel) {
     if (prop > curr || gsl_rng_uniform(rng) < exp((prop - curr) * pen)) {
       curr = prop;
       bAccepted = true;
-    } else
+    }
+
+    // log all proposals and individuals proposed
+    if (s_bIsLogging) {
+      stringstream message;
+      message << m_nIteration << "\t" << I << "\t" << prop << "\t" << bAccepted;
+      for (unsigned i = 0; i < 4; ++i)
+        message << "\t" << p[i];
+      message << endl;
+      WriteToLog(message.str());
+    }
+
+    // revert to original set of individuals if they were not accepted
+    if (!bAccepted)
       p[rp] = oh;
 
     // Update relationship graph with proportion pen
     oRel.UpdateGraph(p, bAccepted, I, pen);
-
-    // log accepted proposals
-    if (bAccepted) {
-      stringstream message;
-      message << m_nIteration << "\t" << I << "\t" << prop << endl;
-      WriteToLog(message.str());
-    }
   }
 
   // if we have passed the burnin cycles (n >= bn)
