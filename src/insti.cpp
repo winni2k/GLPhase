@@ -12,35 +12,35 @@ using namespace std;
 */
 
 #ifdef DEBUG
-#define DEBUG_MSG(str) \
-  do {                 \
-    std::cerr << str;  \
+#define DEBUG_MSG(str)                                                         \
+  do {                                                                         \
+    std::cerr << str;                                                          \
   } while (false)
 #else
-#define DEBUG_MSG(str) \
-  do {                 \
+#define DEBUG_MSG(str)                                                         \
+  do {                                                                         \
   } while (false)
 #endif
 
 #ifdef DEBUG2
-#define DEBUG_MSG2(str) \
-  do {                  \
-    std::cerr << str;   \
+#define DEBUG_MSG2(str)                                                        \
+  do {                                                                         \
+    std::cerr << str;                                                          \
   } while (false)
 #else
-#define DEBUG_MSG2(str) \
-  do {                  \
+#define DEBUG_MSG2(str)                                                        \
+  do {                                                                         \
   } while (false)
 #endif
 
 #ifdef DEBUG3
-#define DEBUG_MSG3(str) \
-  do {                  \
-    std::cerr << str;   \
+#define DEBUG_MSG3(str)                                                        \
+  do {                                                                         \
+    std::cerr << str;                                                          \
   } while (false)
 #else
-#define DEBUG_MSG3(str) \
-  do {                  \
+#define DEBUG_MSG3(str)                                                        \
+  do {                                                                         \
   } while (false)
 #endif
 
@@ -87,7 +87,8 @@ void Insti::SetLog(const string &sLogFile) {
   } else {
 
     // open logFileStream for append if it's not yet open
-    if (!m_ofsLogFileStream) m_ofsLogFileStream.open(m_sLogFile);
+    if (!m_ofsLogFileStream)
+      m_ofsLogFileStream.open(m_sLogFile);
 
     // otherwise close and open again
     else {
@@ -107,14 +108,16 @@ void Insti::SetLog(const string &sLogFile) {
 };
 
 void Insti::WriteToLog(const string &tInput) {
-  if (!s_bIsLogging) return;
+  if (!s_bIsLogging)
+    return;
 
   if (m_bLogIsGz)
     gzprintf(m_gzLogFileStream, tInput.c_str());
   else {
 
     // open logFileStream for append if it's not yet open
-    if (!m_ofsLogFileStream) m_ofsLogFileStream.open(m_sLogFile);
+    if (!m_ofsLogFileStream)
+      m_ofsLogFileStream.open(m_sLogFile);
 
     // exit if the file cannot be opened
     if (!m_ofsLogFileStream.is_open()) {
@@ -142,7 +145,7 @@ void Insti::WriteToLog(const EMCChain &rcChain, const bool bMutate) {
 
 // Roulette Wheel Selection, returns index of chain selected
 int Insti::RWSelection(const vector<EMCChain> &rvcChains) {
-  double dTotalProb = 0;  // always positive, could  be larger than 1
+  double dTotalProb = 0; // always positive, could  be larger than 1
 
   for (const auto &icChain : rvcChains) {
     dTotalProb += icChain.getSelection();
@@ -170,14 +173,15 @@ int Insti::RWSelection(const vector<EMCChain> &rvcChains) {
 bool Insti::load_bin(const char *F) {
   bool bRetVal = Impute::load_bin(F);
 
-  if (bRetVal == false) return false;
+  if (bRetVal == false)
+    return false;
 
   // setting number of cycles to use
   // here is best place to do it because in is defined in load_bin()
   if (s_uCycles > 0)
     m_uCycles = s_uCycles;
   else {
-    m_uCycles = nn * in;  // this was how snptools does it
+    m_uCycles = nn * in; // this was how snptools does it
   }
 
   return true;
@@ -235,7 +239,8 @@ void Insti::OpenSample(string sampleFile, vector<string> &fillSampleIDs) {
           sutils::uint2str(tokens.size()) + ") does not match previous line");
 
     // ignore second line of samples file
-    if (lineNum == 2) continue;
+    if (lineNum == 2)
+      continue;
 
     // now add sample id to vector
     fillSampleIDs.push_back(tokens[0]);
@@ -250,7 +255,8 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > &loadHaps,
   cout << "Loading haps file: " << hapsFile << endl;
   ifile hapsFD(hapsFile);
 
-  if (!hapsFD.isGood()) throw myException("Could not open file: " + hapsFile);
+  if (!hapsFD.isGood())
+    throw myException("Could not open file: " + hapsFile);
 
   string buffer;
   unsigned lineNum = 0;
@@ -265,7 +271,8 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > &loadHaps,
 
   // create a map of site positions
   while (getline(hapsFD, buffer, '\n')) {
-    if (keptSites == m_sitesUnordered.size()) break;
+    if (keptSites == m_sitesUnordered.size())
+      break;
 
     //    if (lineNum % 1000 == 0)
     //      cout << "Sites kept:\t" << keptSites << " / " << lineNum << "\n";
@@ -314,16 +321,19 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > &loadHaps,
     previousPos = pos;
 
     // start loading only once we hit the first site
-    if (pos < site[0].pos) continue;
+    if (pos < site[0].pos)
+      continue;
 
     // stop loading sites if the current site is past the last site position in
     // the GLs
-    if (pos > site.back().pos) break;
+    if (pos > site.back().pos)
+      break;
 
     // only keep sites that we know of
     auto foundSite = m_sitesUnordered.find(pos);
 
-    if (foundSite == m_sitesUnordered.end()) continue;
+    if (foundSite == m_sitesUnordered.end())
+      continue;
 
     // split entire line for processing
     vector<string> tokens;
@@ -442,7 +452,8 @@ void Insti::OrderSamples(vector<string> &loadIDs,
 
   assert(loadIDs.size() == m_namesUnordered.size());
 
-  if (!loadHaps.empty()) assert(loadIDs.size() * 2 == loadHaps[0].size());
+  if (!loadHaps.empty())
+    assert(loadIDs.size() * 2 == loadHaps[0].size());
 
   vector<unsigned> orderedLoadNameIdxs;
   orderedLoadNameIdxs.reserve(loadIDs.size());
@@ -454,7 +465,7 @@ void Insti::OrderSamples(vector<string> &loadIDs,
       assert(foundID->second < m_namesUnordered.size());
       orderedLoadNameIdxs.push_back(foundID->second);
     } else
-      assert(false);  // programming error
+      assert(false); // programming error
   }
 
   // sort names according to orderedLoadNameIdxs
@@ -485,21 +496,24 @@ void Insti::OrderSamples(vector<string> &loadIDs,
     assert(loadHaps[siteIdx].size() == orderedLoadNameIdxs.size() * 2);
   }
 
-  if (!loadHaps.empty()) assert(loadIDs.size() * 2 == loadHaps[0].size());
+  if (!loadHaps.empty())
+    assert(loadIDs.size() * 2 == loadHaps[0].size());
 }
 void Insti::SubsetSamples(vector<string> &loadIDs,
                           vector<vector<char> > &loadHaps) {
 
   assert(loadIDs.size() >= m_namesUnordered.size());
 
-  if (!loadHaps.empty()) assert(loadIDs.size() * 2 == loadHaps[0].size());
+  if (!loadHaps.empty())
+    assert(loadIDs.size() * 2 == loadHaps[0].size());
 
   vector<unsigned> idIdxsToKeep;
 
   for (unsigned idIdx = 0; idIdx < loadIDs.size(); idIdx++) {
     auto foundID = m_namesUnordered.find(loadIDs[idIdx]);
 
-    if (foundID != m_namesUnordered.end()) idIdxsToKeep.push_back(idIdx);
+    if (foundID != m_namesUnordered.end())
+      idIdxsToKeep.push_back(idIdx);
   }
 
   if (idIdxsToKeep.size() != name.size())
@@ -513,7 +527,8 @@ void Insti::SubsetSamples(vector<string> &loadIDs,
   vector<string> tempIDs;
   tempIDs.reserve(idIdxsToKeep.size());
 
-  for (auto keepIdx : idIdxsToKeep) tempIDs.push_back(loadIDs[keepIdx]);
+  for (auto keepIdx : idIdxsToKeep)
+    tempIDs.push_back(loadIDs[keepIdx]);
 
   std::swap(tempIDs, loadIDs);
 
@@ -533,7 +548,8 @@ void Insti::SubsetSamples(vector<string> &loadIDs,
     assert(loadHaps[siteIdx].size() == idIdxsToKeep.size() * 2);
   }
 
-  if (!loadHaps.empty()) assert(loadIDs.size() * 2 == loadHaps[0].size());
+  if (!loadHaps.empty())
+    assert(loadIDs.size() * 2 == loadHaps[0].size());
 }
 
 // only keep sites in main gl set
@@ -583,7 +599,7 @@ void Insti::FilterSites(vector<vector<char> > &loadHaps, vector<snp> &loadSites,
         targetSiteIdx++;
       }
     } else {
-      assert(false);  // programming error
+      assert(false); // programming error
     }
 
     candidateSiteIdx++;
@@ -668,53 +684,53 @@ void Insti::LoadHaps(vector<vector<char> > &inHaps, vector<snp> &inSites,
   // store the haplotypes in the correct place based on what type of panel we
   // are loading
   switch (panelType) {
-    case PanelType::REFERENCE: {
-      HapPanel temp;
-      vector<uint64_t> storeHaps =
-          temp.Char2BitVec(inHaps, GetNumWords(), WordMod + 1);
-      storeHaps.swap(m_vRefHaps);
-      m_uNumRefHaps = numHaps;
-      cout << "Reference panel haplotypes\t" << m_uNumRefHaps << endl;
-      return;
+  case PanelType::REFERENCE: {
+    HapPanel temp;
+    vector<uint64_t> storeHaps =
+        temp.Char2BitVec(inHaps, GetNumWords(), WordMod + 1);
+    storeHaps.swap(m_vRefHaps);
+    m_uNumRefHaps = numHaps;
+    cout << "Reference panel haplotypes\t" << m_uNumRefHaps << endl;
+    return;
+  }
+
+  case PanelType::SCAFFOLD: {
+    assert(WordMod >= 0);
+    m_scaffold.Init(inHaps, inSites, inSampleIDs);
+    cout << "Scaffold haplotypes\t" << m_scaffold.NumHaps() << endl;
+
+    try {
+      if (m_scaffold.NumHaps() != hn)
+        throw myException(
+            "Error while reading scaffold: Scaffold needs to have two "
+            "haplotypes for every input sample");
     }
+    catch (exception &e) {
+      cout << e.what() << endl;
+      exit(1);
+    };
 
-    case PanelType::SCAFFOLD: {
-      assert(WordMod >= 0);
-      m_scaffold.Init(inHaps, inSites, inSampleIDs);
-      cout << "Scaffold haplotypes\t" << m_scaffold.NumHaps() << endl;
+    return;
+  }
 
-      try {
-        if (m_scaffold.NumHaps() != hn)
-          throw myException(
-              "Error while reading scaffold: Scaffold needs to have two "
-              "haplotypes for every input sample");
-      }
-      catch (exception &e) {
-        cout << e.what() << endl;
-        exit(1);
-      };
-
-      return;
-    }
-
-    default:
-      assert(false);  // this should not happen
+  default:
+    assert(false); // this should not happen
   }
 }
 
 void Insti::CheckPanelPrereqs(PanelType panelType) {
   switch (panelType) {
-    case PanelType::REFERENCE:
-      m_bUsingRefHaps = true;
-      assert(m_vRefHaps.size() == 0);
-      break;
+  case PanelType::REFERENCE:
+    m_bUsingRefHaps = true;
+    assert(m_vRefHaps.size() == 0);
+    break;
 
-    case PanelType::SCAFFOLD:
-      assert(!m_scaffold.Initialized());
-      break;
+  case PanelType::SCAFFOLD:
+    assert(!m_scaffold.Initialized());
+    break;
 
-    default:
-      assert(false);  // this should not happen
+  default:
+    assert(false); // this should not happen
   }
 }
 
@@ -772,7 +788,8 @@ vector<vector<char> > Insti::OpenHap(string hapFile) {
   // read in the hap file
   ifile hapFD(hapFile);
 
-  if (!hapFD.isGood()) throw myException("Could not open file: " + hapFile);
+  if (!hapFD.isGood())
+    throw myException("Could not open file: " + hapFile);
 
   string buffer;
   int lineNum = -1;
@@ -900,18 +917,18 @@ void Insti::initialize() {
   // shifter to right....
   // we define a minimum block size of 64.
   wn = (mn & WordMod) ? (mn >> WordShift) + 1 : (mn >> WordShift);
-  hn = in * 2;              // number of haps
-  haps.resize(hn * wn);     // space to store all haplotypes
-  hnew.resize(hn * wn);     // number of haplotypes = 2 * number of samples  ...
-                            // haps mn is # of sites,
-  hsum.assign(hn * mn, 0);  // one unsigned for every hap's site - what for?  To
-                            // estimate allele probs
+  hn = in * 2;             // number of haps
+  haps.resize(hn * wn);    // space to store all haplotypes
+  hnew.resize(hn * wn);    // number of haplotypes = 2 * number of samples  ...
+                           // haps mn is # of sites,
+  hsum.assign(hn * mn, 0); // one unsigned for every hap's site - what for?  To
+                           // estimate allele probs
 
   //    pare.assign(in * in, 0);  // in x in matrix, one uint16 for every pair
   // of individuals
   pn = 3 *
-       mn;  // set the number of transitions.  three transitions for every site
-  tran.resize(pn);  // tran looks like the transition matrix,
+       mn; // set the number of transitions.  three transitions for every site
+  tran.resize(pn); // tran looks like the transition matrix,
 
   // i.e. recombination rate
   // transitions between 3 types of genotypes P(RR), P(RA) P(AA)
@@ -938,8 +955,9 @@ void Insti::initialize() {
   if (posi.size() != mn) {
     posi.resize(mn);
 
-    for (unsigned m = 0; m < mn; m++) posi[m] = m;
-  }  // if sites not stored
+    for (unsigned m = 0; m < mn; m++)
+      posi[m] = m;
+  } // if sites not stored
 
   // initialize the mutation rate mu:
   // If S is a harmonic series of length hn (number of haplotypes),
@@ -947,11 +965,12 @@ void Insti::initialize() {
   // initialize recombination rate rho based on SNP density
   fast mu = 0, rho;
 
-  for (unsigned i = 1; i < hn; i++) mu += 1.0 / i;
+  for (unsigned i = 1; i < hn; i++)
+    mu += 1.0 / i;
 
   mu = 1 / mu;
   rho = 0.5 * mu * (mn - 1) / (posi[mn - 1] - posi[0]) / density;
-  mu = mu / (hn + mu);  // rho is recombination rate?  mu is mutation rate
+  mu = mu / (hn + mu); // rho is recombination rate?  mu is mutation rate
 
   // initialzie the site transition matrix tran
   // posi is recombination between its position and previous
@@ -963,9 +982,9 @@ void Insti::initialize() {
     fast r = posi[m] / (posi[m] + hn);
     tran[m * 3] = (1 - r) * (1 - r);
     tran[m * 3 + 1] = r * (1 - r);
-    tran[m * 3 + 2] = r * r;  // for each position, transition.  r= alternative,
-                              // 1-r= refrence? 4 state HMM with three
-                              // transitions at each position
+    tran[m * 3 + 2] = r * r; // for each position, transition.  r= alternative,
+                             // 1-r= refrence? 4 state HMM with three
+                             // transitions at each position
   }
 
   // initialize site mutation probability matrix
@@ -974,13 +993,13 @@ void Insti::initialize() {
   // mutating
   // all other entries are chance of just one mutation
   pc[0][0] = pc[1][1] = pc[2][2] = pc[3][3] =
-      (1 - mu) * (1 - mu);  //	  probability of mutating no positions for each
+      (1 - mu) * (1 - mu); //	  probability of mutating no positions for each
   // parents haplotype
   pc[0][1] = pc[0][2] = pc[1][0] = pc[1][3] = pc[2][0] = pc[2][3] = pc[3][1] =
-      pc[3][2] = mu * (1 - mu);  //	  probability of mutating one position
+      pc[3][2] = mu * (1 - mu); //	  probability of mutating one position
   // for each parental haplotype
   pc[0][3] = pc[1][2] = pc[2][1] = pc[3][0] =
-      mu * mu;  //	  probability of mutating both positions for each
+      mu * mu; //	  probability of mutating both positions for each
   // parental haplotype
 
   // initialize individual haplotypes
@@ -1001,7 +1020,7 @@ void Insti::initialize() {
 
       // initialize genotype probabilities as genotype likelihoods
       if (is_x && male.find(name[i]) != male.end() &&
-          !is_par[m]) {  /// treat it differently for genders
+          !is_par[m]) { /// treat it differently for genders
         t[0] = max(1 - p[0] - p[1], 0.0f);
         t[1] = 0;
         t[2] = max(p[1], 0.0f);
@@ -1048,7 +1067,7 @@ void Insti::initialize() {
     }
   }
 
-  swap(temp, prob);  // swap the assignments to each vector
+  swap(temp, prob); // swap the assignments to each vector
 
   // create an unordered map version of site
   assert(m_sitesUnordered.size() == 0);
@@ -1119,7 +1138,8 @@ fast Insti::solve(unsigned I, unsigned N, fast pen, Relationship &oRel) {
   // pick 4 haplotype indices at random not from individual
   unsigned p[4];
 
-  for (unsigned j = 0; j < 4; j++) p[j] = oRel.SampleHap(I, rng);
+  for (unsigned j = 0; j < 4; j++)
+    p[j] = oRel.SampleHap(I, rng);
 
   // get a probability of the model for individual I given p
   fast curr = hmm_like(I, p);
@@ -1129,9 +1149,9 @@ fast Insti::solve(unsigned I, unsigned N, fast pen, Relationship &oRel) {
   // those haplotypes.
   // accept new set if probability has increased.
   // otherwise, accept with penalized probability
-  MHSampler mhSampler(&rng, curr, p[0], s_MHSamplerType, pen);
-  for (unsigned n = 0; n < N; n++) {  // iterate through all samples
-    unsigned rp = gsl_rng_get(rng) & 3, oh = p[rp];
+  MHSampler mhSampler(rng, curr, p[0], s_MHSamplerType, pen);
+  for (unsigned n = 0; n < N; n++) { // iterate through all samples
+    unsigned rp = gsl_rng_get(rng) & 3;
 
     // kickstart phasing and imputation by only sampling haps
     // from ref panel in first round
@@ -1151,7 +1171,8 @@ fast Insti::solve(unsigned I, unsigned N, fast pen, Relationship &oRel) {
       stringstream message;
       message << m_nIteration << "\t" << I << "\t" << prop << "\t"
               << mhSampler.accepted();
-      for (unsigned i = 0; i < 4; ++i) message << "\t" << p[i];
+      for (unsigned i = 0; i < 4; ++i)
+        message << "\t" << p[i];
       message << endl;
       WriteToLog(message.str());
     }
@@ -1188,54 +1209,54 @@ void Insti::estimate() {
   // choose a sampling scheme
   switch (s_iEstimator) {
 
-    // simulated annealing MH
-    case 0:
+  // simulated annealing MH
+  case 0:
 
-      // cluster!
-      if (Insti::s_uNumClusters > 0) {
-        switch (Insti::s_uClusterType) {
+    // cluster!
+    if (Insti::s_uNumClusters > 0) {
+      switch (Insti::s_uClusterType) {
 
-          // use kmedoids
-          case 0:
-          case 1:
-            m_oRelationship.init(3, haps, wn, mn, rng);
-            break;
+      // use kmedoids
+      case 0:
+      case 1:
+        m_oRelationship.init(3, haps, wn, mn, rng);
+        break;
 
-          // use kNN
-          case 2:
-            if (UsingScaffold())
-              m_oRelationship.init(4, m_scaffold, s_scaffoldFreqCutoff);
-            else
-              m_oRelationship.init(4, haps, wn, mn, rng);
+      // use kNN
+      case 2:
+        if (UsingScaffold())
+          m_oRelationship.init(4, m_scaffold, s_scaffoldFreqCutoff);
+        else
+          m_oRelationship.init(4, haps, wn, mn, rng);
 
-            break;
+        break;
 
-          default:
-            cout << "unexpected cluster type: " << s_uClusterType << endl;
-            document();
-        }
+      default:
+        cout << "unexpected cluster type: " << s_uClusterType << endl;
+        document();
       }
+    }
 
-      // just sample uniformly
-      else
-        m_oRelationship.init(2, in, hn + m_uNumRefHaps);
+    // just sample uniformly
+    else
+      m_oRelationship.init(2, in, hn + m_uNumRefHaps);
 
-      break;
+    break;
 
-    case 1:
-      estimate_EMC();
-      return;
+  case 1:
+    estimate_EMC();
+    return;
 
-    case 2:
-      estimate_AMH(0);
-      return;
+  case 2:
+    estimate_AMH(0);
+    return;
 
-    case 3:
-      estimate_AMH(1);
-      return;
+  case 3:
+    estimate_AMH(1);
+    return;
 
-    default:
-      document();
+  default:
+    document();
   }
 
   timeval startTime, currentTime;
@@ -1253,7 +1274,7 @@ void Insti::estimate() {
     m_nIteration = n;
     fast sum = 0, iter = 0;
     fast pen = min<fast>((n + 1.0f) / Insti::s_uSABurninGen, 1);
-    pen *= pen;  // pen = 1 after bn/2 iterations
+    pen *= pen; // pen = 1 after bn/2 iterations
 
     // Phase each individual based on the rest of the individuals
     for (unsigned i = 0; i < in; i++) {
@@ -1270,7 +1291,8 @@ void Insti::estimate() {
     swap(hnew, haps);
 
     if (n >= bn)
-      for (unsigned i = 0; i < in; i++) replace(i);  // call replace
+      for (unsigned i = 0; i < in; i++)
+        replace(i); // call replace
 
     m_oRelationship.UpdateGraph(&haps);
 
@@ -1284,7 +1306,7 @@ void Insti::estimate() {
   }
 
   cout << endl;
-  result();  // call result
+  result(); // call result
 }
 
 /* estimate_EMC -- Evolutionary Monte Carlo
@@ -1301,7 +1323,7 @@ fast Insti::solve_EMC(unsigned I, unsigned N, fast S) {
   DEBUG_MSG("Entering solve_EMC..." << endl);
 
   // for lack of a better place, define free parameters here
-  fast fMutationRate = 0.3f;  // see p.134 of Liang et al.
+  fast fMutationRate = 0.3f; // see p.134 of Liang et al.
   fast fSelectTemp = 10000;
   fast fMaxTemp = Insti::s_uParallelChains;
 
@@ -1314,7 +1336,7 @@ fast Insti::solve_EMC(unsigned I, unsigned N, fast S) {
   // initialize emc chains with increasing temperatures
   vector<EMCChain> vcChains;
   vector<uint>
-      vuChainTempHierarchy;  // index of Chains sorted by temperature, ascending
+  vuChainTempHierarchy; // index of Chains sorted by temperature, ascending
 
   for (unsigned i = 0; i < Insti::s_uParallelChains; i++) {
     vcChains.push_back(EMCChain((i + 1) * fMaxTemp / Insti::s_uParallelChains,
@@ -1345,7 +1367,7 @@ fast Insti::solve_EMC(unsigned I, unsigned N, fast S) {
   // those haplotypes.
   // accept new set if probability has increased.
   // otherwise, accept with penalized probability
-  for (unsigned n = 0; n < N; n++) {  // fixed number of iterations
+  for (unsigned n = 0; n < N; n++) { // fixed number of iterations
     DEBUG_MSG2("\tIteration " << n << endl);
 
     //  now choose whether to mutate or crossover
@@ -1576,25 +1598,26 @@ void Insti::estimate_EMC() {
   for (unsigned n = 0; n < bn + sn; n++) {
     m_nIteration = n;
     fast sum = 0, pen = min<fast>(2 * (n + 1.0f) / bn, 1), iter = 0;
-    pen *= pen;  // pen = 1 after bn/2 iterations
+    pen *= pen; // pen = 1 after bn/2 iterations
 
     for (unsigned i = 0; i < in; i++) {
       sum += solve_EMC(i, m_uCycles,
-                       pen);  // call solve=> inputs the sample number,
+                       pen); // call solve=> inputs the sample number,
       iter += m_uCycles;
     }
 
     swap(hnew, haps);
 
     if (n >= bn)
-      for (unsigned i = 0; i < in; i++) replace(i);  // call replace
+      for (unsigned i = 0; i < in; i++)
+        replace(i); // call replace
 
     cout << n << '\t' << pen << '\t' << sum / in / mn << '\t' << iter / in / in
          << '\n';
   }
 
   cout << endl;
-  result();  // call result
+  result(); // call result
 }
 
 /* estimate_AMH -- Adaptive Metropolis Hastings
@@ -1624,7 +1647,7 @@ void Insti::estimate_AMH(unsigned uRelMatType) {
     //        cout << "iter\t" << n << endl;
     m_nIteration = n;
     fast sum = 0, pen = min<fast>(2 * (n + 1.0f) / bn, 1), iter = 0;
-    pen *= pen;  // pen = 1 after bn/2 iterations
+    pen *= pen; // pen = 1 after bn/2 iterations
 
     // update all individuals once
     for (unsigned i = 0; i < in; i++) {
@@ -1638,14 +1661,15 @@ void Insti::estimate_AMH(unsigned uRelMatType) {
     swap(hnew, haps);
 
     if (n >= bn)
-      for (unsigned i = 0; i < in; i++) replace(i);  // call replace
+      for (unsigned i = 0; i < in; i++)
+        replace(i); // call replace
 
     cout << n << '\t' << pen << '\t' << sum / in / mn << '\t' << iter / in / in
          << endl;
   }
 
   cout << endl;
-  result();  // call result
+  result(); // call result
 }
 
 void Insti::save_relationship_graph(string sOutputFile) {
@@ -1676,7 +1700,8 @@ void Insti::save_vcf(const char *F, string commandLine) {
         << "allelic posterior probability, P(Allele=1|Haplotype)\">\n";
   vcfFD << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
 
-  for (unsigned i = 0; i < in; i++) vcfFD << "\t" << name[i];
+  for (unsigned i = 0; i < in; i++)
+    vcfFD << "\t" << name[i];
 
   for (unsigned m = 0; m < mn; m++) {
     vcfFD << "\n" << site[m].chr << "\t" << site[m].pos << "\t.\t"
@@ -1700,7 +1725,7 @@ void Insti::save_vcf(const char *F, string commandLine) {
         vcfFD << "\t1|1";
 
       // test for any p being zero
-      vector<fast> vfProb = {prr, pra, paa, p[0], p[1]};
+      vector<fast> vfProb = { prr, pra, paa, p[0], p[1] };
 
       for (auto &phred : vfProb) {
         if (phred == 0)
@@ -1716,9 +1741,11 @@ void Insti::save_vcf(const char *F, string commandLine) {
 
       // print a sample's GP and APP fields
       for (unsigned i = 0; i < vfProb.size(); ++i) {
-        if (i == 0 || i == 3) vcfFD << ":";
+        if (i == 0 || i == 3)
+          vcfFD << ":";
         vcfFD << vfProb[i];
-        if (i != 2 && i != 4) vcfFD << ",";
+        if (i != 2 && i != 4)
+          vcfFD << ",";
       }
     }
   }
@@ -1731,7 +1758,8 @@ void Insti::SetHapsAccordingToScaffold() {
 
   assert(m_scaffold.Initialized());
 
-  if (m_scaffold.NumHaps() == 0) return;
+  if (m_scaffold.NumHaps() == 0)
+    return;
 
   assert(m_scaffold.NumHaps() == hn);
 

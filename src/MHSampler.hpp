@@ -5,6 +5,9 @@
 #define _MHSampler_H 1
 
 #include <gsl/gsl_rng.h>
+#include <cassert>
+#include <algorithm>
+#include <cmath>
 
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
@@ -13,10 +16,10 @@ static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 enum class MHType { MH, DRMH };
 class MHSampler {
 
- private:
+private:
   MHType m_samplingType;
   gsl_rng *m_rng;
-  double m_pen;
+  double m_pen; // scaling constant for likelihoods
 
   // all likelihoods are log scaled
   double m_firstLike = 1;
@@ -34,25 +37,19 @@ class MHSampler {
     return hapNum;
   }
 
- public:
+public:
   MHSampler(gsl_rng *rng, double like, unsigned hapNum, double pen = 1)
-      : m_rng(&rng),
-        m_firstLike(like),
-        m_firstHapNum(hapNum),
-        m_samplingType(MHType::MH),
-        m_pen(pen) {};
+      : m_samplingType(MHType::MH), m_rng(rng), m_pen(pen), m_firstLike(like),
+        m_firstHapNum(hapNum) {};
   MHSampler(gsl_rng *rng, double like, unsigned hapNum, MHType sampler,
             double pen = 1)
-      : m_rng(&rng),
-        m_firstLike(like),
-        m_firstHapNum(hapNum),
-        m_samplingType(sampler),
-        m_pen(pen) {};
+      : m_samplingType(sampler), m_rng(rng), m_pen(pen), m_firstLike(like),
+        m_firstHapNum(hapNum) {};
 
   unsigned SampleHap(unsigned hapNum, double proposal);
   bool accepted() {
     return m_accepted;
   };
-}
+};
 
 #endif /* _KNN_H */

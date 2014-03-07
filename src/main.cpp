@@ -42,7 +42,7 @@ int main(int ac, char **av) {
   string sLogFile;
   int opt;
   while ((opt = getopt(ac, av,
-                       "Vd:l:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:fo:")) >=
+                       "Vd:l:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:fo:D:")) >=
          0) {
     switch (opt) {
     case 'd':
@@ -82,6 +82,16 @@ int main(int ac, char **av) {
       Insti::s_iEstimator = atoi(optarg);
       if (Insti::s_iEstimator > 3) {
         cerr << "-E needs to be between 0 and 3" << endl;
+        Insti::document();
+      }
+      break;
+    case 'D':
+      if (atoi(optarg) == 0)
+        Insti::s_MHSamplerType = MHType::MH;
+      else if (atoi(optarg) == 1)
+        Insti::s_MHSamplerType = MHType::DRMH;
+      else {
+        cerr << "-D needs to be between 0 and 1" << endl;
         Insti::document();
       }
       break;

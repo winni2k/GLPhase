@@ -22,8 +22,9 @@ AR= ar
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
-TESTS := insti_unittests other_unittests
-INSTI_O_FILES= $(SRC_DIR)/insti.o $(SRC_DIR)/impute.o $(SRC_DIR)/emcchain.o $(SRC_DIR)/kMedoids.o $(SRC_DIR)/relationshipGraph.o $(SRC_DIR)/haplotype.o $(SRC_DIR)/hapPanel.o $(SRC_DIR)/olivier/utils.o $(SRC_DIR)/kNN.o $(SRC_DIR)/haplotype.o
+TESTS := insti_unittests other_unittests 
+O_FILES :=  $(wildcard $(SRC_DIR)/*.o)  $(SRC_DIR)/olivier/utils.o 
+INSTI_O_FILES :=  $(filter-out %main.o, $(O_FILES))
 
 all: $(TESTS)
 
@@ -67,17 +68,17 @@ gtest_main.a : gtest-all.o gtest_main.o
 # gtest_main.a, depending on whether it defines its own main()
 # function.
 
-insti_unittests.o : insti_unittests.cpp $(SRC_DIR)/insti.hpp.gch $(SRC_DIR)/haplotype.hpp.gch $(SRC_DIR)/kNN.hpp.gch $(SRC_DIR)/relationship.hpp.gch $(GTEST_HEADERS)
+insti_unittests.o : insti_unittests.cpp $(SRC_DIR)/*.hpp.gch $(GTEST_HEADERS)
 	$(CXX) $(CXXFLAGS) -c $<
 
-insti_unittests : $(INSTI_O_FILES) insti_unittests.o gtest_main.a 
+insti_unittests : insti_unittests.o gtest_main.a $(INSTI_O_FILES)
 	$(CXX) $(CXXFLAGS) -lpthread $^ -o $@ $(LIBS)
 	./$@
 
-other_unittests.o : other_unittests.cpp $(SRC_DIR)/haplotype.hpp.gch $(SRC_DIR)/kNN.hpp.gch $(SRC_DIR)/relationship.hpp.gch $(GTEST_HEADERS)
+other_unittests.o : other_unittests.cpp $(SRC_DIR)/*.hpp.gch $(GTEST_HEADERS)
 	$(CXX) $(CXXFLAGS) -c $<
 
-other_unittests : other_unittests.o gtest_main.a $(SRC_DIR)/olivier/utils.o $(SRC_DIR)/kNN.o $(SRC_DIR)/haplotype.o
+other_unittests : other_unittests.o gtest_main.a $(INSTI_O_FILES)
 	$(CXX) $(CXXFLAGS) -lpthread $^ -o $@ $(LIBS)
 	./$@
 

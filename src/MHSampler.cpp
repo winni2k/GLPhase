@@ -1,5 +1,6 @@
-
 #include "MHSampler.hpp"
+
+using namespace std;
 
 unsigned MHSampler::SampleHap(unsigned hapNum, double proposal) {
 
@@ -35,8 +36,8 @@ unsigned MHSampler::SampleHap(unsigned hapNum, double proposal) {
 
       // calculate complete acceptance probability
       double first2prop = exp((proposal - m_firstLike) * m_pen);
-      double accProbProp2sec = 1 - min(1, exp(m_secondLike - proposal));
-      double accProbFirst2sec = 1 - min(1, exp(m_secondLike - m_firstLike));
+      double accProbProp2sec = 1 - min(1.0, exp(m_secondLike - proposal));
+      double accProbFirst2sec = 1 - min(1.0, exp(m_secondLike - m_firstLike));
 
       assert(accProbProp2sec >= 0 && accProbProp2sec <= 1);
       assert(accProbFirst2sec >= 0 && accProbFirst2sec <= 1);
