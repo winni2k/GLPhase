@@ -23,9 +23,10 @@
 #include "enums.hpp"
 #include "snp.hpp"
 #include "hapPanel.hpp"
-#include <boost/uuid/uuid.hpp>            // uuid class
-#include <boost/uuid/uuid_generators.hpp> // generators
-#include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
+#include "MHSampler.hpp"
+#include <boost/uuid/uuid.hpp>             // uuid class
+#include <boost/uuid/uuid_generators.hpp>  // generators
+#include <boost/uuid/uuid_io.hpp>          // streaming operators etc.
 #include <cfloat>
 
 // require c++11
@@ -33,7 +34,7 @@ static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
 class Insti : public Impute {
 
-private:
+ private:
   std::ofstream m_ofsLogFileStream;
   gzFile m_gzLogFileStream;
   bool m_bLogIsGz;
@@ -66,7 +67,7 @@ private:
 
   fast solve(unsigned I, unsigned N, fast pen, Relationship &oRelationship);
   virtual fast solve(unsigned I, unsigned &N, fast pen) override {
-      std::cerr << I << N << pen;
+    std::cerr << I << N << pen;
     exit(1);
   }
 
@@ -94,7 +95,7 @@ private:
   // expects scaffold to have been initialized
   void SetHapsAccordingToScaffold();
 
-public:
+ public:
   // uuid
   const boost::uuids::uuid m_tag;
 
@@ -138,31 +139,31 @@ public:
 
   void CheckPanelPrereqs(PanelType panelType);
 
-  std::vector<uint64_t>
-  Char2BitVec(const std::vector<std::vector<char> > &inHaps, double numWords) {
+  std::vector<uint64_t> Char2BitVec(
+      const std::vector<std::vector<char> > &inHaps, double numWords) {
     assert(numWords >= 0);
     return Char2BitVec(inHaps, static_cast<unsigned>(numWords));
   }
 
-  std::vector<uint64_t>
-  Char2BitVec(const std::vector<std::vector<char> > &inHaps, unsigned numWords);
+  std::vector<uint64_t> Char2BitVec(
+      const std::vector<std::vector<char> > &inHaps, unsigned numWords);
 
   void CalculateVarAfs();
 
   // print out usage
   static void document(void);
-  static int s_iEstimator; // see main.cpp and document for documentation
+  static int s_iEstimator;  // see main.cpp and document for documentation
 
   // see main.cpp and document for documentation
   static unsigned s_uParallelChains;
-  static unsigned s_uCycles;      // see main.cpp and document for documentation
-  static bool s_bIsLogging;       // true if logging
-  static unsigned s_uNumClusters; // number of clusters to use
-  static unsigned s_uClusterType; // what type of clustering
+  static unsigned s_uCycles;  // see main.cpp and document for documentation
+  static bool s_bIsLogging;   // true if logging
+  static unsigned s_uNumClusters;  // number of clusters to use
+  static unsigned s_uClusterType;  // what type of clustering
 
   // number of simulated annealing burnin generations
   static unsigned s_uSABurninGen;
-  static unsigned s_uNonSABurninGen; // number of non-SA burning generations
+  static unsigned s_uNonSABurninGen;  // number of non-SA burning generations
 
   // 0-based generation number at which to start clustering
   static unsigned s_uStartClusterGen;
@@ -171,13 +172,15 @@ public:
   // first round
   static bool s_bKickStartFromRef;
 
-  static std::string s_sRefLegendFile; // location of sample file
-  static std::string s_sRefHapFile;    // location of reference haplotypes file
+  static std::string s_sRefLegendFile;  // location of sample file
+  static std::string s_sRefHapFile;     // location of reference haplotypes file
 
-  static std::string s_scaffoldHapsFile;   // location of scaffold haps file
-  static std::string s_scaffoldSampleFile; // location of scaffold sample file
-  static double s_scaffoldFreqCutoff; // cutoff MAF for what to fix in scaffold
+  static std::string s_scaffoldHapsFile;    // location of scaffold haps file
+  static std::string s_scaffoldSampleFile;  // location of scaffold sample file
+  static double s_scaffoldFreqCutoff;  // cutoff MAF for what to fix in scaffold
   static bool s_initPhaseFromScaffold;
+
+  static MHType s_MHSamplerType;
 
   unsigned GetNumWords() { return wn; }
 

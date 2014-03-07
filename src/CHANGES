@@ -1,3 +1,6 @@
+1.3.0
+        Added delayed acceptance MH.
+
 1.2.18  Wed Mar 05 15:05:51 GMT 2014
         Scaffold haps reading now checks only chrom and positon before
         splitting the whole string. 

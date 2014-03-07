@@ -12,6 +12,8 @@ export LD_LIBRARY_PATH += $(LIBRARY_PATH)
 
 BDIR := ../bin
 VERSION := $(shell grep VERSION_MAJOR version.hpp | cut -f3 -d' ').$(shell grep VERSION_MINOR version.hpp | cut -f3 -d' ').$(shell grep VERSION_REVISION version.hpp | cut -f3 -d' ')
+OBJECT_FILES := main.o impute.o insti.o emcchain.o relationshipGraph.o olivier/utils.o haplotype.o kMedoids.o kNN.o hapPanel.o MHSampler.o
+HEADER_FILES := insti.hpp.gch impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch relationship.hpp.gch version.hpp.gch enums.hpp.gch snp.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch
 
 all: $(BDIR)/insti.$(VERSION)
 
@@ -23,10 +25,10 @@ debug:
 test: CXXFLAGS += -O1
 test: CXXFLAGS += $(DEBUGFLAGS)
 
-test : insti.o impute.o emcchain.o olivier/utils.o haplotype.o kNN.o relationship.hpp.gch
+test : $(OBJECT_FILES) $(HEADER_FILES)
 	$(MAKE) -C testing
 
-testDebug: insti.o impute.o emcchain.o olivier/utils.o haplotype.o kNN.o relationship.hpp.gch debug
+testDebug: $(OBJECT_FILES) $(HEADER_FILES) debug
 	$(MAKE) -C testing debug
 
 clean:
@@ -60,7 +62,7 @@ relationshipGraph.hpp.gch: relationshipGraph.hpp olivier/utils.hpp.gch
 relationship.hpp.gch: relationship.hpp relationshipGraph.hpp.gch kMedoids.hpp.gch kNN.hpp.gch hapPanel.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
-insti.hpp.gch: insti.hpp impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch relationship.hpp.gch version.hpp.gch enums.hpp.gch snp.hpp.gch hapPanel.hpp.gch
+insti.hpp.gch: insti.hpp impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch relationship.hpp.gch version.hpp.gch enums.hpp.gch snp.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
 ## object files
@@ -72,9 +74,6 @@ olivier/utils.o: olivier/utils.cpp olivier/utils.hpp.gch
 
 main.o: main.cpp version.hpp.gch impute.hpp.gch insti.hpp.gch
 	$(CXX) $(CXXFLAGS) -c $< $(LIBS)
-
-
-OBJECT_FILES = main.o impute.o insti.o emcchain.o relationshipGraph.o olivier/utils.o haplotype.o kMedoids.o kNN.o hapPanel.o
 
 
 ## binaries
