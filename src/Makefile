@@ -12,18 +12,20 @@ export LD_LIBRARY_PATH += $(LIBRARY_PATH)
 
 BDIR := ../bin
 VERSION := $(shell grep VERSION_MAJOR version.hpp | cut -f3 -d' ').$(shell grep VERSION_MINOR version.hpp | cut -f3 -d' ').$(shell grep VERSION_REVISION version.hpp | cut -f3 -d' ')
-OBJECT_FILES := main.o impute.o insti.o emcchain.o relationshipGraph.o olivier/utils.o haplotype.o kMedoids.o kNN.o hapPanel.o MHSampler.o
+OBJECT_FILES := main.o impute.o insti.o emcchain.o relationshipGraph.o olivier/utils.o haplotype.o kMedoids.o kNN.o hapPanel.o
 HEADER_FILES := insti.hpp.gch impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch relationship.hpp.gch version.hpp.gch enums.hpp.gch snp.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch
 
 all: $(BDIR)/insti.$(VERSION)
 
 $(BDIR)/insti.$(VERSION): CXXFLAGS += -O3
 
-debug:
-	$(CXX) -E -x c++ - -v < /dev/null
+debug: CXXFLAGS += -O1
+debug: CXXFLAGS += $(DEBUGFLAGS)
+#	$(CXX) -E -x c++ - -v < /dev/null
 
-test: CXXFLAGS += -O1
-test: CXXFLAGS += $(DEBUGFLAGS)
+debug: $(BDIR)/insti.$(VERSION).debug
+
+test: debug
 
 test : $(OBJECT_FILES) $(HEADER_FILES)
 	$(MAKE) -C testing
@@ -60,6 +62,9 @@ relationshipGraph.hpp.gch: relationshipGraph.hpp olivier/utils.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
 relationship.hpp.gch: relationship.hpp relationshipGraph.hpp.gch kMedoids.hpp.gch kNN.hpp.gch hapPanel.hpp.gch
+	$(CXX) $(CXXFLAGS) -x c++-header $<
+
+MHSampler.hpp.gch: MHSampler.hpp olivier/utils.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
 insti.hpp.gch: insti.hpp impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch relationship.hpp.gch version.hpp.gch enums.hpp.gch snp.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch

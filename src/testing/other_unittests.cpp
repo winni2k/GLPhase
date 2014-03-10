@@ -2,6 +2,7 @@
 #include "gtest/gtest.h"
 #include "haplotype.hpp"
 #include "kNN.hpp"
+#include "MHSampler.hpp"
 #include <algorithm>
 #include <gsl/gsl_rng.h>
 
@@ -126,14 +127,14 @@ TEST(KNN, clustersOK) {
   for (unsigned j = 0; j < shuffledIndexes.size(); j++)
     passHaps.push_back(haplotypes[shuffledIndexes[j]].GetWord(0));
 
-/*  for (unsigned idx = 0; idx != haplotypes.size(); idx++) {
-    cerr << idx << ": ";
+  /*  for (unsigned idx = 0; idx != haplotypes.size(); idx++) {
+      cerr << idx << ": ";
 
-    for (unsigned i = 0; i < numSites; i++)
-      cerr << haplotypes[shuffledIndexes[idx]].TestSite(i);
+      for (unsigned i = 0; i < numSites; i++)
+        cerr << haplotypes[shuffledIndexes[idx]].TestSite(i);
 
-    cerr << endl;
-    }*/
+      cerr << endl;
+      }*/
 
   KNN kNN(numClusters);
   kNN.init(passHaps, 1, numSites, 0);
@@ -240,4 +241,133 @@ TEST(KNN, clustersOK) {
     EXPECT_NE(shuffledIndexes[sampHap], 4);
     EXPECT_NE(shuffledIndexes[sampHap], 7);
   }
+}
+
+TEST(MHSampler, MHSamplesOK) {
+
+  gsl_rng_set(rng, time(NULL));
+  std::srand(1);
+
+  double curr = -100;
+  unsigned hapNum = 1;
+  MHSampler<unsigned> mhSampler(rng, curr, MHType::MH);
+
+  // testing MH sampler always returns better val if like is better
+  for (unsigned i = 2; i < 10; ++i) {
+    hapNum = i;
+    EXPECT_TRUE(mhSampler.SampleHap(hapNum, i - 1, curr + i * 0.01));
+    EXPECT_EQ(i, hapNum);
+  }
+
+  // testing MH sampler sometimes returns worse val if like is worse
+  for (unsigned i = 0; i < 100; ++i) {
+    unsigned prevVal = hapNum;
+    hapNum = 10;
+    mhSampler.SampleHap(hapNum, prevVal, curr);
+  }
+  EXPECT_EQ(10, hapNum);
+
+  // testing MH sampler rarely returns worse val if like is much worse
+  hapNum = 11;
+  EXPECT_FALSE(mhSampler.SampleHap(hapNum, 10, 2 * curr));
+  EXPECT_EQ(10, hapNum);
+}
+
+TEST(MHSampler, DRMHSamplesOK) {
+
+  gsl_rng_set(rng, time(NULL));
+  std::srand(1);
+
+  double curr = -100;
+  unsigned hapNum = 1;
+  MHSampler<unsigned> mhSampler(rng, curr, MHType::DRMH);
+
+  // testing DRMH sampler always returns better val if like is better
+  for (unsigned i = 2; i < 10; ++i) {
+    unsigned prevVal = hapNum;
+    hapNum = i;
+    EXPECT_TRUE(mhSampler.SampleHap(hapNum, prevVal, curr + i * 0.01));
+    EXPECT_EQ(i, hapNum);
+  }
+
+  // testing DRMH sampler always returns better val if
+  // second like is worse, but third like is better
+  hapNum = 10;
+  EXPECT_FALSE(mhSampler.SampleHap(hapNum, 9, 2 * curr));
+  EXPECT_EQ(10, hapNum);
+  ++hapNum;
+  EXPECT_TRUE(mhSampler.SampleHap(hapNum, 10, curr + 11 * 0.01));
+  EXPECT_EQ(11, hapNum);
+
+  // testing DRMH sampler always returns first val if
+  // second like is worse, but third like is even worse
+  hapNum = 12;
+  EXPECT_FALSE(mhSampler.SampleHap(hapNum, 11, 2 * curr));
+  EXPECT_EQ(12, hapNum);
+  ++hapNum;
+  EXPECT_FALSE(mhSampler.SampleHap(hapNum, 12, 3 * curr));
+  EXPECT_EQ(11, hapNum);
+
+  // testing DRMH sampler rarely returns second val if
+  // first is worse, but second is only slightly better
+  hapNum = 13;
+  EXPECT_FALSE(mhSampler.SampleHap(hapNum, 11, 2 * curr));
+  EXPECT_EQ(13, hapNum);
+  hapNum = 14;
+  EXPECT_FALSE(mhSampler.SampleHap(hapNum, 13, 1.99 * curr));
+  EXPECT_EQ(11, hapNum);
+}
+
+TEST(MHSampler, DRMHSamplesArrayOK) {
+
+  gsl_rng_set(rng, time(NULL));
+  std::srand(1);
+
+  double curr = -100;
+  unsigned hapNums[4];
+  for (unsigned i = 0; i < 4; ++i)
+    hapNums[i] = i + 4;
+  MHSampler<unsigned> mhSampler(rng, curr, MHType::DRMH);
+
+  // testing DRMH sampler always returns better val if like is better
+  for (unsigned i = 2; i < 10; ++i) {
+    unsigned prevVal = hapNums[3];
+    hapNums[3] = i;
+    EXPECT_TRUE(mhSampler.SampleHap(hapNums[1], prevVal, curr + i * 0.01));
+    EXPECT_EQ(i, hapNums[3]);
+    for (unsigned i = 0; i < 3; ++i)
+      EXPECT_EQ(i + 4, hapNums[i]);
+  }
+
+  // testing DRMH sampler always returns better val if
+  // second like is worse, but third like is better
+  hapNums[3] = 10;
+  EXPECT_FALSE(mhSampler.SampleHap(hapNums[3], 9, 2 * curr));
+  EXPECT_EQ(10, hapNums[3]);
+  hapNums[0] = 0;
+  EXPECT_TRUE(mhSampler.SampleHap(hapNums[0], 4, curr + 11 * 0.01));
+  EXPECT_EQ(0, hapNums[0]);
+  EXPECT_EQ(10, hapNums[3]);
+
+  // testing DRMH sampler always returns first state if
+  // second like is worse, but third like is even worse
+  hapNums[0] = 4;
+  hapNums[3] = 12;
+  EXPECT_FALSE(mhSampler.SampleHap(hapNums[3], 10, 2 * curr));
+  EXPECT_EQ(12, hapNums[3]);
+  hapNums[0] = 0;
+  EXPECT_FALSE(mhSampler.SampleHap(hapNums[0], 4, 3 * curr));
+  EXPECT_EQ(10, hapNums[3]);
+  EXPECT_EQ(4, hapNums[0]);
+
+  // testing DRMH sampler rarely returns second val if
+  // first is worse, but second is only slightly better
+  hapNums[0] = 4;
+  hapNums[3] = 12;
+  EXPECT_FALSE(mhSampler.SampleHap(hapNums[3], 10, 2 * curr));
+  EXPECT_EQ(12, hapNums[3]);
+  hapNums[0] = 0;
+  EXPECT_FALSE(mhSampler.SampleHap(hapNums[0], 4, 1.99 * curr));
+  EXPECT_EQ(10, hapNums[3]);
+  EXPECT_EQ(4, hapNums[0]);
 }

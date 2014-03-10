@@ -1149,9 +1149,9 @@ fast Insti::solve(unsigned I, unsigned N, fast pen, Relationship &oRel) {
   // those haplotypes.
   // accept new set if probability has increased.
   // otherwise, accept with penalized probability
-  MHSampler mhSampler(rng, curr, p[0], s_MHSamplerType, pen);
+  MHSampler<unsigned> mhSampler(rng, curr, s_MHSamplerType, pen);
   for (unsigned n = 0; n < N; n++) { // iterate through all samples
-    unsigned rp = gsl_rng_get(rng) & 3;
+    unsigned rp = gsl_rng_get(rng) & 3, oh = p[rp];
 
     // kickstart phasing and imputation by only sampling haps
     // from ref panel in first round
@@ -1163,22 +1163,20 @@ fast Insti::solve(unsigned I, unsigned N, fast pen, Relationship &oRel) {
     // get likelihood of proposed hap set
     fast prop = hmm_like(I, p);
 
-    // do a MH acceptance of proposal
-    unsigned sampHapNum = mhSampler.SampleHap(p[rp], prop);
-
     // log all proposals and individuals proposed
     if (s_bIsLogging) {
       stringstream message;
-      message << m_nIteration << "\t" << I << "\t" << prop << "\t"
-              << mhSampler.accepted();
+      message << m_nIteration << "\t" << I << "\t" << prop << "\t";
       for (unsigned i = 0; i < 4; ++i)
-        message << "\t" << p[i];
-      message << endl;
+        message << p[i];
       WriteToLog(message.str());
     }
 
-    // set haplotype set to hapNum of MH result of proposal
-    p[rp] = sampHapNum;
+    // do a MH acceptance of proposal
+    mhSampler.SampleHap(p[rp], oh, prop);
+
+    if (s_bIsLogging)
+      WriteToLog("\t" + sutils::uint2str(mhSampler.accepted()) + "\n");
 
     // Update relationship graph with proportion pen
     oRel.UpdateGraph(p, mhSampler.accepted(), I, pen);
