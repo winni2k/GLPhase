@@ -215,7 +215,7 @@ class Insti : public Impute {
   void estimate_EMC();
 
   // AMH version of estimate()
-  void estimate_AMH(unsigned uRelMatType);
+  void estimate_AMH(RelT relMatType);
 
   // Roulette Wheel Selection, returns index of chain selected
   int RWSelection(const std::vector<EMCChain> &rvcChains);

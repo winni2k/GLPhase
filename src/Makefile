@@ -58,10 +58,10 @@ kNN.hpp.gch: kNN.hpp haplotype.hpp.gch
 kMedoids.hpp.gch: kMedoids.hpp haplotype.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
-relationshipGraph.hpp.gch: relationshipGraph.hpp olivier/utils.hpp.gch
+relationshipGraph.hpp.gch: relationshipGraph.hpp olivier/utils.hpp.gch enums.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
-relationship.hpp.gch: relationship.hpp relationshipGraph.hpp.gch kMedoids.hpp.gch kNN.hpp.gch hapPanel.hpp.gch
+relationship.hpp.gch: relationship.hpp relationshipGraph.hpp.gch kMedoids.hpp.gch kNN.hpp.gch hapPanel.hpp.gch enums.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
 MHSampler.hpp.gch: MHSampler.hpp olivier/utils.hpp.gch

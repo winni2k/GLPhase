@@ -1202,7 +1202,7 @@ void Insti::estimate() {
 
   // the uniform relationship "graph" will be used until
   // -M option says not to.
-  Relationship oUniformRel(2, in, hn + m_uNumRefHaps);
+  Relationship oUniformRel(RelT::noGraph, in, hn + m_uNumRefHaps);
 
   // choose a sampling scheme
   switch (s_iEstimator) {
@@ -1217,15 +1217,15 @@ void Insti::estimate() {
       // use kmedoids
       case 0:
       case 1:
-        m_oRelationship.init(3, haps, wn, mn, rng);
+        m_oRelationship.init(RelT::kMedoids, haps, wn, mn, rng);
         break;
 
       // use kNN
       case 2:
         if (UsingScaffold())
-          m_oRelationship.init(4, m_scaffold, s_scaffoldFreqCutoff);
+          m_oRelationship.init(RelT::kNN, m_scaffold, s_scaffoldFreqCutoff);
         else
-          m_oRelationship.init(4, haps, wn, mn, rng);
+          m_oRelationship.init(RelT::kNN, haps, wn, mn, rng);
 
         break;
 
@@ -1237,7 +1237,7 @@ void Insti::estimate() {
 
     // just sample uniformly
     else
-      m_oRelationship.init(2, in, hn + m_uNumRefHaps);
+      m_oRelationship.init(RelT::noGraph, in, hn + m_uNumRefHaps);
 
     break;
 
@@ -1246,11 +1246,11 @@ void Insti::estimate() {
     return;
 
   case 2:
-    estimate_AMH(0);
+      estimate_AMH(RelT::sampSampGraph);
     return;
 
   case 3:
-    estimate_AMH(1);
+      estimate_AMH(RelT::sampHapGraph);
     return;
 
   default:
@@ -1626,7 +1626,7 @@ void Insti::estimate_EMC() {
    "Advanced Markov Choin Monte Carlo Methods" by Liang, Liu and Carroll
    first edition?, 2010, pp. 309
 */
-void Insti::estimate_AMH(unsigned uRelMatType) {
+void Insti::estimate_AMH(RelT relMatType) {
   cout.setf(ios::fixed);
   cout.precision(3);
   cout << "Running Adaptive Metropolis Hastings\n";
@@ -1635,7 +1635,7 @@ void Insti::estimate_AMH(unsigned uRelMatType) {
   // create a relationshipGraph object
   // initialize relationship matrix
   // create an in x uSamplingInds matrix
-  m_oRelationship.init(uRelMatType, in, hn + m_uNumRefHaps);
+  m_oRelationship.init(relMatType, in, hn + m_uNumRefHaps);
 
   // n is number of cycles = burnin + sampling cycles
   // increase penalty from 2/bn to 1 as we go through burnin
