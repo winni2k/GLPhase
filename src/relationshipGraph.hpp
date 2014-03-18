@@ -16,6 +16,16 @@
 // require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
+enum class RelT {
+  sampSampGraph,
+  sampHapGraph,
+  noGraph,
+  kMedoids,
+  kNN,
+  undefined
+};
+
+// this is an abstract class for a relationship graph
 class RelationshipGraph {
 
 private:
@@ -32,7 +42,7 @@ private:
   // 0 = sample/sample graph
   // 1 = sample/haplotype graph
   // 2 = no graph - all samples are equally related
-    RelT m_graphType = RelT::undefined;
+  RelT m_graphType = RelT::undefined;
   bool m_bUsingHaps = false;
   unsigned m_uColHapFactor = 0;
 
@@ -45,7 +55,7 @@ private:
 public:
   // has the class been successfully intitialized?
   // initialization happens through a call to init()
-  bool m_bInitialized = false;
+//  bool m_bInitialized = false;
 
   // takes sample num and haplotype num as well as graph type
   // samples can be updated, while haplotypes can only be copied from
@@ -64,12 +74,11 @@ public:
   // 1 = sample/haplotype graph
   // 2 = no graph - all samples are equally related
 
-  RelationshipGraph(RelT graphType, unsigned uSamples, unsigned uHaplotypes) {
-    init(graphType, uSamples, uHaplotypes);
-  };
+    virtual RelationshipGraph(unsigned uSamples, unsigned uHaplotypes) =0;
+    //{
+//    init(graphType, uSamples, uHaplotypes);
+//  };
 
-  // need to call init after construction with empty constructor;
-  RelationshipGraph() {};
 
   void init(RelT graphType, unsigned uSamples, unsigned uHaplotypes);
 
@@ -78,24 +87,24 @@ public:
             unsigned uNumWordsPerHap, unsigned uNumSites, gsl_rng *rng);
 
   // returns a haplotype sampled using the relationship graph
-  unsigned SampleHap(unsigned uInd, gsl_rng *rng);
+ virtual  unsigned SampleHap(unsigned uInd, gsl_rng *rng);
 
   // returns a haplotype sampled using the relationship graph, but only from the
   // reference haplotypes
-  unsigned SampleHap(unsigned uInd, gsl_rng *rng, bool bOnlyFromRef);
+virtual  unsigned SampleHap(unsigned uInd, gsl_rng *rng, bool bOnlyFromRef);
 
   // update graph with proposal
-  void UpdateGraph(unsigned *p, bool bAccepted, unsigned uInd);
+virtual  void UpdateGraph(unsigned *p, bool bAccepted, unsigned uInd);
 
   // update graph with probability dUpdateProb
-  void UpdateGraph(unsigned *p, bool bAccepted, unsigned uInd,
+virtual  void UpdateGraph(unsigned *p, bool bAccepted, unsigned uInd,
                    float dUpdateProb, gsl_rng *rng);
 
   // update graph with number fRatio instead of 1
-  void UpdateGraph(unsigned *p, bool bAccepted, unsigned uInd, float fRatio);
+virtual  void UpdateGraph(unsigned *p, bool bAccepted, unsigned uInd, float fRatio);
 
   // update medoids
-  void UpdateGraph(const std::vector<uint64_t> *pvuHaplotypes);
+virtual  void UpdateGraph(const std::vector<uint64_t> *pvuHaplotypes);
 
   void Save(std::string fileName, const std::vector<std::string> &name);
 };

@@ -1124,7 +1124,7 @@ void Insti::initialize() {
 */
 
 // solve(individual, number of cycles, penalty, burnin?)
-fast Insti::solve(unsigned I, unsigned N, fast pen, Relationship &oRel) {
+fast Insti::solve(unsigned I, unsigned N, fast pen, RelationshipGraph &relGraph) {
 
   // write log header
   if (s_bIsLogging) {
@@ -1136,13 +1136,13 @@ fast Insti::solve(unsigned I, unsigned N, fast pen, Relationship &oRel) {
   }
 
   // pick 4 haplotype indices at random not from individual
-  unsigned p[4];
+  vector<unsigned> propHaps(4);
 
-  for (unsigned j = 0; j < 4; j++)
-    p[j] = oRel.SampleHap(I, rng);
+  for (unsigned j = 0; j < propHaps.size(); j++)
+    propHaps[j] = relGraph.SampleHap(I, rng);
 
   // get a probability of the model for individual I given p
-  fast curr = hmm_like(I, p);
+  fast curr = hmm_like(I, propHaps.data());
 
   // pick a random haplotype to replace with another one from all
   // haplotypes.  calculate the new probability of the model given
@@ -1151,35 +1151,35 @@ fast Insti::solve(unsigned I, unsigned N, fast pen, Relationship &oRel) {
   // otherwise, accept with penalized probability
   MHSampler<unsigned> mhSampler(rng, curr, s_MHSamplerType, pen);
   for (unsigned n = 0; n < N; n++) { // iterate through all samples
-    unsigned rp = gsl_rng_get(rng) & 3, oh = p[rp];
+    unsigned rp = gsl_rng_get(rng) & 3, oh = propHaps[rp];
 
     // kickstart phasing and imputation by only sampling haps
     // from ref panel in first round
     if (n == 0 && s_bKickStartFromRef)
-      p[rp] = oRel.SampleHap(I, rng, true);
+        propHap[rp] = relGraph.SampleHap(I, rng, true);
     else
-      p[rp] = oRel.SampleHap(I, rng);
+        propHap[rp] = relGraph.SampleHap(I, rng);
 
     // get likelihood of proposed hap set
-    fast prop = hmm_like(I, p);
+    fast prop = hmm_like(I, propHaps.data());
 
     // log all proposals and individuals proposed
     if (s_bIsLogging) {
       stringstream message;
       message << m_nIteration << "\t" << I << "\t" << prop << "\t";
       for (unsigned i = 0; i < 4; ++i)
-        message << p[i];
+        message << propHaps[i];
       WriteToLog(message.str());
     }
 
     // do a MH acceptance of proposal
-    mhSampler.SampleHap(p[rp], oh, prop);
+    mhSampler.SampleHap(propHaps[rp], oh, prop);
 
     if (s_bIsLogging)
       WriteToLog("\t" + sutils::uint2str(mhSampler.accepted()) + "\n");
 
     // Update relationship graph with proportion pen
-    oRel.UpdateGraph(p, mhSampler.accepted(), I, pen);
+    relGraph.UpdateGraph(propHap, mhSampler.accepted(), I, pen);
   }
 
   // if we have passed the burnin cycles (n >= bn)
@@ -1190,7 +1190,7 @@ fast Insti::solve(unsigned I, unsigned N, fast pen, Relationship &oRel) {
       for (unsigned i = 0; i < 4; i++) pa[p[i] / 2]++;
   }
   */
-  hmm_work(I, p, pen);
+  hmm_work(I, propHap.data(), pen);
   return curr;
 }
 
@@ -1199,10 +1199,6 @@ fast Insti::solve(unsigned I, unsigned N, fast pen, Relationship &oRel) {
 */
 
 void Insti::estimate() {
-
-  // the uniform relationship "graph" will be used until
-  // -M option says not to.
-  Relationship oUniformRel(RelT::noGraph, in, hn + m_uNumRefHaps);
 
   // choose a sampling scheme
   switch (s_iEstimator) {
@@ -1217,15 +1213,16 @@ void Insti::estimate() {
       // use kmedoids
       case 0:
       case 1:
-        m_oRelationship.init(RelT::kMedoids, haps, wn, mn, rng);
+        m_relationshipGraph = RelationshipGraph::kMedoids(haps, wn, mn, rng);
         break;
 
       // use kNN
       case 2:
         if (UsingScaffold())
-          m_oRelationship.init(RelT::kNN, m_scaffold, s_scaffoldFreqCutoff);
+          m_relationshipGraph =
+              RelationshipGraph::kNN(m_scaffold, s_scaffoldFreqCutoff);
         else
-          m_oRelationship.init(RelT::kNN, haps, wn, mn, rng);
+          m_relationshipGRaph = RelationshipGraph::kNN(haps, wn, mn, rng);
 
         break;
 
@@ -1237,7 +1234,7 @@ void Insti::estimate() {
 
     // just sample uniformly
     else
-      m_oRelationship.init(RelT::noGraph, in, hn + m_uNumRefHaps);
+      m_relationshipGraph = RelationshipGraph::noGraph(in, hn + m_uNumRefHaps);
 
     break;
 
@@ -1246,11 +1243,19 @@ void Insti::estimate() {
     return;
 
   case 2:
-      estimate_AMH(RelT::sampSampGraph);
+
+    // create a relationshipGraph object
+    // initialize relationship matrix
+    // create an in x uSamplingInds matrix
+    m_relationshipGraph =
+        RelationshipGraph::sampSampGraph(in, hn + m_uNumRefHaps);
+    estimate_AMH();
     return;
 
   case 3:
-      estimate_AMH(RelT::sampHapGraph);
+    m_relationshipGraph =
+        RelationshipGraph::sampHapGraph(in, hn + m_uNumRefHaps);
+    estimate_AMH();
     return;
 
   default:
@@ -1264,6 +1269,10 @@ void Insti::estimate() {
   cout.precision(3);
   cout << m_tag << ":\titer\tpress\tlike\tfold\trunTime\texpectedRunTime"
        << endl;
+
+  // the uniform relationship "graph" will be used until
+  // -M option says not to.
+  RelationshipGraph::noGraph uniformRelGraph(in, hn + m_uNumRefHaps);
 
   // n is number of cycles = burnin + sampling cycles
   // increase penalty from 2/bn to 1 as we go through burnin
@@ -1279,9 +1288,9 @@ void Insti::estimate() {
 
       // re-update graph based on current haplotypes
       if (n < Insti::s_uStartClusterGen)
-        sum += solve(i, m_uCycles, pen, oUniformRel);
+        sum += solve(i, m_uCycles, pen, uniformRelGraph);
       else
-        sum += solve(i, m_uCycles, pen, m_oRelationship);
+        sum += solve(i, m_uCycles, pen, m_relationshipGraph);
 
       iter += m_uCycles;
     }
@@ -1292,7 +1301,7 @@ void Insti::estimate() {
       for (unsigned i = 0; i < in; i++)
         replace(i); // call replace
 
-    m_oRelationship.UpdateGraph(&haps);
+    m_relationshipGraph.UpdateGraph(&haps);
 
     // give an update
     gettimeofday(&currentTime, NULL);
@@ -1632,11 +1641,6 @@ void Insti::estimate_AMH(RelT relMatType) {
   cout << "Running Adaptive Metropolis Hastings\n";
   cout << "iter\tpress\tlike\tfold" << endl;
 
-  // create a relationshipGraph object
-  // initialize relationship matrix
-  // create an in x uSamplingInds matrix
-  m_oRelationship.init(relMatType, in, hn + m_uNumRefHaps);
-
   // n is number of cycles = burnin + sampling cycles
   // increase penalty from 2/bn to 1 as we go through burnin
   // iterations.
@@ -1652,7 +1656,7 @@ void Insti::estimate_AMH(RelT relMatType) {
 
       //            if( i % 1000 == 0)
       //                cout << "cycle\t" << i << endl;
-      sum += solve(i, m_uCycles, pen, m_oRelationship);
+      sum += solve(i, m_uCycles, pen, m_relationshipGraph);
       iter += m_uCycles;
     }
 
@@ -1677,7 +1681,7 @@ void Insti::save_relationship_graph(string sOutputFile) {
   for (unsigned i = 0; i < ceil(m_uNumRefHaps / 2); i++)
     vsSampNames.push_back(string("refSamp") + sutils::uint2str(i));
 
-  m_oRelationship.Save(sOutputFile, vsSampNames);
+  m_relationshipGraph.Save(sOutputFile, vsSampNames);
 }
 
 void Insti::save_vcf(const char *F, string commandLine) {

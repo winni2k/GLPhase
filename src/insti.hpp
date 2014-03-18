@@ -46,7 +46,7 @@ class Insti : public Impute {
   //    bool m_bUsingScaffold = false;
 
   // keep track of relationship graph
-  Relationship m_oRelationship;
+  RelationshipGraph* m_relationship = nullptr;
 
   // keep track of GL sites, names as unordered map of snps
   std::unordered_map<unsigned, snp> m_sitesUnordered;

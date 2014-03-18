@@ -23,7 +23,7 @@ void RelationshipGraph::init(RelT graphType, unsigned uSamples,
   m_uRows = uSamples;
   m_uCols = 0;
 
-  m_uColHapFactor = 2;
+  m_uColHapFactor = 2; // ???
   m_uCols = ceil(static_cast<float>(uHaplotypes) /
                  static_cast<float>(m_uColHapFactor));
   switch (graphType) {

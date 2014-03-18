@@ -14,6 +14,8 @@
 // require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
+
+// this class manages 
 class Relationship {
 
 private:

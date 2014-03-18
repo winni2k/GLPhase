@@ -3,13 +3,4 @@
 
 enum class PanelType { REFERENCE, SCAFFOLD };
 
-enum class RelT {
-  sampSampGraph,
-  sampHapGraph,
-  noGraph,
-  kMedoids,
-  kNN,
-  undefined
-};
-
 #endif
