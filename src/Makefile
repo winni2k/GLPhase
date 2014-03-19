@@ -20,8 +20,9 @@ $(BDIR)/insti.$(VERSION): CXXFLAGS += -O3
 static: KERNEL := $(shell uname -r)
 static: SLIBS := u-wkretzsch-snptools/samtools-0.1.16/libbam.a u-wkretzsch-snptools/tabix-0.2.5/libtabix.a /usr/lib64/libm.a ~/lib/libz.a ~/lib/libgsl.a ~/lib/libgslcblas.a ~/lib/libboost_iostreams.a ~/lib/libbz2.a
 
-debug:
-	$(CXX) -E -x c++ - -v < /dev/null
+debug: test $(BDIR)/insti.$(VERSION).debug
+
+#	$(CXX) -E -x c++ - -v < /dev/null
 
 test: CXXFLAGS += -O1
 test: CXXFLAGS += $(DEBUGFLAGS)
