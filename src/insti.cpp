@@ -64,7 +64,6 @@ unsigned Insti::s_uNumClusters = 0;
 unsigned Insti::s_uClusterType = 0;
 unsigned Insti::s_uSABurninGen = 28;
 unsigned Insti::s_uNonSABurninGen = 28;
-MHType Insti::s_MHSamplerType = MHType::MH;
 
 // start clustering after simulated annealing burnin
 unsigned Insti::s_uStartClusterGen = Insti::s_uNonSABurninGen;
@@ -274,45 +273,32 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > &loadHaps,
     if (keptSites == m_sitesUnordered.size())
       break;
 
-    //    if (lineNum % 1000 == 0)
-    //      cout << "Sites kept:\t" << keptSites << " / " << lineNum << "\n";
+    if (lineNum % 1000 == 0)
+      cout << "Sites kept:\t" << keptSites << " / " << lineNum << "\n";
 
     lineNum++;
 
     //// only read position
-    // figure out where the first three spaces are located
-    vector<size_t> spaceIdxs;
-    size_t nextStartIdx = 0;
-    for (unsigned i = 0; i < 3; ++i) {
-      if (i == 0)
-        spaceIdxs.push_back(buffer.find_first_of(" "));
-      else
-        spaceIdxs.push_back(buffer.find_first_of(" ", nextStartIdx));
-      if (spaceIdxs[i] == string::npos)
-        throw myException("Space in Haps file not found where expected");
-      nextStartIdx = spaceIdxs[i] + 1;
-    }
+    // extract chromosome
+    size_t firstSpaceIdx = buffer.find_first_of(" ");
+    if (firstSpaceIdx == string::npos)
+      throw myException("No space in Haps file");
+    string chr = buffer.substr(0, firstSpaceIdx);
 
-    // load chrom and check input haps is correct chrom
-    string chr = buffer.substr(0, spaceIdxs[0]);
+    // check input haps is correct chrom
     if (chr != site[0].chr)
       throw myException("Found site on chromosome '" + chr +
                         "' when chromosome '" + site[0].chr + "' was expected");
 
     // move ahead and extract position from third field
-    size_t endReadIdx = 0;
-    unsigned pos = stoul(
-        buffer.substr(spaceIdxs[1] + 1, spaceIdxs[2] - (spaceIdxs[1] + 1)),
-        &endReadIdx, 0);
-
-    // make sure the whole field was parsed!
-    if (endReadIdx != spaceIdxs[2] - (spaceIdxs[1] + 1))
-      throw myException("Input haplotypes line field three was read as " +
-                        sutils::uint2str(pos) +
-                        " and does not seem to be an unsigned integer.\n" +
-                        "Read was " + sutils::uint2str(endReadIdx) +
-                        " char(s) long" + "\nThe field was actually " +
-                        sutils::uint2str(spaceIdxs[2]) + " char(s) long");
+    size_t secSpaceIdx = buffer.find_first_of(" ", firstSpaceIdx + 1);
+    size_t thirdSpaceIdx = buffer.find_first_of(" ", secSpaceIdx + 1);
+    if (thirdSpaceIdx == string::npos)
+      throw myException("No third space in Haps file");
+    unsigned pos =
+        strtoul(buffer.substr(secSpaceIdx + 1,
+                              thirdSpaceIdx - (secSpaceIdx + 1)).c_str(),
+                NULL, 0);
 
     // make sure input sites are sorted by position
     if (pos < previousPos)
@@ -411,38 +397,31 @@ bool Insti::LoadHapsSamp(string hapsFile, string sampleFile,
   vector<vector<char> > loadHaps;
   vector<snp> loadSites;
 
-  try {
+  // read the haps and sites from a haps file
+  OpenHaps(hapsFile, loadHaps, loadSites);
+  if (loadHaps.empty())
+    throw myException("Haplotypes file is empty: " + hapsFile);
 
-    // read the haps and sites from a haps file
-    OpenHaps(hapsFile, loadHaps, loadSites);
-    if (loadHaps.empty())
-      throw myException("Haplotypes file is empty: " + hapsFile);
-
-    // get sample information if we are using a scaffold
-    // make sure samples match
-    vector<string> scaffoldSampleIDs;
-    if (panelType == PanelType::SCAFFOLD) {
-      OpenSample(sampleFile, scaffoldSampleIDs);
-      SubsetSamples(scaffoldSampleIDs, loadHaps);
-      OrderSamples(scaffoldSampleIDs, loadHaps);
-
-      assert(!loadHaps.empty());
-      MatchSamples(scaffoldSampleIDs, loadHaps[0].size());
-    }
+  // get sample information if we are using a scaffold
+  // make sure samples match
+  vector<string> scaffoldSampleIDs;
+  if (panelType == PanelType::SCAFFOLD) {
+    OpenSample(sampleFile, scaffoldSampleIDs);
+    SubsetSamples(scaffoldSampleIDs, loadHaps);
+    OrderSamples(scaffoldSampleIDs, loadHaps);
 
     assert(!loadHaps.empty());
-    vector<vector<char> > filtHaps;
-    vector<snp> filtSites;
-
-    FilterSites(loadHaps, loadSites, filtHaps, filtSites, panelType);
-
-    // loading haplotypes into place
-    LoadHaps(filtHaps, filtSites, scaffoldSampleIDs, panelType);
+    MatchSamples(scaffoldSampleIDs, loadHaps[0].size());
   }
-  catch (exception &e) {
-    cerr << e.what() << endl;
-    exit(1);
-  }
+
+  assert(!loadHaps.empty());
+  vector<vector<char> > filtHaps;
+  vector<snp> filtSites;
+
+  FilterSites(loadHaps, loadSites, filtHaps, filtSites, panelType);
+
+  // loading haplotypes into place
+  LoadHaps(filtHaps, filtSites, scaffoldSampleIDs, panelType);
 
   return true;
 }
@@ -699,16 +678,10 @@ void Insti::LoadHaps(vector<vector<char> > &inHaps, vector<snp> &inSites,
     m_scaffold.Init(inHaps, inSites, inSampleIDs);
     cout << "Scaffold haplotypes\t" << m_scaffold.NumHaps() << endl;
 
-    try {
-      if (m_scaffold.NumHaps() != hn)
-        throw myException(
-            "Error while reading scaffold: Scaffold needs to have two "
-            "haplotypes for every input sample");
-    }
-    catch (exception &e) {
-      cout << e.what() << endl;
-      exit(1);
-    };
+    if (m_scaffold.NumHaps() != hn)
+      throw myException(
+          "Error while reading scaffold: Scaffold needs to have two "
+          "haplotypes for every input sample");
 
     return;
   }
@@ -836,10 +809,8 @@ vector<vector<char> > Insti::OpenHap(string hapFile) {
     loadHaps.push_back(inSite);
   }
 
-  if (uNumHaps == 0) {
-    cerr << "num haps is 0.  Haps file empty?\n";
-    exit(1);
-  }
+  if (uNumHaps == 0) 
+      throw myException( "num haps is 0.  Haps file empty?\n")
 
   return loadHaps;
 }
@@ -1107,6 +1078,7 @@ void Insti::initialize() {
     LoadHapsSamp(s_scaffoldHapsFile, s_scaffoldSampleFile, PanelType::SCAFFOLD);
 
   // change phase and genotype of main haps to that from scaffold
+
   if (s_initPhaseFromScaffold) {
     SetHapsAccordingToScaffold();
   }
@@ -1127,13 +1099,9 @@ void Insti::initialize() {
 fast Insti::solve(unsigned I, unsigned N, fast pen, Relationship &oRel) {
 
   // write log header
-  if (s_bIsLogging) {
-    stringstream message;
-    message
-        << "##iteration\tindividual\tproposal\taccepted\tind1\tind2\tind3\tind4"
-        << endl;
-    WriteToLog(message.str());
-  }
+  stringstream message;
+  message << "##iteration\tindividual\tproposal" << endl;
+  WriteToLog(message.str());
 
   // pick 4 haplotype indices at random not from individual
   unsigned p[4];
@@ -1149,37 +1117,34 @@ fast Insti::solve(unsigned I, unsigned N, fast pen, Relationship &oRel) {
   // those haplotypes.
   // accept new set if probability has increased.
   // otherwise, accept with penalized probability
-  MHSampler<unsigned> mhSampler(rng, curr, s_MHSamplerType, pen);
-  for (unsigned n = 0; n < N; n++) { // iterate through all samples
+  for (unsigned n = 0; n < N; n++) { // fixed number of iterations
     unsigned rp = gsl_rng_get(rng) & 3, oh = p[rp];
 
     // kickstart phasing and imputation by only sampling haps
     // from ref panel in first round
-    if (n == 0 && s_bKickStartFromRef)
+    if (s_bKickStartFromRef && n == 0)
       p[rp] = oRel.SampleHap(I, rng, true);
     else
       p[rp] = oRel.SampleHap(I, rng);
 
-    // get likelihood of proposed hap set
     fast prop = hmm_like(I, p);
+    bool bAccepted = false;
 
-    // log all proposals and individuals proposed
-    if (s_bIsLogging) {
-      stringstream message;
-      message << m_nIteration << "\t" << I << "\t" << prop << "\t";
-      for (unsigned i = 0; i < 4; ++i)
-        message << p[i];
-      WriteToLog(message.str());
-    }
-
-    // do a MH acceptance of proposal
-    mhSampler.SampleHap(p[rp], oh, prop);
-
-    if (s_bIsLogging)
-      WriteToLog("\t" + sutils::uint2str(mhSampler.accepted()) + "\n");
+    if (prop > curr || gsl_rng_uniform(rng) < exp((prop - curr) * pen)) {
+      curr = prop;
+      bAccepted = true;
+    } else
+      p[rp] = oh;
 
     // Update relationship graph with proportion pen
-    oRel.UpdateGraph(p, mhSampler.accepted(), I, pen);
+    oRel.UpdateGraph(p, bAccepted, I, pen);
+
+    // log accepted proposals
+    if (bAccepted) {
+      stringstream message;
+      message << m_nIteration << "\t" << I << "\t" << prop << endl;
+      WriteToLog(message.str());
+    }
   }
 
   // if we have passed the burnin cycles (n >= bn)
@@ -1202,7 +1167,7 @@ void Insti::estimate() {
 
   // the uniform relationship "graph" will be used until
   // -M option says not to.
-  Relationship oUniformRel(RelT::noGraph, in, hn + m_uNumRefHaps);
+  Relationship oUniformRel(2, in, hn + m_uNumRefHaps);
 
   // choose a sampling scheme
   switch (s_iEstimator) {
@@ -1217,15 +1182,15 @@ void Insti::estimate() {
       // use kmedoids
       case 0:
       case 1:
-        m_oRelationship.init(RelT::kMedoids, haps, wn, mn, rng);
+        m_oRelationship.init(3, haps, wn, mn, rng);
         break;
 
       // use kNN
       case 2:
         if (UsingScaffold())
-          m_oRelationship.init(RelT::kNN, m_scaffold, s_scaffoldFreqCutoff);
+          m_oRelationship.init(4, m_scaffold, s_scaffoldFreqCutoff);
         else
-          m_oRelationship.init(RelT::kNN, haps, wn, mn, rng);
+          m_oRelationship.init(4, haps, wn, mn, rng);
 
         break;
 
@@ -1237,7 +1202,7 @@ void Insti::estimate() {
 
     // just sample uniformly
     else
-      m_oRelationship.init(RelT::noGraph, in, hn + m_uNumRefHaps);
+      m_oRelationship.init(2, in, hn + m_uNumRefHaps);
 
     break;
 
@@ -1246,11 +1211,11 @@ void Insti::estimate() {
     return;
 
   case 2:
-      estimate_AMH(RelT::sampSampGraph);
+    estimate_AMH(0);
     return;
 
   case 3:
-      estimate_AMH(RelT::sampHapGraph);
+    estimate_AMH(1);
     return;
 
   default:
@@ -1568,9 +1533,9 @@ fast Insti::solve_EMC(unsigned I, unsigned N, fast S) {
   DEBUG_MSG("Updating individual " << I << "\n");
 
   // update haplotypes of I
-  //    cerr << "parents (2 lines):" << endl;
-  //    cerr << rcFirstChain.m_auParents[1] << endl;
-  //    cerr << vcChains[ iFirstChainIndex ].m_auParents[1] << endl;
+  //    cout << "parents (2 lines):" << endl;
+  //    cout << rcFirstChain.m_auParents[1] << endl;
+  //    cout << vcChains[ iFirstChainIndex ].m_auParents[1] << endl;
   hmm_work(I, rcFirstChain.getParents(), S);
   return rcFirstChain.getLike();
 }
@@ -1626,7 +1591,7 @@ void Insti::estimate_EMC() {
    "Advanced Markov Choin Monte Carlo Methods" by Liang, Liu and Carroll
    first edition?, 2010, pp. 309
 */
-void Insti::estimate_AMH(RelT relMatType) {
+void Insti::estimate_AMH(unsigned uRelMatType) {
   cout.setf(ios::fixed);
   cout.precision(3);
   cout << "Running Adaptive Metropolis Hastings\n";
@@ -1635,7 +1600,7 @@ void Insti::estimate_AMH(RelT relMatType) {
   // create a relationshipGraph object
   // initialize relationship matrix
   // create an in x uSamplingInds matrix
-  m_oRelationship.init(relMatType, in, hn + m_uNumRefHaps);
+  m_oRelationship.init(uRelMatType, in, hn + m_uNumRefHaps);
 
   // n is number of cycles = burnin + sampling cycles
   // increase penalty from 2/bn to 1 as we go through burnin
