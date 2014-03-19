@@ -1,7 +1,7 @@
 export CXX= g++-4.7+
 export DEBUGFLAGS= -ggdb
-export CXXFLAGS= -Wall -Wextra -std=c++11 -std=gnu++11 -mpopcnt
-BOOSTLIB = -lboost_iostreams-mt #alternatively: /opt/boost/boost-1.54.0-intel/lib/libboost_iostreams.a
+export CXXFLAGS= -Wall -Wextra -std=c++11 -mpopcnt
+BOOSTLIB := -lboost_iostreams-mt #alternatively: /opt/boost/boost-1.54.0-intel/lib/libboost_iostreams.a
 export LIBS += -lgsl -lgslcblas -lbam -ltabix -lbz2 $(BOOSTLIB) -lm -lstdc++ -lz
 
 # path variables
@@ -16,6 +16,9 @@ VERSION := $(shell grep VERSION_MAJOR version.hpp | cut -f3 -d' ').$(shell grep 
 all: $(BDIR)/insti.$(VERSION)
 
 $(BDIR)/insti.$(VERSION): CXXFLAGS += -O3
+
+static: KERNEL := $(shell uname -r)
+static: SLIBS := u-wkretzsch-snptools/samtools-0.1.16/libbam.a u-wkretzsch-snptools/tabix-0.2.5/libtabix.a /usr/lib64/libm.a ~/lib/libz.a ~/lib/libgsl.a ~/lib/libgslcblas.a ~/lib/libboost_iostreams.a ~/lib/libbz2.a
 
 debug:
 	$(CXX) -E -x c++ - -v < /dev/null
@@ -32,7 +35,7 @@ testDebug: insti.o impute.o emcchain.o olivier/utils.o haplotype.o kNN.o relatio
 clean:
 	rm -f *.o *.hpp.gch olivier/utils.hpp.gch
 
-.PHONY: clean test all testDebug debug
+.PHONY: clean test all testDebug debug static
 
 .DELETE_ON_ERROR:
 
@@ -84,6 +87,9 @@ $(BDIR)/insti.$(VERSION): $(OBJECT_FILES)
 
 $(BDIR)/insti.$(VERSION).debug: $(OBJECT_FILES)
 	$(CXX) $(CXXFLAGS) $(OBJECT_FILES) -o $@ $(LIBS)
+
+static: $(OBJECT_FILES)
+	$(CXX) $(CXXFLAGS) $(OBJECT_FILES) -o $(BDIR)/insti.$(VERSION).static-$(KERNEL) $(SLIBS)
 
 
 ## installation
