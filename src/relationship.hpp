@@ -9,7 +9,6 @@
 #include "kMedoids.hpp"
 #include "kNN.hpp"
 #include "hapPanel.hpp"
-#include "enums.hpp"
 
 // require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
@@ -25,48 +24,49 @@ private:
    3 = kmedoids
    4 = kNN
   */
-  RelT m_graphType = RelT::undefined;
+  RelGraphT m_graphType = RelGraphT::undefined;
   KMedoids m_oKMedoids;
   RelationshipGraph m_oRelGraph;
   KNN m_oKNN;
 
 public:
   // call for clustering
-  Relationship(unsigned uNumClusters, unsigned uClusterType)
+  Relationship(unsigned uNumClusters, unsigned uClusterType,
+               kNNDistT distMetric)
       : m_oKMedoids(uClusterType, uNumClusters), m_oRelGraph(),
-        m_oKNN(uNumClusters) {};
+        m_oKNN(uNumClusters, distMetric) {};
 
   // call for relationship graph - ignore clustering
-  Relationship(RelT graphType, unsigned uSamples, unsigned uHaplotypes)
+  Relationship(RelGraphT graphType, unsigned uSamples, unsigned uHaplotypes)
       : m_oKMedoids(0, 0), m_oRelGraph(), m_oKNN(0) {
     SetGraphType(graphType);
     m_oRelGraph.init(graphType, uSamples, uHaplotypes);
   }
 
-  void SetGraphType(RelT graphType) {
-    assert(graphType != RelT::undefined);
-    assert(m_graphType == RelT::undefined);
+  void SetGraphType(RelGraphT graphType) {
+    assert(graphType != RelGraphT::undefined);
+    assert(m_graphType == RelGraphT::undefined);
     m_graphType = graphType;
   }
 
   // initialize relationship graph
-  void init(RelT graphType, unsigned uSamples, unsigned uHaplotypes) {
+  void init(RelGraphT graphType, unsigned uSamples, unsigned uHaplotypes) {
     SetGraphType(graphType);
     m_oRelGraph.init(graphType, uSamples, uHaplotypes);
   };
 
   // initialize kmedoids or kNN
-  void init(RelT graphType, const std::vector<uint64_t> &vuHaplotypes,
+  void init(RelGraphT graphType, const std::vector<uint64_t> &vuHaplotypes,
             unsigned uNumWordsPerHap, unsigned uNumSites, gsl_rng *rng) {
 
     SetGraphType(graphType);
 
     switch (graphType) {
-    case RelT::kMedoids:
+    case RelGraphT::kMedoids:
       m_oKMedoids.init(&vuHaplotypes, uNumWordsPerHap, uNumSites, rng);
       break;
 
-    case RelT::kNN:
+    case RelGraphT::kNN:
       m_oKNN.init(vuHaplotypes, uNumWordsPerHap, uNumSites, -1);
       break;
 
@@ -77,9 +77,9 @@ public:
   }
 
   // initialize kNN with scaffold
-  void init(RelT graphType, HapPanel &scaffold, double dScaffoldFreqCutoff) {
+  void init(RelGraphT graphType, HapPanel &scaffold, double dScaffoldFreqCutoff) {
 
-    assert(graphType == RelT::kNN);
+    assert(graphType == RelGraphT::kNN);
     SetGraphType(graphType);
     m_oKNN.init(*scaffold.Haplotypes(), scaffold.NumWordsPerHap(),
                 scaffold.NumSites(), dScaffoldFreqCutoff);
@@ -94,10 +94,10 @@ public:
   // reference haplotypes
   unsigned SampleHap(unsigned uInd, gsl_rng *rng, bool bOnlyFromRef) {
     switch (m_graphType) {
-    case RelT::kMedoids:
+    case RelGraphT::kMedoids:
       return m_oKMedoids.SampleHap(uInd, rng);
 
-    case RelT::kNN:
+    case RelGraphT::kNN:
       return m_oKNN.SampleHap(uInd, rng);
 
     default:
@@ -118,11 +118,11 @@ public:
   // update graph with number fRatio instead of 1
   void UpdateGraph(unsigned *p, bool bAccepted, unsigned uInd, float fRatio) {
     switch (m_graphType) {
-    case RelT::sampSampGraph:
+    case RelGraphT::sampSampGraph:
       ;
-    case RelT::sampHapGraph:
+    case RelGraphT::sampHapGraph:
       ;
-    case RelT::noGraph:
+    case RelGraphT::noGraph:
       m_oRelGraph.UpdateGraph(p, bAccepted, uInd, fRatio);
       break;
     default:
@@ -132,17 +132,17 @@ public:
 
   // update medoids
   void UpdateGraph(const std::vector<uint64_t> *pvuHaplotypes) {
-    if (m_graphType == RelT::kMedoids)
+    if (m_graphType == RelGraphT::kMedoids)
       m_oKMedoids.UpdateMedoids(pvuHaplotypes);
   };
 
   void Save(std::string fileName, const std::vector<std::string> &name) {
     switch (m_graphType) {
-    case RelT::sampSampGraph:
+    case RelGraphT::sampSampGraph:
       ;
-    case RelT::sampHapGraph:
+    case RelGraphT::sampHapGraph:
       ;
-    case RelT::noGraph:
+    case RelGraphT::noGraph:
       m_oRelGraph.Save(fileName, name);
       break;
     default:

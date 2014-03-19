@@ -11,10 +11,18 @@
 #include <iostream>
 #include <stdint.h>
 #include "utils.hpp"
-#include "enums.hpp"
 
 // require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
+
+enum class RelGraphT {
+  sampSampGraph,
+  sampHapGraph,
+  noGraph,
+  kMedoids,
+  kNN,
+  undefined
+};
 
 class RelationshipGraph {
 
@@ -32,7 +40,7 @@ private:
   // 0 = sample/sample graph
   // 1 = sample/haplotype graph
   // 2 = no graph - all samples are equally related
-    RelT m_graphType = RelT::undefined;
+  RelGraphT m_graphType = RelGraphT::undefined;
   bool m_bUsingHaps = false;
   unsigned m_uColHapFactor = 0;
 
@@ -64,16 +72,17 @@ public:
   // 1 = sample/haplotype graph
   // 2 = no graph - all samples are equally related
 
-  RelationshipGraph(RelT graphType, unsigned uSamples, unsigned uHaplotypes) {
+  RelationshipGraph(RelGraphT graphType, unsigned uSamples,
+                    unsigned uHaplotypes) {
     init(graphType, uSamples, uHaplotypes);
   };
 
   // need to call init after construction with empty constructor;
   RelationshipGraph() {};
 
-  void init(RelT graphType, unsigned uSamples, unsigned uHaplotypes);
+  void init(RelGraphT graphType, unsigned uSamples, unsigned uHaplotypes);
 
-  void init(RelT graphType, unsigned uNumClust,
+  void init(RelGraphT graphType, unsigned uNumClust,
             const std::vector<uint64_t> *pvuHaplotypes,
             unsigned uNumWordsPerHap, unsigned uNumSites, gsl_rng *rng);
 

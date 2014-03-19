@@ -5,14 +5,14 @@ static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
 using namespace std;
 
-void RelationshipGraph::init(RelT graphType, unsigned uSamples,
+void RelationshipGraph::init(RelGraphT graphType, unsigned uSamples,
                              unsigned uHaplotypes) {
 
   // only allow initialization once. Construct new object otherwise.
   assert(m_bInitialized == false);
 
   m_bUsingRelMat =
-      (graphType == RelT::sampSampGraph || graphType == RelT::sampHapGraph);
+      (graphType == RelGraphT::sampSampGraph || graphType == RelGraphT::sampHapGraph);
 
   m_graphType = graphType;
 
@@ -27,12 +27,12 @@ void RelationshipGraph::init(RelT graphType, unsigned uSamples,
   m_uCols = ceil(static_cast<float>(uHaplotypes) /
                  static_cast<float>(m_uColHapFactor));
   switch (graphType) {
-  case RelT::sampHapGraph:
+  case RelGraphT::sampHapGraph:
     m_bUsingHaps = true;
     break;
-  case RelT::sampSampGraph:
+  case RelGraphT::sampSampGraph:
     ;
-  case RelT::noGraph:
+  case RelGraphT::noGraph:
     m_bUsingHaps = false;
     break;
   default:
@@ -89,7 +89,7 @@ void RelationshipGraph::UpdateGraph(unsigned *p, bool bAccepted, unsigned uInd,
   assert(m_bInitialized == true);
 
   // update relationship graph with probability S if we are using it
-  if (m_graphType == RelT::sampSampGraph || m_graphType == RelT::sampHapGraph)
+  if (m_graphType == RelGraphT::sampSampGraph || m_graphType == RelGraphT::sampHapGraph)
     if (gsl_rng_uniform(rng) < dUpdateProb) {
       UpdateGraph(p, bAccepted, uInd);
     }
@@ -111,7 +111,7 @@ void RelationshipGraph::UpdateGraph(unsigned *p, bool bAccepted, unsigned uInd,
   assert(m_bInitialized == true);
 
   // update the graph if we are using it
-  if (m_graphType == RelT::sampSampGraph || m_graphType == RelT::sampHapGraph)
+  if (m_graphType == RelGraphT::sampSampGraph || m_graphType == RelGraphT::sampHapGraph)
     // update relationship matrix
     for (unsigned i = 0; i < 4; i++) {
       unsigned uPropHap = p[i];
@@ -179,7 +179,7 @@ unsigned RelationshipGraph::SampleHap(unsigned uInd, gsl_rng *rng) {
   unsigned uPropHap = Col2Hap(m_uCols); // this hap is out of bounds
 
   // sample uniformly if no graph has been created
-  if (m_graphType == RelT::noGraph) {
+  if (m_graphType == RelGraphT::noGraph) {
     while (1) {
       // m_uCols is 1 based, but gsl_rng makes 0 based choice
       uPropHap = gsl_rng_uniform_int(rng, Col2Hap(m_uCols));
@@ -232,8 +232,8 @@ void RelationshipGraph::Save(string fileName, const vector<string> &name) {
   assert(m_bInitialized == true);
 
   // don't print graph if we don't have one...
-  if (!(m_graphType == RelT::sampSampGraph ||
-        m_graphType == RelT::sampHapGraph))
+  if (!(m_graphType == RelGraphT::sampSampGraph ||
+        m_graphType == RelGraphT::sampHapGraph))
     return;
   cerr << "Saving Relationship graph to prefix " << fileName << " ..." << endl;
 

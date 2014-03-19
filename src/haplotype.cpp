@@ -63,7 +63,7 @@ unsigned Haplotype::MaxTractLen(const Haplotype &compHap) const {
   unsigned maxTracLen = 0;
   unsigned currTracL = 0;
   for (unsigned uWord = 0; uWord < m_utHap.size(); uWord++) {
-    uint64_t diff = m_utHap[uWord] xor oCompareHap.GetWord(uWord);
+    uint64_t diff = m_utHap[uWord] xor compHap.GetWord(uWord);
     for (unsigned siteNum = 0; siteNum <= h_WordMod; ++siteNum) {
       if (diff & static_cast<uint64_t>(1)) {
         if (currTracL > maxTracLen)

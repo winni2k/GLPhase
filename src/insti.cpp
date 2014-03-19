@@ -62,8 +62,10 @@ double Insti::s_scaffoldFreqCutoff = 0.05;
 bool Insti::s_initPhaseFromScaffold = false;
 unsigned Insti::s_uNumClusters = 0;
 unsigned Insti::s_uClusterType = 0;
+kNNDistT Insti::s_clusterDistanceMetric = kNNDistT::hamming;
 unsigned Insti::s_uSABurninGen = 28;
 unsigned Insti::s_uNonSABurninGen = 28;
+MHType Insti::s_MHSamplerType = MHType::MH;
 
 // start clustering after simulated annealing burnin
 unsigned Insti::s_uStartClusterGen = Insti::s_uNonSABurninGen;
@@ -378,10 +380,10 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > &loadHaps,
 }
 
 bool Insti::LoadHapsSamp(string hapsFile, string sampleFile,
-                         PanelType panelType) {
+                         InstiPanelType panelType) {
 
   // make sure both files are defined
-  if (sampleFile.size() == 0 && panelType == PanelType::SCAFFOLD) {
+  if (sampleFile.size() == 0 && panelType == InstiPanelType::SCAFFOLD) {
     cout << "Need to define a sample file\n";
     document();
   }
@@ -405,7 +407,7 @@ bool Insti::LoadHapsSamp(string hapsFile, string sampleFile,
   // get sample information if we are using a scaffold
   // make sure samples match
   vector<string> scaffoldSampleIDs;
-  if (panelType == PanelType::SCAFFOLD) {
+  if (panelType == InstiPanelType::SCAFFOLD) {
     OpenSample(sampleFile, scaffoldSampleIDs);
     SubsetSamples(scaffoldSampleIDs, loadHaps);
     OrderSamples(scaffoldSampleIDs, loadHaps);
@@ -534,7 +536,7 @@ void Insti::SubsetSamples(vector<string> &loadIDs,
 // only keep sites in main gl set
 void Insti::FilterSites(vector<vector<char> > &loadHaps, vector<snp> &loadSites,
                         vector<vector<char> > &filtHaps, vector<snp> &filtSites,
-                        PanelType panelType) {
+                        InstiPanelType panelType) {
 
   assert(loadSites.size() > 0);
   assert(loadSites.size() == loadHaps.size());
@@ -552,7 +554,7 @@ void Insti::FilterSites(vector<vector<char> > &loadHaps, vector<snp> &loadSites,
   unsigned numCandidateSitesToSearch;
   unsigned numTargetSitesSearchable;
 
-  if (panelType != PanelType::SCAFFOLD) {
+  if (panelType != InstiPanelType::SCAFFOLD) {
     numCandidateSitesToSearch = loadSites.size();
     numTargetSitesSearchable = site.size();
   } else {
@@ -568,10 +570,10 @@ void Insti::FilterSites(vector<vector<char> > &loadHaps, vector<snp> &loadSites,
   while (candidateSiteIdx < numCandidateSitesToSearch) {
 
     // just making sure the scaffold sites are all found in already loaded sites
-    if (panelType == PanelType::SCAFFOLD) {
+    if (panelType == InstiPanelType::SCAFFOLD) {
       if (loadSites[targetSiteIdx].pos == site[candidateSiteIdx].pos)
         targetSiteIdx++;
-    } else if (panelType == PanelType::REFERENCE) {
+    } else if (panelType == InstiPanelType::REFERENCE) {
       if (SwapMatch(loadSites[candidateSiteIdx], site[targetSiteIdx],
                     loadHaps[candidateSiteIdx], filtHaps[targetSiteIdx])) {
         filtSites.push_back(loadSites[candidateSiteIdx]);
@@ -586,7 +588,7 @@ void Insti::FilterSites(vector<vector<char> > &loadHaps, vector<snp> &loadSites,
 
   assert(targetSiteIdx == numTargetSitesSearchable);
 
-  if (panelType == PanelType::SCAFFOLD) {
+  if (panelType == InstiPanelType::SCAFFOLD) {
     swap(filtHaps, loadHaps);
     swap(filtSites, loadSites);
   }
@@ -608,7 +610,7 @@ void Insti::FilterSites(vector<vector<char> > &loadHaps, vector<snp> &loadSites,
   assert(targetSiteIdx <= site.size());
   assert(targetSiteIdx > 0);
 
-  if (panelType == PanelType::REFERENCE)
+  if (panelType == InstiPanelType::REFERENCE)
     if (site.size() != targetSiteIdx)
       throw myException("Error: site " +
                         sutils::uint2str(site[targetSiteIdx - 1].pos) +
@@ -654,7 +656,7 @@ void Insti::MatchSamples(const vector<std::string> &IDs, unsigned numHaps) {
 
 // put the haplotypes in the right place in the program structure
 void Insti::LoadHaps(vector<vector<char> > &inHaps, vector<snp> &inSites,
-                     vector<string> &inSampleIDs, PanelType panelType) {
+                     vector<string> &inSampleIDs, InstiPanelType panelType) {
 
   assert(inHaps.size() == inSites.size());
   // convert char based haplotypes to bitvector
@@ -663,7 +665,7 @@ void Insti::LoadHaps(vector<vector<char> > &inHaps, vector<snp> &inSites,
   // store the haplotypes in the correct place based on what type of panel we
   // are loading
   switch (panelType) {
-  case PanelType::REFERENCE: {
+  case InstiPanelType::REFERENCE: {
     HapPanel temp;
     vector<uint64_t> storeHaps =
         temp.Char2BitVec(inHaps, GetNumWords(), WordMod + 1);
@@ -673,7 +675,7 @@ void Insti::LoadHaps(vector<vector<char> > &inHaps, vector<snp> &inSites,
     return;
   }
 
-  case PanelType::SCAFFOLD: {
+  case InstiPanelType::SCAFFOLD: {
     assert(WordMod >= 0);
     m_scaffold.Init(inHaps, inSites, inSampleIDs);
     cout << "Scaffold haplotypes\t" << m_scaffold.NumHaps() << endl;
@@ -691,14 +693,14 @@ void Insti::LoadHaps(vector<vector<char> > &inHaps, vector<snp> &inSites,
   }
 }
 
-void Insti::CheckPanelPrereqs(PanelType panelType) {
+void Insti::CheckPanelPrereqs(InstiPanelType panelType) {
   switch (panelType) {
-  case PanelType::REFERENCE:
+  case InstiPanelType::REFERENCE:
     m_bUsingRefHaps = true;
     assert(m_vRefHaps.size() == 0);
     break;
 
-  case PanelType::SCAFFOLD:
+  case InstiPanelType::SCAFFOLD:
     assert(!m_scaffold.Initialized());
     break;
 
@@ -809,14 +811,14 @@ vector<vector<char> > Insti::OpenHap(string hapFile) {
     loadHaps.push_back(inSite);
   }
 
-  if (uNumHaps == 0) 
-      throw myException( "num haps is 0.  Haps file empty?\n")
+  if (uNumHaps == 0)
+    throw myException("num haps is 0.  Haps file empty?\n");
 
   return loadHaps;
 }
 
 bool Insti::LoadHapLegSamp(string legendFile, string hapFile, string sampleFile,
-                           PanelType panelType) {
+                           InstiPanelType panelType) {
 
   // make sure required files are defined
   if (legendFile.size() == 0) {
@@ -829,7 +831,7 @@ bool Insti::LoadHapLegSamp(string legendFile, string hapFile, string sampleFile,
     document();
   }
 
-  if (sampleFile.size() == 0 && panelType == PanelType::SCAFFOLD) {
+  if (sampleFile.size() == 0 && panelType == InstiPanelType::SCAFFOLD) {
     cerr << "Need to define a sample file if using scaffold\n";
     document();
   }
@@ -1061,7 +1063,8 @@ void Insti::initialize() {
   // end of copy from SNPTools Impute
   // load ref haps
   if (s_sRefLegendFile.size() > 0 || s_sRefHapFile.size() > 0)
-    LoadHapLegSamp(s_sRefLegendFile, s_sRefHapFile, "", PanelType::REFERENCE);
+    LoadHapLegSamp(s_sRefLegendFile, s_sRefHapFile, "",
+                   InstiPanelType::REFERENCE);
 
   if (m_bUsingRefHaps) {
 
@@ -1075,7 +1078,8 @@ void Insti::initialize() {
 
   // load the scaffold
   if (s_scaffoldSampleFile.size() > 0 || s_scaffoldHapsFile.size() > 0)
-    LoadHapsSamp(s_scaffoldHapsFile, s_scaffoldSampleFile, PanelType::SCAFFOLD);
+    LoadHapsSamp(s_scaffoldHapsFile, s_scaffoldSampleFile,
+                 InstiPanelType::SCAFFOLD);
 
   // change phase and genotype of main haps to that from scaffold
 
@@ -1167,7 +1171,7 @@ void Insti::estimate() {
 
   // the uniform relationship "graph" will be used until
   // -M option says not to.
-  Relationship oUniformRel(2, in, hn + m_uNumRefHaps);
+  Relationship oUniformRel(RelGraphT::noGraph, in, hn + m_uNumRefHaps);
 
   // choose a sampling scheme
   switch (s_iEstimator) {
@@ -1182,15 +1186,16 @@ void Insti::estimate() {
       // use kmedoids
       case 0:
       case 1:
-        m_oRelationship.init(3, haps, wn, mn, rng);
+        m_oRelationship.init(RelGraphT::kMedoids, haps, wn, mn, rng);
         break;
 
       // use kNN
       case 2:
         if (UsingScaffold())
-          m_oRelationship.init(4, m_scaffold, s_scaffoldFreqCutoff);
+          m_oRelationship.init(RelGraphT::kNN, m_scaffold,
+                               s_scaffoldFreqCutoff);
         else
-          m_oRelationship.init(4, haps, wn, mn, rng);
+          m_oRelationship.init(RelGraphT::kNN, haps, wn, mn, rng);
 
         break;
 
@@ -1202,7 +1207,7 @@ void Insti::estimate() {
 
     // just sample uniformly
     else
-      m_oRelationship.init(2, in, hn + m_uNumRefHaps);
+      m_oRelationship.init(RelGraphT::noGraph, in, hn + m_uNumRefHaps);
 
     break;
 
@@ -1211,11 +1216,11 @@ void Insti::estimate() {
     return;
 
   case 2:
-    estimate_AMH(0);
+      estimate_AMH(RelGraphT::sampSampGraph);
     return;
 
   case 3:
-    estimate_AMH(1);
+      estimate_AMH(RelGraphT::sampHapGraph);
     return;
 
   default:
@@ -1591,7 +1596,7 @@ void Insti::estimate_EMC() {
    "Advanced Markov Choin Monte Carlo Methods" by Liang, Liu and Carroll
    first edition?, 2010, pp. 309
 */
-void Insti::estimate_AMH(unsigned uRelMatType) {
+void Insti::estimate_AMH(RelGraphT relMatType) {
   cout.setf(ios::fixed);
   cout.precision(3);
   cout << "Running Adaptive Metropolis Hastings\n";
@@ -1600,7 +1605,7 @@ void Insti::estimate_AMH(unsigned uRelMatType) {
   // create a relationshipGraph object
   // initialize relationship matrix
   // create an in x uSamplingInds matrix
-  m_oRelationship.init(uRelMatType, in, hn + m_uNumRefHaps);
+  m_oRelationship.init(relMatType, in, hn + m_uNumRefHaps);
 
   // n is number of cycles = burnin + sampling cycles
   // increase penalty from 2/bn to 1 as we go through burnin

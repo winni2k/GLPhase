@@ -13,7 +13,7 @@ export LD_LIBRARY_PATH += $(LIBRARY_PATH)
 BDIR := ../bin
 VERSION := $(shell grep VERSION_MAJOR version.hpp | cut -f3 -d' ').$(shell grep VERSION_MINOR version.hpp | cut -f3 -d' ').$(shell grep VERSION_REVISION version.hpp | cut -f3 -d' ')
 OBJECT_FILES := main.o impute.o insti.o emcchain.o relationshipGraph.o olivier/utils.o haplotype.o kMedoids.o kNN.o hapPanel.o
-HEADER_FILES := insti.hpp.gch impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch relationship.hpp.gch version.hpp.gch enums.hpp.gch snp.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch
+HEADER_FILES := insti.hpp.gch impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch relationship.hpp.gch version.hpp.gch snp.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch
 
 all: $(BDIR)/insti.$(VERSION)
 
@@ -25,8 +25,6 @@ static: SLIBS := u-wkretzsch-snptools/samtools-0.1.16/libbam.a u-wkretzsch-snpto
 debug: CXXFLAGS += -O1
 debug: CXXFLAGS += $(DEBUGFLAGS)
 #	$(CXX) -E -x c++ - -v < /dev/null
-
-
 
 debug: $(BDIR)/insti.$(VERSION).debug
 
@@ -63,16 +61,16 @@ kNN.hpp.gch: kNN.hpp haplotype.hpp.gch
 kMedoids.hpp.gch: kMedoids.hpp haplotype.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
-relationshipGraph.hpp.gch: relationshipGraph.hpp olivier/utils.hpp.gch enums.hpp.gch
+relationshipGraph.hpp.gch: relationshipGraph.hpp olivier/utils.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
-relationship.hpp.gch: relationship.hpp relationshipGraph.hpp.gch kMedoids.hpp.gch kNN.hpp.gch hapPanel.hpp.gch enums.hpp.gch
+relationship.hpp.gch: relationship.hpp relationshipGraph.hpp.gch kMedoids.hpp.gch kNN.hpp.gch hapPanel.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
 MHSampler.hpp.gch: MHSampler.hpp olivier/utils.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
-insti.hpp.gch: insti.hpp impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch relationship.hpp.gch version.hpp.gch enums.hpp.gch snp.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch
+insti.hpp.gch: insti.hpp impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch relationship.hpp.gch version.hpp.gch snp.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
 ## object files

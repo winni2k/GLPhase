@@ -20,21 +20,23 @@
 #include "utils.hpp"
 #include "relationship.hpp"
 #include "version.hpp"
-#include "enums.hpp"
 #include "snp.hpp"
 #include "hapPanel.hpp"
 #include "MHSampler.hpp"
-#include <boost/uuid/uuid.hpp>             // uuid class
-#include <boost/uuid/uuid_generators.hpp>  // generators
-#include <boost/uuid/uuid_io.hpp>          // streaming operators etc.
+#include <boost/uuid/uuid.hpp>            // uuid class
+#include <boost/uuid/uuid_generators.hpp> // generators
+#include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
 #include <cfloat>
 
 // require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
+enum class InstiPanelType { REFERENCE, SCAFFOLD };
+
+
 class Insti : public Impute {
 
- private:
+private:
   std::ofstream m_ofsLogFileStream;
   gzFile m_gzLogFileStream;
   bool m_bLogIsGz;
@@ -95,12 +97,13 @@ class Insti : public Impute {
   // expects scaffold to have been initialized
   void SetHapsAccordingToScaffold();
 
- public:
+public:
   // uuid
   const boost::uuids::uuid m_tag;
 
   Insti()
-      : m_oRelationship(Insti::s_uNumClusters, Insti::s_uClusterType),
+      : m_oRelationship(Insti::s_uNumClusters, Insti::s_uClusterType,
+                        Insti::s_clusterDistanceMetric),
         m_tag(boost::uuids::random_generator()()) {};
 
   unsigned GetScaffoldNumWordsPerHap() { return m_scaffold.NumWordsPerHap(); }
@@ -119,51 +122,52 @@ class Insti : public Impute {
   // data loading
   // haps/sample
   bool LoadHapsSamp(std::string hapsFile, std::string sampleFile,
-                    PanelType panelType);
+                    InstiPanelType panelType);
 
   // hap/leg/samp
   bool LoadHapLegSamp(std::string legendFile, std::string hapFile,
-                      std::string sampleFile, PanelType panelType);
+                      std::string sampleFile, InstiPanelType panelType);
 
   // filter out sites that aren't in main gl data
   void FilterSites(std::vector<std::vector<char> > &loadHaps,
                    std::vector<snp> &loadSites,
                    std::vector<std::vector<char> > &filtHaps,
-                   std::vector<snp> &filtSites, PanelType panelType);
+                   std::vector<snp> &filtSites, InstiPanelType panelType);
 
   // copy haplotypes to space in program where they actually are supposed to go
   // along with list of sites if applicable
   void LoadHaps(std::vector<std::vector<char> > &inHaps,
                 std::vector<snp> &inSites,
-                std::vector<std::string> &inSampleIDs, PanelType panelType);
+                std::vector<std::string> &inSampleIDs, InstiPanelType panelType);
 
-  void CheckPanelPrereqs(PanelType panelType);
+  void CheckPanelPrereqs(InstiPanelType panelType);
 
-  std::vector<uint64_t> Char2BitVec(
-      const std::vector<std::vector<char> > &inHaps, double numWords) {
+  std::vector<uint64_t>
+  Char2BitVec(const std::vector<std::vector<char> > &inHaps, double numWords) {
     assert(numWords >= 0);
     return Char2BitVec(inHaps, static_cast<unsigned>(numWords));
   }
 
-  std::vector<uint64_t> Char2BitVec(
-      const std::vector<std::vector<char> > &inHaps, unsigned numWords);
+  std::vector<uint64_t>
+  Char2BitVec(const std::vector<std::vector<char> > &inHaps, unsigned numWords);
 
   void CalculateVarAfs();
 
   // print out usage
   static void document(void);
-  static int s_iEstimator;  // see main.cpp and document for documentation
+  static int s_iEstimator; // see main.cpp and document for documentation
 
   // see main.cpp and document for documentation
   static unsigned s_uParallelChains;
-  static unsigned s_uCycles;  // see main.cpp and document for documentation
-  static bool s_bIsLogging;   // true if logging
-  static unsigned s_uNumClusters;  // number of clusters to use
-  static unsigned s_uClusterType;  // what type of clustering
+  static unsigned s_uCycles;      // see main.cpp and document for documentation
+  static bool s_bIsLogging;       // true if logging
+  static unsigned s_uNumClusters; // number of clusters to use
+  static unsigned s_uClusterType; // what type of clustering
+  static kNNDistT s_clusterDistanceMetric; // what type of clustering
 
   // number of simulated annealing burnin generations
   static unsigned s_uSABurninGen;
-  static unsigned s_uNonSABurninGen;  // number of non-SA burning generations
+  static unsigned s_uNonSABurninGen; // number of non-SA burning generations
 
   // 0-based generation number at which to start clustering
   static unsigned s_uStartClusterGen;
@@ -172,12 +176,12 @@ class Insti : public Impute {
   // first round
   static bool s_bKickStartFromRef;
 
-  static std::string s_sRefLegendFile;  // location of sample file
-  static std::string s_sRefHapFile;     // location of reference haplotypes file
+  static std::string s_sRefLegendFile; // location of sample file
+  static std::string s_sRefHapFile;    // location of reference haplotypes file
 
-  static std::string s_scaffoldHapsFile;    // location of scaffold haps file
-  static std::string s_scaffoldSampleFile;  // location of scaffold sample file
-  static double s_scaffoldFreqCutoff;  // cutoff MAF for what to fix in scaffold
+  static std::string s_scaffoldHapsFile;   // location of scaffold haps file
+  static std::string s_scaffoldSampleFile; // location of scaffold sample file
+  static double s_scaffoldFreqCutoff; // cutoff MAF for what to fix in scaffold
   static bool s_initPhaseFromScaffold;
 
   static MHType s_MHSamplerType;
@@ -215,7 +219,7 @@ class Insti : public Impute {
   void estimate_EMC();
 
   // AMH version of estimate()
-  void estimate_AMH(RelT relMatType);
+  void estimate_AMH(RelGraphT relMatType);
 
   // Roulette Wheel Selection, returns index of chain selected
   int RWSelection(const std::vector<EMCChain> &rvcChains);

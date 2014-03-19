@@ -109,8 +109,16 @@ void KNN::ClusterHaps(const vector<uint64_t> &vuHaplotypes) {
       dist distHapB;
       distHapA.idx = hapNum;
       distHapB.idx = hapNum;
-      distHapA.distance = hHapA.HammingDist(commonSiteHaps[hapNum]);
-      distHapB.distance = hHapB.HammingDist(commonSiteHaps[hapNum]);
+
+      // measure distance between the pair of haps using hamming or trac length
+      // as distance metric
+      if (m_distMetric == kNNDistT::hamming) {
+        distHapA.distance = hHapA.HammingDist(commonSiteHaps[hapNum]);
+        distHapB.distance = hHapB.HammingDist(commonSiteHaps[hapNum]);
+      } else if (m_distMetric == kNNDistT::tracLen) {
+        distHapA.distance = hHapA.MaxTractLen(commonSiteHaps[hapNum]);
+        distHapB.distance = hHapB.MaxTractLen(commonSiteHaps[hapNum]);
+      }
 
       distsHapA.push_back(distHapA);
       distsHapB.push_back(distHapB);

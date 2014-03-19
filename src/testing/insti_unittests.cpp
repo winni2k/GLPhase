@@ -1,6 +1,7 @@
 
 #include "gtest/gtest.h"
 #include "insti.hpp"
+#include "utils.hpp"
 #include <algorithm>
 #include <gsl/gsl_rng.h>
 
@@ -110,7 +111,7 @@ TEST(Insti, loadBin) {
 
   //  cerr << "BLOINC2\n";
   // now test refpanel loading
-  lp.LoadHapLegSamp(refLegend, refHap, "", PanelType::REFERENCE);
+  lp.LoadHapLegSamp(refLegend, refHap, "", InstiPanelType::REFERENCE);
 
   for (unsigned i = 0; i != 601; i++) {
     EXPECT_EQ(0, lp.TestRefHap(0, i));
@@ -135,7 +136,7 @@ TEST(Insti, loadHapsSamp) {
   Insti lp;
   lp.load_bin(sampleBin.c_str());
   lp.initialize();
-  lp.LoadHapsSamp(refHaps, "", PanelType::REFERENCE);
+  lp.LoadHapsSamp(refHaps, "", InstiPanelType::REFERENCE);
 
   for (unsigned i = 0; i != 601; i++) {
     EXPECT_EQ(0, lp.TestRefHap(0, i));
@@ -151,7 +152,7 @@ TEST(Insti, loadHapsSamp) {
   }
 
   // test the scaffold loading
-  lp.LoadHapsSamp(scaffoldHaps, scaffHapsSampSample, PanelType::SCAFFOLD);
+  lp.LoadHapsSamp(scaffoldHaps, scaffHapsSampSample, InstiPanelType::SCAFFOLD);
   ASSERT_EQ("samp1", lp.GetScaffoldID(0));
   ASSERT_EQ("samp2", lp.GetScaffoldID(1));
   ASSERT_EQ("samp3", lp.GetScaffoldID(2));
@@ -185,7 +186,7 @@ TEST(Insti, loadHapsSamp) {
 
   // test the scaffold loading
   lp2.LoadHapsSamp(scaffoldHaps, scaffHapsSampUnorderedSample,
-                   PanelType::SCAFFOLD);
+                   InstiPanelType::SCAFFOLD);
   ASSERT_EQ("samp1", lp2.GetScaffoldID(0));
   ASSERT_EQ("samp2", lp2.GetScaffoldID(1));
   ASSERT_EQ("samp3", lp2.GetScaffoldID(2));
@@ -212,11 +213,11 @@ TEST(Insti, loadHapsSamp) {
   Insti lp3;
   lp3.load_bin(sampleBin.c_str());
   lp3.initialize();
-  lp3.LoadHapsSamp(refHaps, "", PanelType::REFERENCE);
+  lp3.LoadHapsSamp(refHaps, "", InstiPanelType::REFERENCE);
 
   // test the scaffold loading
   ASSERT_EXIT(lp3.LoadHapsSamp(scaffoldHapsWrongReg, scaffHapsSampSample,
-                               PanelType::SCAFFOLD),
+                               InstiPanelType::SCAFFOLD),
               ::testing::ExitedWithCode(1),
               "Number of haplotypes in haps file is 0.  Haps file empty?");
 }
@@ -228,23 +229,30 @@ TEST(Insti, loadHapLegSampErrors) {
   lp.initialize();
 
   //    cerr << "BLOINC1\n";
-  ASSERT_EXIT(lp.LoadHapLegSamp("", sampleHap, "", PanelType::REFERENCE),
+  ASSERT_EXIT(lp.LoadHapLegSamp("", sampleHap, "", InstiPanelType::REFERENCE),
               ::testing::ExitedWithCode(1),
               "Need to define a legend file if defining a hap file");
-  ASSERT_EXIT(lp.LoadHapLegSamp(sampleLegend, "", "", PanelType::REFERENCE),
-              ::testing::ExitedWithCode(1),
-              "Need to define a hap file if defining a legend file");
   ASSERT_EXIT(
-      lp.LoadHapsSamp(refHaps, brokenHapsSampSample, PanelType::SCAFFOLD),
+      lp.LoadHapLegSamp(sampleLegend, "", "", InstiPanelType::REFERENCE),
       ::testing::ExitedWithCode(1),
-      "Error in sample file " + brokenHapsSampSample +
-          ": empty lines detected.");
+      "Need to define a hap file if defining a legend file");
 
-  ASSERT_EXIT(lp.LoadHapsSamp(unsortedRefHaps, scaffHapsSampUnorderedSample,
-                              PanelType::SCAFFOLD),
-              ::testing::ExitedWithCode(1),
+  /*
+    myException("Error in sample file " + brokenHapsSampSample +
+                  ": empty lines detected."
+  */
+  ASSERT_THROW(
+      lp.LoadHapsSamp(refHaps, brokenHapsSampSample, InstiPanelType::SCAFFOLD),
+      std::exception);
+
+  /*
+    ::testing::ExitedWithCode(1),
               "Input haplotypes file " + unsortedRefHaps +
-                  " needs to be sorted by position");
+                  " needs to be sorted by position"
+  */
+  ASSERT_THROW(lp.LoadHapsSamp(unsortedRefHaps, scaffHapsSampUnorderedSample,
+                               InstiPanelType::SCAFFOLD),
+               std::exception);
 }
 
 TEST(Insti, initializingHapsFromScaffold) {
