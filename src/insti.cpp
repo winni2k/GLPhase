@@ -1216,11 +1216,11 @@ void Insti::estimate() {
     return;
 
   case 2:
-      estimate_AMH(RelGraphT::sampSampGraph);
+    estimate_AMH(RelGraphT::sampSampGraph);
     return;
 
   case 3:
-      estimate_AMH(RelGraphT::sampHapGraph);
+    estimate_AMH(RelGraphT::sampHapGraph);
     return;
 
   default:
@@ -1817,6 +1817,8 @@ void Insti::document(void) {
   cerr << "\n\t                1 - k-Medoids -- Park and Jun 2008";
   cerr << "\n\t                2 - k-Nearest Neighbors -- IMPUTE2 (-K is the "
           "number of haplotypes to keep)";
+  cerr << "\n\t-T              Use shared tract length as distance metric for "
+          "clustering";
   cerr << "\n\n    REFERENCE PANEL OPTIONS";
   cerr << "\n\t-H <file>       IMPUTE2 style HAP file";
   cerr << "\n\t-L <file>       IMPUTE2 style LEGEND file";
