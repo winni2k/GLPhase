@@ -77,7 +77,8 @@ public:
   }
 
   // initialize kNN with scaffold
-  void init(RelGraphT graphType, HapPanel &scaffold, double dScaffoldFreqCutoff) {
+  void init(RelGraphT graphType, HapPanel &scaffold,
+            double dScaffoldFreqCutoff) {
 
     assert(graphType == RelGraphT::kNN);
     SetGraphType(graphType);
@@ -126,7 +127,7 @@ public:
       m_oRelGraph.UpdateGraph(p, bAccepted, uInd, fRatio);
       break;
     default:
-      throw "unexpected graphType";
+      throw myException("unexpected graphType");
     };
   };
 
