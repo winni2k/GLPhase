@@ -1,6 +1,6 @@
 export CXX= g++-4.7+
-export DEBUGFLAGS= -ggdb
-export CXXFLAGS= -Wall -Wextra -std=c++11 -mpopcnt
+export DEBUGFLAGS := -ggdb
+export CXXFLAGS := -Wall -Wextra -std=c++11 -mpopcnt
 BOOSTLIB := -lboost_iostreams-mt #alternatively: /opt/boost/boost-1.54.0-intel/lib/libboost_iostreams.a
 export LIBS += -lgsl -lgslcblas -lbam -ltabix -lbz2 $(BOOSTLIB) -lm -lstdc++ -lz
 
