@@ -8,6 +8,8 @@
 #include <stdint.h>
 #include <cmath>
 #include <assert.h>
+#include <bitset>
+#include <iostream>
 
 // require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
@@ -16,20 +18,22 @@ static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 #define h_WordShift 6 // 2^6 = 64
 
 class Haplotype {
+public:
+  static constexpr unsigned s_wordSize = std::pow(2, h_WordShift);
 
 private:
-  std::vector<uint64_t> m_utHap;
+  std::vector<std::bitset<s_wordSize> > m_hap;
 
 public:
   unsigned m_uNumAlleles;
 
   // initialize all haps to all 0s
   Haplotype(unsigned uNumAlleles) : m_uNumAlleles(uNumAlleles) {
-    unsigned uSize = ceil(static_cast<float>(uNumAlleles) /
-                          static_cast<float>(h_WordMod + 1));
-    m_utHap.reserve(uSize);
+    unsigned uSize =
+        ceil(static_cast<float>(uNumAlleles) / static_cast<float>(s_wordSize));
+    m_hap.reserve(uSize);
     for (unsigned uWord = 0; uWord < uSize; uWord++)
-      m_utHap.push_back(static_cast<uint64_t>(0));
+      m_hap.push_back(std::bitset<s_wordSize>());
   }
 
   // site is 0 based site number to be set
@@ -38,8 +42,11 @@ public:
 
   bool TestSite(unsigned uSite) const {
     assert(uSite < m_uNumAlleles);
-    return (m_utHap[uSite >> h_WordShift] >> (uSite & h_WordMod)) &
-           static_cast<uint64_t>(1);
+
+    // need to rework all of this
+    unsigned wordIdx = uSite >> h_WordShift;
+    unsigned siteIdx = uSite - s_wordSize * wordIdx;
+    return m_hap[wordIdx][siteIdx] == 1;
   };
 
   // test if bit uSite is 1
@@ -48,8 +55,11 @@ public:
            static_cast<uint64_t>(1);
   };
 
+  std::bitset<s_wordSize> GetWordBitset(unsigned uWordNum) const {
+    return m_hap[uWordNum];
+  };
   uint64_t GetWord(unsigned uWordNum) const {
-    return m_utHap[uWordNum];
+    return static_cast<uint64_t>(m_hap[uWordNum].to_ullong());
   };
 
   // using a haplotype object
