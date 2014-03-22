@@ -411,38 +411,31 @@ bool Insti::LoadHapsSamp(string hapsFile, string sampleFile,
   vector<vector<char> > loadHaps;
   vector<snp> loadSites;
 
-  try {
+  // read the haps and sites from a haps file
+  OpenHaps(hapsFile, loadHaps, loadSites);
+  if (loadHaps.empty())
+    throw myException("Haplotypes file is empty: " + hapsFile);
 
-    // read the haps and sites from a haps file
-    OpenHaps(hapsFile, loadHaps, loadSites);
-    if (loadHaps.empty())
-      throw myException("Haplotypes file is empty: " + hapsFile);
-
-    // get sample information if we are using a scaffold
-    // make sure samples match
-    vector<string> scaffoldSampleIDs;
-    if (panelType == PanelType::SCAFFOLD) {
-      OpenSample(sampleFile, scaffoldSampleIDs);
-      SubsetSamples(scaffoldSampleIDs, loadHaps);
-      OrderSamples(scaffoldSampleIDs, loadHaps);
-
-      assert(!loadHaps.empty());
-      MatchSamples(scaffoldSampleIDs, loadHaps[0].size());
-    }
+  // get sample information if we are using a scaffold
+  // make sure samples match
+  vector<string> scaffoldSampleIDs;
+  if (panelType == PanelType::SCAFFOLD) {
+    OpenSample(sampleFile, scaffoldSampleIDs);
+    SubsetSamples(scaffoldSampleIDs, loadHaps);
+    OrderSamples(scaffoldSampleIDs, loadHaps);
 
     assert(!loadHaps.empty());
-    vector<vector<char> > filtHaps;
-    vector<snp> filtSites;
-
-    FilterSites(loadHaps, loadSites, filtHaps, filtSites, panelType);
-
-    // loading haplotypes into place
-    LoadHaps(filtHaps, filtSites, scaffoldSampleIDs, panelType);
+    MatchSamples(scaffoldSampleIDs, loadHaps[0].size());
   }
-  catch (exception &e) {
-    cerr << e.what() << endl;
-    exit(1);
-  }
+
+  assert(!loadHaps.empty());
+  vector<vector<char> > filtHaps;
+  vector<snp> filtSites;
+
+  FilterSites(loadHaps, loadSites, filtHaps, filtSites, panelType);
+
+  // loading haplotypes into place
+  LoadHaps(filtHaps, filtSites, scaffoldSampleIDs, panelType);
 
   return true;
 }
@@ -1124,7 +1117,8 @@ void Insti::initialize() {
 */
 
 // solve(individual, number of cycles, penalty, burnin?)
-fast Insti::solve(unsigned I, unsigned N, fast pen, RelationshipGraph &relGraph) {
+fast Insti::solve(unsigned I, unsigned N, fast pen,
+                  shared_ptr<Sampler> &sampler) {
 
   // write log header
   if (s_bIsLogging) {
@@ -1139,7 +1133,7 @@ fast Insti::solve(unsigned I, unsigned N, fast pen, RelationshipGraph &relGraph)
   vector<unsigned> propHaps(4);
 
   for (unsigned j = 0; j < propHaps.size(); j++)
-    propHaps[j] = relGraph.SampleHap(I, rng);
+    propHaps[j] = sampler->SampleHap(I, rng);
 
   // get a probability of the model for individual I given p
   fast curr = hmm_like(I, propHaps.data());
@@ -1156,9 +1150,9 @@ fast Insti::solve(unsigned I, unsigned N, fast pen, RelationshipGraph &relGraph)
     // kickstart phasing and imputation by only sampling haps
     // from ref panel in first round
     if (n == 0 && s_bKickStartFromRef)
-        propHap[rp] = relGraph.SampleHap(I, rng, true);
+      propHaps[rp] = sampler->SampleHap(I, true);
     else
-        propHap[rp] = relGraph.SampleHap(I, rng);
+      propHaps[rp] = sampler->SampleHap(I, false);
 
     // get likelihood of proposed hap set
     fast prop = hmm_like(I, propHaps.data());
@@ -1179,7 +1173,7 @@ fast Insti::solve(unsigned I, unsigned N, fast pen, RelationshipGraph &relGraph)
       WriteToLog("\t" + sutils::uint2str(mhSampler.accepted()) + "\n");
 
     // Update relationship graph with proportion pen
-    relGraph.UpdateGraph(propHap, mhSampler.accepted(), I, pen);
+    sampler->UpdatePropDistProp(propHaps, mhSampler.accepted(), I, pen);
   }
 
   // if we have passed the burnin cycles (n >= bn)
@@ -1190,7 +1184,7 @@ fast Insti::solve(unsigned I, unsigned N, fast pen, RelationshipGraph &relGraph)
       for (unsigned i = 0; i < 4; i++) pa[p[i] / 2]++;
   }
   */
-  hmm_work(I, propHap.data(), pen);
+  hmm_work(I, propHaps.data(), pen);
   return curr;
 }
 
@@ -1213,16 +1207,20 @@ void Insti::estimate() {
       // use kmedoids
       case 0:
       case 1:
-        m_relationshipGraph = RelationshipGraph::kMedoids(haps, wn, mn, rng);
+        m_sampler = make_shared<KMedoids>(s_uClusterType, s_uNumClusters, haps,
+                                          wn, mn, rng);
         break;
 
       // use kNN
       case 2:
         if (UsingScaffold())
-          m_relationshipGraph =
-              RelationshipGraph::kNN(m_scaffold, s_scaffoldFreqCutoff);
+            m_sampler = make_shared<KNN>(s_uNumClusters, (*m_scaffold.Haplotypes()),
+                                       m_scaffold.NumWordsPerHap(),
+                                       m_scaffold.NumSites(),
+                                       s_scaffoldFreqCutoff, rng);
         else
-          m_relationshipGRaph = RelationshipGraph::kNN(haps, wn, mn, rng);
+          throw myException(
+              "kNN sampler with no scaffold is not implemented yet");
 
         break;
 
@@ -1234,7 +1232,7 @@ void Insti::estimate() {
 
     // just sample uniformly
     else
-      m_relationshipGraph = RelationshipGraph::noGraph(in, hn + m_uNumRefHaps);
+      m_sampler = make_shared<UnifSampler>(rng, in, hn + m_uNumRefHaps);
 
     break;
 
@@ -1247,14 +1245,14 @@ void Insti::estimate() {
     // create a relationshipGraph object
     // initialize relationship matrix
     // create an in x uSamplingInds matrix
-    m_relationshipGraph =
-        RelationshipGraph::sampSampGraph(in, hn + m_uNumRefHaps);
+    m_sampler = make_shared<GraphSampler>(rng, in, hn + m_uNumRefHaps,
+                                          GraphSampT::sampSamp);
     estimate_AMH();
     return;
 
   case 3:
-    m_relationshipGraph =
-        RelationshipGraph::sampHapGraph(in, hn + m_uNumRefHaps);
+    m_sampler =
+        make_shared<GraphSampler>(rng, in, hn + m_uNumRefHaps, GraphSampT::sampHap);
     estimate_AMH();
     return;
 
@@ -1272,7 +1270,8 @@ void Insti::estimate() {
 
   // the uniform relationship "graph" will be used until
   // -M option says not to.
-  RelationshipGraph::noGraph uniformRelGraph(in, hn + m_uNumRefHaps);
+  shared_ptr<Sampler> uniformSampler =
+      make_shared<UnifSampler>(rng, in, hn + m_uNumRefHaps);
 
   // n is number of cycles = burnin + sampling cycles
   // increase penalty from 2/bn to 1 as we go through burnin
@@ -1288,9 +1287,9 @@ void Insti::estimate() {
 
       // re-update graph based on current haplotypes
       if (n < Insti::s_uStartClusterGen)
-        sum += solve(i, m_uCycles, pen, uniformRelGraph);
+        sum += solve(i, m_uCycles, pen, uniformSampler);
       else
-        sum += solve(i, m_uCycles, pen, m_relationshipGraph);
+        sum += solve(i, m_uCycles, pen, m_sampler);
 
       iter += m_uCycles;
     }
@@ -1301,7 +1300,7 @@ void Insti::estimate() {
       for (unsigned i = 0; i < in; i++)
         replace(i); // call replace
 
-    m_relationshipGraph.UpdateGraph(&haps);
+    m_sampler->UpdatePropDistHaps(haps);
 
     // give an update
     gettimeofday(&currentTime, NULL);
@@ -1635,7 +1634,7 @@ void Insti::estimate_EMC() {
    "Advanced Markov Choin Monte Carlo Methods" by Liang, Liu and Carroll
    first edition?, 2010, pp. 309
 */
-void Insti::estimate_AMH(RelT relMatType) {
+void Insti::estimate_AMH() {
   cout.setf(ios::fixed);
   cout.precision(3);
   cout << "Running Adaptive Metropolis Hastings\n";
@@ -1656,7 +1655,7 @@ void Insti::estimate_AMH(RelT relMatType) {
 
       //            if( i % 1000 == 0)
       //                cout << "cycle\t" << i << endl;
-      sum += solve(i, m_uCycles, pen, m_relationshipGraph);
+      sum += solve(i, m_uCycles, pen, m_sampler);
       iter += m_uCycles;
     }
 
@@ -1681,7 +1680,7 @@ void Insti::save_relationship_graph(string sOutputFile) {
   for (unsigned i = 0; i < ceil(m_uNumRefHaps / 2); i++)
     vsSampNames.push_back(string("refSamp") + sutils::uint2str(i));
 
-  m_relationshipGraph.Save(sOutputFile, vsSampNames);
+  m_sampler->Save(sOutputFile, vsSampNames);
 }
 
 void Insti::save_vcf(const char *F, string commandLine) {

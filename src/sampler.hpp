@@ -1,59 +1,66 @@
 #ifndef _SAMPLER_H
 #define _SAMPLER_H 1
 
+#include <gsl/gsl_rng.h>
+#include <vector>
+#include <cstdint>
+#include <string>
+#include "utils.hpp"
+
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
 class Sampler {
 
-private:
+protected:
   gsl_rng *m_rng;
   unsigned m_numSamples;
   unsigned m_numHaps;
 
 public:
-  Sampler() = delete;
-  Sampler(gsl_rng *rng, unsigned numSamples, unsigned numHaps)
-      : m_rng{ rng }, m_numSamples{ numSamples }, m_numHaps{ numHaps };
+  virtual ~Sampler() {};
+  Sampler(gsl_rng *rng, unsigned numSamples, unsigned numHaps);
 
   // returns a haplotype sampled using the sampler, but only from the
   // reference haplotypes if onlyFromRef = true
-  unsigned SampleHap(unsigned excludeInd, bool onlyFromRef = false);
+  unsigned SampleHap(unsigned excludeInd, bool onlyFromRef);
 
   // returns a haplotype sampled using the sampler
   virtual unsigned SampleHap(unsigned excludeInd) = 0;
 
   // update proposal distribution based on the result of an MCMC proposal
   // (input)
-  virtual void UpdatePropDistProp(const vector<unsigned> &propHaps,
+  virtual void UpdatePropDistProp(const std::vector<unsigned> &propHaps,
                                   unsigned updateIndNum, bool accepted,
                                   float penRatio = 1) = 0;
 
   // update proposal distribution based on the input haplotype set
-  virtual void UpdatePropDistHaps(const std::vector<uint64_t> *haplotypes) = 0;
+  virtual void UpdatePropDistHaps(const std::vector<uint64_t> &haplotypes) = 0;
+
+  virtual void Save(std::string outputFile,
+                    std::vector<std::string> &sampNames) {
+    throw myException("Attempted to save sampler state of " +
+                      sutils::uint2str(sampNames.size()) +
+                      " samples to file: " + outputFile +
+                      "\nHowever, no state worth saving was encountered");
+  };
 };
 
 // Derived class for uniform sampling
-class UnifSampler : Sampler {
+class UnifSampler : public Sampler {
 
 public:
-  UnifSampler() = delete;
   UnifSampler(gsl_rng *rng, unsigned numSamples, unsigned numHaps)
-      : Sampler(rng, numSamples, numHaps);
+      : Sampler(rng, numSamples, numHaps) {};
 
   // perform uniform sampling to get hap
   unsigned SampleHap(unsigned excludeInd);
 
   // don't do any updating of the proposal distribution
-  void UpdatePropDistProp(const vector<unsigned> &propHaps,
-                          unsigned updateIndNum, bool accepted,
-                          float penRatio = 1) {
-    return;
-  };
+  void UpdatePropDistProp(const std::vector<unsigned> &, unsigned, bool,
+                          float) {};
 
   // don't do any updating of the proposal distribution
-  void UpdatePropDistHaps(const std::vector<uint64_t> *haplotypes) {
-    return;
-  };
+  void UpdatePropDistHaps(const std::vector<uint64_t> &) {};
 };
 
 /*
@@ -66,7 +73,7 @@ public:
 */
 
 enum class GraphSampT { sampSamp, sampHap };
-class GraphSampler : Sampler {
+class GraphSampler : public Sampler {
 
 private:
   // 1 based number of rows and columns
@@ -98,11 +105,8 @@ private:
   };
 
 public:
-  GraphSampler() = delete;
   GraphSampler(gsl_rng *rng, unsigned numSamples, unsigned numHaps,
-               GraphSampT graphType)
-      : Sampler(rng, numsamples, numHaps), m_graphType{ graphType },
-        m_rows{ numSamples };
+               GraphSampT graphType);
 
   // returns a haplotype sampled using the sampler
   unsigned SampleHap(unsigned excludeInd);
@@ -116,16 +120,16 @@ public:
     Therefore: any haplotypes that don't match a sample are reference haps
   */
 
-  void UpdatePropDistProp(const vector<unsigned> &propHaps,
+  void UpdatePropDistProp(const std::vector<unsigned> &propHaps,
                           unsigned updateIndNum, bool accepted,
                           float penRatio = 1);
 
   // update proposal distribution based on the input haplotype set
-  void UpdatePropDistHaps(const std::vector<uint64_t> *haplotypes) {
+  void UpdatePropDistHaps(const std::vector<uint64_t> &) {
     return;
   };
 
-  void Save(std::string fileName, const std::vector<std::string> &name);
+  void Save(std::string fileName, const std::vector<std::string> &sampNames);
 };
 
 #endif

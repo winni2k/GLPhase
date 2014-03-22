@@ -234,17 +234,15 @@ TEST(Insti, loadHapLegSampErrors) {
   ASSERT_EXIT(lp.LoadHapLegSamp(sampleLegend, "", "", PanelType::REFERENCE),
               ::testing::ExitedWithCode(1),
               "Need to define a hap file if defining a legend file");
-  ASSERT_EXIT(
-      lp.LoadHapsSamp(refHaps, brokenHapsSampSample, PanelType::SCAFFOLD),
-      ::testing::ExitedWithCode(1),
-      "Error in sample file " + brokenHapsSampSample +
-          ": empty lines detected.");
+  EXPECT_ANY_THROW(
+      lp.LoadHapsSamp(refHaps, brokenHapsSampSample, PanelType::SCAFFOLD));
 
-  ASSERT_EXIT(lp.LoadHapsSamp(unsortedRefHaps, scaffHapsSampUnorderedSample,
-                              PanelType::SCAFFOLD),
-              ::testing::ExitedWithCode(1),
-              "Input haplotypes file " + unsortedRefHaps +
+  /*
+                  "Input haplotypes file " + unsortedRefHaps +
                   " needs to be sorted by position");
+  */
+  EXPECT_ANY_THROW(lp.LoadHapsSamp(unsortedRefHaps, scaffHapsSampUnorderedSample,
+                              PanelType::SCAFFOLD));
 }
 
 TEST(Insti, initializingHapsFromScaffold) {

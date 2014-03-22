@@ -1,7 +1,9 @@
 #include "sampler.hpp"
 
-unsigned Sampler::Sampler(gsl_rng *rng, unsigned numSamples,
-                          unsigned numHaplotypes) {
+using namespace std;
+
+Sampler::Sampler(gsl_rng *rng, unsigned numSamples, unsigned numHaplotypes)
+    : m_rng(rng), m_numSamples(numSamples), m_numHaps(numHaplotypes) {
 
   // make sure we have at least as many haplotypes as samples
   assert(numSamples * 2 <= numHaplotypes);
@@ -29,15 +31,17 @@ unsigned UnifSampler::SampleHap(unsigned excludeInd) {
   assert(excludeInd < m_numSamples);
   while (1) {
 
-    // m_uCols is 1 based, but gsl_rng makes 0 based choice
+    // m_cols is 1 based, but gsl_rng makes 0 based choice
     unsigned propHap = gsl_rng_uniform_int(m_rng, m_numHaps);
     if (propHap / 2 != excludeInd)
       return propHap;
   }
 }
 
-void GraphSampler::GraphSampler(gsl_rng *rng, unsigned numSamples,
-                                unsigned numHaps, GraphSampT graphType) {
+GraphSampler::GraphSampler(gsl_rng *rng, unsigned numSamples, unsigned numHaps,
+                           GraphSampT graphType)
+    : Sampler(rng, numSamples, numHaps), m_rows(numSamples),
+      m_graphType(graphType) {
 
   // figure out how many rows and columns our matrix is going to have
   switch (graphType) {
@@ -63,7 +67,7 @@ void GraphSampler::GraphSampler(gsl_rng *rng, unsigned numSamples,
   // assign all numerators and denominators a count of 1
   m_2dRelationshipMatNum.resize(m_rows);
   m_2dRelationshipMatDen.resize(m_rows);
-  for (unsigned i = 0; i < m_uRows; i++) {
+  for (unsigned i = 0; i < m_rows; i++) {
     m_2dRelationshipMatNum[i].resize(m_cols, 1);
     m_2dRelationshipMatDen[i].resize(m_cols, 1);
   }
@@ -74,8 +78,8 @@ unsigned GraphSampler::SampleHap(unsigned excludeInd) {
   // make sure input is sensible
   assert(excludeInd < m_numSamples);
 
-  vector<float> &vuRelRowNum = m_2dRelationshipMatNum[uInd];
-  vector<float> &vuRelRowDen = m_2dRelationshipMatDen[uInd];
+  vector<float> &vuRelRowNum = m_2dRelationshipMatNum[excludeInd];
+  vector<float> &vuRelRowDen = m_2dRelationshipMatDen[excludeInd];
 
   // initialize propHap to out of range value
   unsigned propHap = m_numHaps;
@@ -96,7 +100,7 @@ unsigned GraphSampler::SampleHap(unsigned excludeInd) {
     assert(vuRelRowNum[propCol] / vuRelRowDen[propCol] <= 1);
 
     // resample if individual does not pass rejection sample
-    if (gsl_rng_uniform(rng) <= vuRelRowNum[propCol] / vuRelRowDen[propCol])
+    if (gsl_rng_uniform(m_rng) <= vuRelRowNum[propCol] / vuRelRowDen[propCol])
       break;
   }
 
@@ -108,7 +112,7 @@ unsigned GraphSampler::SampleHap(unsigned excludeInd) {
 
 void GraphSampler::UpdatePropDistProp(const vector<unsigned> &propHaps,
                                       unsigned updateIndNum, bool accepted,
-                                      float penRatio = 1) {
+                                      float penRatio) {
 
   // update relationship matrix
   for (auto &propHap : propHaps) {
@@ -118,23 +122,23 @@ void GraphSampler::UpdatePropDistProp(const vector<unsigned> &propHaps,
 
     // update proposal hap or sample for current sample
     m_2dRelationshipMatDen[updateIndNum][propCol] += penRatio;
-    if (bAccepted)
+    if (accepted)
       m_2dRelationshipMatNum[updateIndNum][propCol] += penRatio;
 
     // update current sample for proposal hap or sample if proposal is not
     // from reference panel
     if (m_2dRelationshipMatDen.size() > propCol) {
-      if (m_bUsingHaps) {
+      if (m_usingHaps) {
         m_2dRelationshipMatDen[propCol][Col2Hap(updateIndNum)] += penRatio;
         m_2dRelationshipMatDen[propCol][Col2Hap(updateIndNum) + 1] += penRatio;
-        if (bAccepted) {
+        if (accepted) {
           m_2dRelationshipMatNum[propCol][Col2Hap(updateIndNum)] += penRatio;
           m_2dRelationshipMatNum[propCol][Col2Hap(updateIndNum) + 1] +=
               penRatio;
         }
       } else {
         m_2dRelationshipMatDen[propCol][updateIndNum] += penRatio;
-        if (bAccepted)
+        if (accepted)
           m_2dRelationshipMatNum[propCol][updateIndNum] += penRatio;
       }
     }
@@ -145,7 +149,7 @@ void GraphSampler::UpdatePropDistProp(const vector<unsigned> &propHaps,
 // name should be a list of sample names that includes reference panel sample
 // names
 // fileName should be the basename for output
-void GraphSampler::Save(string fileName, const vector<string> &name) {
+void GraphSampler::Save(string fileName, const vector<string> &sampNames) {
 
   cerr << "Saving Relationship graph to prefix " << fileName << " ..." << endl;
 
@@ -154,7 +158,7 @@ void GraphSampler::Save(string fileName, const vector<string> &name) {
     if (m_usingHaps)
       expectedNumNames = expectedNumNames / 2 + expectedNumNames % 2;
 
-    assert(name.size() == expectedNumNames);
+    assert(sampNames.size() == expectedNumNames);
   }
 
   string numeratorFile = fileName + ".relGraph.num.gz";
@@ -179,9 +183,9 @@ void GraphSampler::Save(string fileName, const vector<string> &name) {
   for (unsigned uFileNum = 0; uFileNum < ofiles.size(); uFileNum++) {
 
     // finish printing header
-    for (auto sName : name) {
+    for (auto sName : sampNames) {
       *ofiles[uFileNum] << "\t" << sName;
-      if (m_bUsingHaps)
+      if (m_usingHaps)
         *ofiles[uFileNum] << ".hapA"
                           << "\t" << sName << ".hapB";
     }
@@ -189,13 +193,13 @@ void GraphSampler::Save(string fileName, const vector<string> &name) {
 
     // print data rows
     // cycle through samples
-    for (unsigned uRowNum = 0; uRowNum < m_uRows; uRowNum++) {
+    for (unsigned uRowNum = 0; uRowNum < m_rows; uRowNum++) {
 
       // print sample name
-      *ofiles[uFileNum] << name[uRowNum];
+      *ofiles[uFileNum] << sampNames[uRowNum];
 
       // print rest of row
-      for (unsigned uColNum = 0; uColNum < m_uCols; uColNum++) {
+      for (unsigned uColNum = 0; uColNum < m_cols; uColNum++) {
         float fPrintVal = 0;
         switch (uFileNum) {
         case 0:
