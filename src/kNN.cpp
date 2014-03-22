@@ -6,11 +6,12 @@ using namespace std;
 // initialization for kNN clustering
 KNN::KNN(unsigned numClust, const std::vector<uint64_t> &haplotypes,
          unsigned numWordsPerHap, unsigned numSites, double freqCutoff,
-         gsl_rng *rng)
+         gsl_rng *rng, kNNDistT distMetric)
     : Sampler(rng, haplotypes.size() / numWordsPerHap / 2,
               haplotypes.size() / numWordsPerHap),
       m_numWordsPerHap(numWordsPerHap), m_numSites(numSites),
-      m_numClusters(numClust), m_freqCutoff(freqCutoff) {
+      m_numClusters(numClust), m_distMetric(distMetric),
+      m_freqCutoff(freqCutoff) {
 
   assert(haplotypes.size() == m_numHaps * m_numWordsPerHap);
 
@@ -115,8 +116,16 @@ void KNN::ClusterHaps(const vector<uint64_t> &haplotypes) {
       dist distHapB;
       distHapA.idx = hapNum;
       distHapB.idx = hapNum;
-      distHapA.distance = hHapA.HammingDist(commonSiteHaps[hapNum]);
-      distHapB.distance = hHapB.HammingDist(commonSiteHaps[hapNum]);
+
+      // measure distance between the pair of haps using hamming or trac length
+      // as distance metric
+      if (m_distMetric == kNNDistT::hamming) {
+        distHapA.distance = hHapA.HammingDist(commonSiteHaps[hapNum]);
+        distHapB.distance = hHapB.HammingDist(commonSiteHaps[hapNum]);
+      } else if (m_distMetric == kNNDistT::tracLen) {
+        distHapA.distance = hHapA.MaxTractLen(commonSiteHaps[hapNum]);
+        distHapB.distance = hHapB.MaxTractLen(commonSiteHaps[hapNum]);
+      }
 
       distsHapA.push_back(distHapA);
       distsHapB.push_back(distHapB);

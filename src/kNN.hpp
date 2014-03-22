@@ -18,12 +18,15 @@
 // require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
+enum class kNNDistT { hamming, tracLen };
+
 class KNN : public Sampler {
 
 private:
   unsigned m_numWordsPerHap = 0;
   unsigned m_numSites = 0;
   unsigned m_numClusters = 0;
+  kNNDistT m_distMetric;
 
   // scaffold data
   double m_freqCutoff = -2;
@@ -42,7 +45,7 @@ private:
 public:
   KNN(unsigned numClust, const std::vector<uint64_t> &vuHaplotypes,
       unsigned numWordsPerHap, unsigned numSites, double freqCutoff,
-      gsl_rng *rng);
+      gsl_rng *rng, kNNDistT distMetric = kNNDistT::hamming);
 
   // returns a haplotype sampled uniformly from k-nearest neighbors
   unsigned SampleHap(unsigned uInd);

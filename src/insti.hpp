@@ -33,7 +33,7 @@
 // require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
-enum class PanelType { REFERENCE, SCAFFOLD };
+enum class InstiPanelType { REFERENCE, SCAFFOLD };
 
 class Insti : public Impute {
 
@@ -122,25 +122,26 @@ public:
   // data loading
   // haps/sample
   bool LoadHapsSamp(std::string hapsFile, std::string sampleFile,
-                    PanelType panelType);
+                    InstiPanelType panelType);
 
   // hap/leg/samp
   bool LoadHapLegSamp(std::string legendFile, std::string hapFile,
-                      std::string sampleFile, PanelType panelType);
+                      std::string sampleFile, InstiPanelType panelType);
 
   // filter out sites that aren't in main gl data
   void FilterSites(std::vector<std::vector<char> > &loadHaps,
                    std::vector<snp> &loadSites,
                    std::vector<std::vector<char> > &filtHaps,
-                   std::vector<snp> &filtSites, PanelType panelType);
+                   std::vector<snp> &filtSites, InstiPanelType panelType);
 
   // copy haplotypes to space in program where they actually are supposed to go
   // along with list of sites if applicable
   void LoadHaps(std::vector<std::vector<char> > &inHaps,
                 std::vector<snp> &inSites,
-                std::vector<std::string> &inSampleIDs, PanelType panelType);
+                std::vector<std::string> &inSampleIDs,
+                InstiPanelType panelType);
 
-  void CheckPanelPrereqs(PanelType panelType);
+  void CheckPanelPrereqs(InstiPanelType panelType);
 
   std::vector<uint64_t>
   Char2BitVec(const std::vector<std::vector<char> > &inHaps, double numWords) {
@@ -163,6 +164,7 @@ public:
   static bool s_bIsLogging;       // true if logging
   static unsigned s_uNumClusters; // number of clusters to use
   static unsigned s_uClusterType; // what type of clustering
+  static kNNDistT s_clusterDistanceMetric; // what type of clustering
 
   // number of simulated annealing burnin generations
   static unsigned s_uSABurninGen;
