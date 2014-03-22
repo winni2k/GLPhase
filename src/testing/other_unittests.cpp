@@ -88,6 +88,30 @@ TEST(Haplotype, StoresOK) {
   ASSERT_TRUE(longB.TestSite(1, hapWords.data()));
 }
 
+// testing the max tract length measure
+TEST(Haplotype, tractLenOK) {
+
+  Haplotype simpleA(4);
+  EXPECT_EQ(4, simpleA.MaxTractLen(simpleA));
+
+  Haplotype simpleB(4);
+  simpleB.Set(0, 1);
+  simpleB.Set(3, 1);
+
+  EXPECT_EQ(2, simpleA.MaxTractLen(simpleB));
+
+  Haplotype simpleC(1024);
+  EXPECT_EQ(1024, simpleC.MaxTractLen(simpleC));
+
+  Haplotype simpleD(1024);
+  simpleD.Set(23, 1);
+  EXPECT_EQ(1000, simpleC.MaxTractLen(simpleD));
+  EXPECT_EQ(1000, simpleD.MaxTractLen(simpleC));
+
+  simpleD.Set(1023, 1);
+  EXPECT_EQ(999, simpleD.MaxTractLen(simpleC));
+}
+
 TEST(KNN, clustersOK) {
 
   gsl_rng_set(rng, time(NULL));
@@ -136,7 +160,6 @@ TEST(KNN, clustersOK) {
       cerr << endl;
       }*/
 
-  cout << "Number of haplotypes: " << passHaps.size() << endl;
   KNN kNN(numClusters, passHaps, 1, numSites, 0, rng);
 
   // check to make sure kNN has the haps stored correctly

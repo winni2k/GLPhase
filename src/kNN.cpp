@@ -12,7 +12,6 @@ KNN::KNN(unsigned numClust, const std::vector<uint64_t> &haplotypes,
       m_numWordsPerHap(numWordsPerHap), m_numSites(numSites),
       m_numClusters(numClust), m_freqCutoff(freqCutoff) {
 
-  cout << haplotypes.size() << endl << m_numHaps << endl << m_numWordsPerHap;
   assert(haplotypes.size() == m_numHaps * m_numWordsPerHap);
 
   cout << "[KNN]: Initialization start\n";
