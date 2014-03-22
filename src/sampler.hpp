@@ -19,7 +19,7 @@ protected:
 public:
   virtual ~Sampler() {};
   Sampler(gsl_rng *rng, unsigned numSamples, unsigned numHaps);
-
+    
   // returns a haplotype sampled using the sampler, but only from the
   // reference haplotypes if onlyFromRef = true
   unsigned SampleHap(unsigned excludeInd, bool onlyFromRef);

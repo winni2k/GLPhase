@@ -41,6 +41,7 @@ int main(int ac, char **av) {
 
     string sLogFile;
     int opt;
+    bool optMSet = false;
     while ((opt = getopt(
                 ac, av, "Vd:l:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:fo:DT")) >=
            0) {
@@ -125,6 +126,7 @@ int main(int ac, char **av) {
         break;
       case 'M':
         Insti::s_uStartClusterGen = atoi(optarg);
+        optMSet = true;
         break;
       case 'h':
         Insti::s_scaffoldHapsFile = optarg;
@@ -156,7 +158,9 @@ int main(int ac, char **av) {
 
     // need to specify burnin generations as sum of SA and non-SA gens
     Impute::bn = Insti::s_uSABurninGen + Insti::s_uNonSABurninGen;
-
+    if(optMSet == false)
+        Insti::s_uStartClusterGen = Insti::s_uSABurninGen;
+    
     // need to specify ref panel if kickstarting
     if (Insti::s_bKickStartFromRef) {
       if (Insti::s_sRefLegendFile.size() == 0) {

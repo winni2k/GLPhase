@@ -1,5 +1,7 @@
 1.3.6   Sat Mar 22 11:59:13 GMT 2014
-        pulled in all changes from 1.3.4
+        Pulled in all changes from 1.3.4
+        Fixed bug in main.cpp where -M was not auto-set to start after
+        simulated annealing burnin generations
 
 1.3.5   Sat Mar 22 11:15:05 GMT 2014
         Restructured sampling hierarchy need to find bugs and merge

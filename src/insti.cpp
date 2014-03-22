@@ -68,6 +68,8 @@ unsigned Insti::s_uNonSABurninGen = 28;
 MHType Insti::s_MHSamplerType = MHType::MH;
 
 // start clustering after simulated annealing burnin
+// need to reset this in main.cpp -- should really move to a better option
+// handling approach...
 unsigned Insti::s_uStartClusterGen = Insti::s_uNonSABurninGen;
 
 // return the probability of the model given the input haplotypes P and
@@ -1134,7 +1136,7 @@ fast Insti::solve(unsigned I, unsigned N, fast pen,
   vector<unsigned> propHaps(4);
 
   for (unsigned j = 0; j < propHaps.size(); j++)
-    propHaps[j] = sampler->SampleHap(I, rng);
+    propHaps[j] = sampler->SampleHap(I);
 
   // get a probability of the model for individual I given p
   fast curr = hmm_like(I, propHaps.data());
