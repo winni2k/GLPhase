@@ -3,6 +3,7 @@
 #include "haplotype.hpp"
 #include "kNN.hpp"
 #include "MHSampler.hpp"
+#include "glPack.hpp"
 #include <algorithm>
 #include <gsl/gsl_rng.h>
 
@@ -392,4 +393,28 @@ TEST(MHSampler, DRMHSamplesArrayOK) {
   EXPECT_FALSE(mhSampler.SampleHap(hapNums[0], 4, 1.99 * curr));
   EXPECT_EQ(10, hapNums[3]);
   EXPECT_EQ(4, hapNums[0]);
+}
+
+TEST(GLPack, packGLsOK) {
+
+  const unsigned numSamps = 5;
+  const unsigned stride = 3;
+  vector<float> GLs{ 0,         1.0 / 16, 15.0 / 16, 2.0 / 16, 3.0 / 16,
+                     11.0 / 16, 4.0 / 16, 5.0 / 16,  7.0 / 16, 0,
+                     0,         1,        0,         0,        1 };
+
+  GLPack glPack(GLs, numSamps, stride);
+
+  ASSERT_EQ(0, glPack.GetNextSampIdx());
+  vector<char> packedGLs = glPack.GetPackedGLs();
+  ASSERT_EQ(stride - 1, glPack.GetLastSampIdx());
+  ASSERT_EQ(stride, packedGLs.size());
+
+  // make sure gls got packed correctly
+  EXPECT_EQ(1, static_cast<unsigned>(packedGLs[0]));
+  EXPECT_EQ(35, static_cast<unsigned>(packedGLs[1]));
+  EXPECT_EQ(69, static_cast<unsigned>(packedGLs[2]));
+
+  vector<char> packedGLs2 = glPack.GetPackedGLs();
+  ASSERT_EQ(2, packedGLs2.size());
 }

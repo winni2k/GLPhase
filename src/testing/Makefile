@@ -19,11 +19,17 @@ export CPATH += :$(GTEST_DIR)/include:$(SRC_DIR)/u-wkretzsch-snptools/samtools-0
 export CPLUS_INCLUDE_PATH += :$(SRC_DIR):$(SRC_DIR)/olivier:$(GTEST_DIR)/src
 export LIBRARY_PATH += :$(SRC_DIR)/u-wkretzsch-snptools/samtools-0.1.16:$(SRC_DIR)/u-wkretzsch-snptools/tabix-0.2.5
 AR= ar
+LIBS += -lpthread
+
+CUDALIBS := -lcudart
+
+
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
-TESTS := insti_unittests other_unittests 
-O_FILES :=  $(wildcard $(SRC_DIR)/*.o)  $(SRC_DIR)/olivier/utils.o 
+TESTS := insti_unittests other_unittests cuda_tests
+O_FILES :=  $(addprefix $(SRC_DIR)/, $(OBJECT_FILES))
+CUDA_O_FILES := $(addprefix $(SRC_DIR)/, $(CUDA_OBJ_FILES))
 INSTI_O_FILES :=  $(filter-out %main.o, $(O_FILES))
 
 all: $(TESTS)
@@ -71,16 +77,41 @@ gtest_main.a : gtest-all.o gtest_main.o
 insti_unittests.o : insti_unittests.cpp $(SRC_DIR)/*.hpp.gch $(GTEST_HEADERS)
 	$(CXX) $(CXXFLAGS) -c $<
 
-insti_unittests : insti_unittests.o gtest_main.a $(INSTI_O_FILES)
-	$(CXX) $(CXXFLAGS) -lpthread $^ -o $@ $(LIBS)
+insti_unittests : insti_unittests.o gtest_main.a $(INSTI_O_FILES) $(CUDA_O_FILES)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS) $(CUDALIBS)
 	./$@
 
 other_unittests.o : other_unittests.cpp $(SRC_DIR)/*.hpp.gch $(GTEST_HEADERS)
 	$(CXX) $(CXXFLAGS) -c $<
 
-other_unittests : other_unittests.o gtest_main.a $(INSTI_O_FILES)
-	$(CXX) $(CXXFLAGS) -lpthread $^ -o $@ $(LIBS)
+other_unittests : other_unittests.o gtest_main.a $(INSTI_O_FILES) $(CUDA_O_FILES)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS) $(CUDALIBS)
 	./$@
 
+# compile cuda object file
+# ok, need to turn on sm_20 option for separate .cu file compilation
+# see: http://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#using-separate-compilation-in-cuda
+# order of nvcc options is important! options should always go last!
+
+NVCCFLAGS := -arch=sm_35 -m64
+NVCC := nvcc
+
+cuda_tests.cu.o: cuda_tests.cu
+	$(NVCC) $< $(NVCCFLAGS) -dc -o $@ 
+
+# compile g++ object file
+cuda_tests.o: cuda_tests.cpp $(GTEST_HEADERS)
+	$(CXX) $(CXXFLAGS) -c $<
+
+#$(SRC_DIR)/hmmLike.cu.o
+cuda_tests.link.o: cuda_tests.cu.o $(SRC_DIR)/hmmLike.cu.o 
+	$(NVCC) $^ $(NVCCFLAGS) -dlink -o $@
+
+cuda_tests: cuda_tests.link.o gtest_main.a cuda_tests.o cuda_tests.cu.o $(SRC_DIR)/hmmLike.cu.o
+	$(CXX) $^ $(CXXFLAGS) -o $@ $(LIBS) $(CUDALIBS)
+	./$@
+
+
 .PHONY: clean all debug $(TESTS)
+.SUFFIXES:
 ### Makefile ends here

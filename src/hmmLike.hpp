@@ -1,5 +1,5 @@
-#ifndef _HMMLIKE_H
-#define _HMMLIKE_H 1
+#ifndef _HMMLIKE_HPP
+#define _HMMLIKE_HPP 1
 
 /*
   This is a CUDA based version of hmm_like in SNPTools.
@@ -10,29 +10,84 @@
 
 #include <vector>
 #include <cstdint>
+#include <cmath>
+#include <cuda_runtime.h>
+#include <sstream>
+#include "sampler.hpp"
+#include "utils.hpp"
+#include "glPack.hpp"
 
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
+// this is the number of sites that the HMM will run on
+#define NUMSITES 512
+// input wordsize is 64 because we are working with uint64_t
+#define WORDSIZE 64
+static_assert(NUMSITES % WORDSIZE == 0,
+              "Numsites is not evenly divisible by wordsize");
+
+// this is the number of haplotypes we use in the HMM
+// That is, the HMM has NUMSITES * NUMHAPS states
+#define NUMHAPS 4
+static_assert(
+    sizeof(unsigned int) >= 4,
+    "Size of unsigned int is < 4. We might run into indexing issues otherwise");
+
+// these functions are implemented in HMMLike.cu
+namespace HMMLikeCUDA {
+extern void CheckDevice();
+extern cudaError_t CopyTranToDevice(const std::vector<float> &tran);
+extern cudaError_t CopyMutationMatToDevice(const float (*mutMat)[4][4]);
+}
+
 class HMMLike {
 private:
-  unsigned m_numSites;
-  unsigned m_totalNumHaps; // this may be more than total number of samples
-  unsigned m_totalNumSamps;
+  const std::vector<uint64_t> &m_inHapPanel;
+  const unsigned m_numSites = NUMSITES;
+
+  // this may be more than total number of samples in the case of a reference
+  // panel
+  const unsigned m_totalNumHaps;
+  const unsigned m_totalNumSamps;
+
+  const unsigned m_numCycles;
+
+  // transition matrix
+  const std::vector<float> &m_tran;
+
+  // mutation matrix.  pc[4][4] in impute.cpp
+  const float (*m_mutationMat)[4][4];
+
+  Sampler &m_sampler;
+  unsigned m_nextSampIdx;
+  GLPack m_glPack;
+
+  /*
+    Pulls out GLs for next run and repackages them ready to call cuda code
+  */
+  void CheckDevice();
+  void CopyTranToDevice();
+  void CopyMutationMatToDevice();
 
 public:
   /*
     HMMLike constructor.  takes input to a 2*NxnumWordsPerHap matrix.
     It is assumed that the word length is 64 bit.
   */
-  HMMLike(const uint64_t &hapPanel, unsigned numSites, unsigned numHaps,
-          unsigned numSamps, const std::vector<float> &GLs,
-          unsigned sampleStride);
+  HMMLike(const std::vector<uint64_t> &hapPanel, unsigned numHaps,
+          const std::vector<float> &GLs, unsigned numSamps,
+          unsigned sampleStride, unsigned numCycles,
+          const std::vector<float> &tran, const float (*mutationMat)[4][4],
+          Sampler &sampler);
 
   /*
-    Returns an NxS matrix of S haplotype numbers
-    that have been sampled using C HMM iterations.
+    Fills sampldHaps with m_sampleStride sets of NUMHAPS haplotype numbers
+    that have been sampled using numCycles HMM iterations.
+    Also Fills hapIdxs with the m_sampleStride indices of the samples that the
+    hapNumber sets were sampled for.
   */
-  std::vector<std::vector<unsigned> > SampleHaps();
-}
+  std::vector<unsigned> RunHMMOnSamples(unsigned &firstSampIdx,
+                                        unsigned &lastSampIdx);
+};
 
 #endif
