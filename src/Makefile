@@ -18,7 +18,7 @@ all: $(BDIR)/insti.$(VERSION)
 $(BDIR)/insti.$(VERSION): CXXFLAGS += -O3
 
 static: KERNEL := $(shell uname -r)
-static: SLIBS := u-wkretzsch-snptools/samtools-0.1.16/libbam.a u-wkretzsch-snptools/tabix-0.2.5/libtabix.a /usr/lib64/libm.a ~/lib/libz.a ~/lib/libgsl.a ~/lib/libgslcblas.a ~/lib/libboost_iostreams.a ~/lib/libbz2.a
+static: SLIBS := u-wkretzsch-snptools/samtools-0.1.16/libbam.a u-wkretzsch-snptools/tabix-0.2.5/libtabix.a /usr/lib64/libm.a ~/lib/libz.a ~/lib/libgsl.a ~/lib/libgslcblas.a ~/lib/libboost_iostreams.a ~/lib/libbz2.a /usr/lib64/libc.a /usr/lib/gcc/x86_64-redhat-linux/4.7.2/libstdc++.a
 
 debug: test $(BDIR)/insti.$(VERSION).debug
 
@@ -90,7 +90,7 @@ $(BDIR)/insti.$(VERSION).debug: $(OBJECT_FILES)
 	$(CXX) $(CXXFLAGS) $(OBJECT_FILES) -o $@ $(LIBS)
 
 static: $(OBJECT_FILES)
-	$(CXX) $(CXXFLAGS) $(OBJECT_FILES) -o $(BDIR)/insti.$(VERSION).static-$(KERNEL) $(SLIBS)
+	$(CXX) -static $(CXXFLAGS) $(OBJECT_FILES) -o $(BDIR)/insti.$(VERSION).static-$(KERNEL) $(SLIBS)
 
 
 ## installation
