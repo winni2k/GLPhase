@@ -35,9 +35,15 @@ static_assert(
 
 // these functions are implemented in HMMLike.cu
 namespace HMMLikeCUDA {
-extern void CheckDevice();
-extern cudaError_t CopyTranToDevice(const std::vector<float> &tran);
-extern cudaError_t CopyMutationMatToDevice(const float (*mutMat)[4][4]);
+extern "C" void CheckDevice();
+extern "C" cudaError_t CopyTranToDevice(const std::vector<float> &tran);
+extern "C" cudaError_t CopyMutationMatToDevice(const float (*mutMat)[4][4]);
+extern "C" void RunHMMOnDevice(const std::vector<char> &packedGLs,
+                               const std::vector<uint64_t> &hapPanel,
+                               const std::vector<unsigned> &extraPropHaps,
+                               unsigned numSites, unsigned numSamples,
+                               unsigned numCycles, unsigned sampIdxOffset,
+                               std::vector<unsigned> &hapIdxs);
 }
 
 class HMMLike {
@@ -65,9 +71,10 @@ private:
   /*
     Pulls out GLs for next run and repackages them ready to call cuda code
   */
-  void CheckDevice();
-  void CopyTranToDevice();
-  void CopyMutationMatToDevice();
+  void CheckDevice() const;
+  void CopyTranToDevice() const;
+  void CopyMutationMatToDevice() const;
+  void CopyPackedGLsToDevice(const std::vector<char> &packedGLs) const;
 
 public:
   /*

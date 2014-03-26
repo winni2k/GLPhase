@@ -93,21 +93,21 @@ other_unittests : other_unittests.o gtest_main.a $(INSTI_O_FILES) $(CUDA_O_FILES
 # see: http://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#using-separate-compilation-in-cuda
 # order of nvcc options is important! options should always go last!
 
-NVCCFLAGS := -arch=sm_35 -m64
+NVCCFLAGS := -arch=sm_35 -m64 
 NVCC := nvcc
 
 cuda_tests.cu.o: cuda_tests.cu
 	$(NVCC) $< $(NVCCFLAGS) -dc -o $@ 
 
 # compile g++ object file
-cuda_tests.o: cuda_tests.cpp $(GTEST_HEADERS)
+cuda_tests.o: cuda_tests.cpp $(GTEST_HEADERS) $(SRC_DIR)/*.hpp.gch
 	$(CXX) $(CXXFLAGS) -c $<
 
 #$(SRC_DIR)/hmmLike.cu.o
 cuda_tests.link.o: cuda_tests.cu.o $(SRC_DIR)/hmmLike.cu.o 
 	$(NVCC) $^ $(NVCCFLAGS) -dlink -o $@
 
-cuda_tests: cuda_tests.link.o gtest_main.a cuda_tests.o cuda_tests.cu.o $(SRC_DIR)/hmmLike.cu.o
+cuda_tests: cuda_tests.link.o gtest_main.a cuda_tests.o cuda_tests.cu.o $(SRC_DIR)/hmmLike.cu.o $(INSTI_O_FILES)
 	$(CXX) $^ $(CXXFLAGS) -o $@ $(LIBS) $(CUDALIBS)
 	./$@
 

@@ -19,16 +19,17 @@ class GLPack {
   unsigned m_nextSampIdx = 0;
   unsigned m_lastSampIdx = 0;
 
-  char GLTrio2Char(const std::vector<float> &GLs, unsigned idx);
-  char GL2HalfChar(float GL);
+  char GLTrio2Char(unsigned idx) const;
+  char GL2HalfChar(float GL) const;
 
 public:
   GLPack(const std::vector<float> &inGLs, unsigned numSamps,
          unsigned sampleStride);
   std::vector<char> GetPackedGLs();
-  unsigned GetSampleStride() { return m_sampleStride; }
-  unsigned GetNextSampIdx() { return m_nextSampIdx; }
-  unsigned GetLastSampIdx() { return m_lastSampIdx; }
+  unsigned GetSampleStride() const { return m_sampleStride; }
+  unsigned GetNextSampIdx() const { return m_nextSampIdx; }
+  unsigned GetLastSampIdx() const { return m_lastSampIdx; }
+  unsigned GetNumSites() const { return m_numSites; }
 };
 
 #endif

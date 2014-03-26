@@ -3,6 +3,8 @@
 
 #include <vector>
 #include <cassert>
+#include <stdint.h>
+#include <stdlib.h>
 
 #define NUMSITES 512
 

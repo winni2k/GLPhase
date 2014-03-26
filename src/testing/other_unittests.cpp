@@ -397,24 +397,64 @@ TEST(MHSampler, DRMHSamplesArrayOK) {
 
 TEST(GLPack, packGLsOK) {
 
-  const unsigned numSamps = 5;
-  const unsigned stride = 3;
-  vector<float> GLs{ 0,         1.0 / 16, 15.0 / 16, 2.0 / 16, 3.0 / 16,
-                     11.0 / 16, 4.0 / 16, 5.0 / 16,  7.0 / 16, 0,
-                     0,         1,        0,         0,        1 };
+  unsigned numSamps = 5;
+  unsigned stride = 3;
+  vector<float> GLs{ 0,        1.0 / 16, 15.0 / 16, // samp1
+                     2.0 / 16, 3.0 / 16, 11.0 / 16, // samp2
+                     4.0 / 16, 5.0 / 16, 7.0 / 16,  // samp3
+                     0,        0,        1,         // samp4
+                     0,        0,        1 // samp5
+  };
 
   GLPack glPack(GLs, numSamps, stride);
 
-  ASSERT_EQ(0, glPack.GetNextSampIdx());
-  vector<char> packedGLs = glPack.GetPackedGLs();
-  ASSERT_EQ(stride - 1, glPack.GetLastSampIdx());
-  ASSERT_EQ(stride, packedGLs.size());
+  for (int i = 0; i < 2; ++i) {
+    ASSERT_EQ(0, glPack.GetNextSampIdx());
+    vector<char> packedGLs = glPack.GetPackedGLs();
+    ASSERT_EQ(stride - 1, glPack.GetLastSampIdx());
+    ASSERT_EQ(stride, packedGLs.size());
 
-  // make sure gls got packed correctly
-  EXPECT_EQ(1, static_cast<unsigned>(packedGLs[0]));
-  EXPECT_EQ(35, static_cast<unsigned>(packedGLs[1]));
-  EXPECT_EQ(69, static_cast<unsigned>(packedGLs[2]));
+    // make sure gls got packed correctly
+    ASSERT_EQ(3, glPack.GetNextSampIdx());
+    EXPECT_EQ(0, static_cast<unsigned>(packedGLs[0]));
+    EXPECT_EQ(18, static_cast<unsigned>(packedGLs[1]));
+    EXPECT_EQ(52, static_cast<unsigned>(packedGLs[2]));
 
-  vector<char> packedGLs2 = glPack.GetPackedGLs();
-  ASSERT_EQ(2, packedGLs2.size());
+    vector<char> packedGLs2 = glPack.GetPackedGLs();
+    ASSERT_EQ(numSamps - 1, glPack.GetLastSampIdx());
+    ASSERT_EQ(2, packedGLs2.size());
+  }
+}
+TEST(GLPack, packGLsMultiSiteOK) {
+  unsigned numSamps = 3;
+  unsigned stride = 2;
+  unsigned numSites = 2;
+  vector<float> GLs{
+    0,        1.0 / 16, 15.0 / 16, 2.0 / 16, 3.0 / 16, 11.0 / 16, // sample1
+    4.0 / 16, 5.0 / 16, 7.0 / 16,  0.9 / 16, 3.5 / 16, 11.6 / 16, // sample2
+    0,        0,        1,         0.5,      0.5,      0          // sample3
+  };
+
+  GLPack glPack(GLs, numSamps, stride);
+  ASSERT_EQ(numSites, glPack.GetNumSites());
+
+  for (int i = 0; i < 2; ++i) {
+    ASSERT_EQ(0, glPack.GetNextSampIdx());
+    vector<char> packedGLs = glPack.GetPackedGLs();
+    ASSERT_EQ(stride - 1, glPack.GetLastSampIdx());
+    ASSERT_EQ(stride * numSites, packedGLs.size());
+
+    // make sure gls got packed correctly
+    ASSERT_EQ(stride, glPack.GetNextSampIdx());
+    EXPECT_EQ(0, static_cast<unsigned>(packedGLs[0]));
+    EXPECT_EQ(52, static_cast<unsigned>(packedGLs[1]));
+    EXPECT_EQ(18, static_cast<unsigned>(packedGLs[2]));
+    EXPECT_EQ(3, static_cast<unsigned>(packedGLs[3]));
+
+    vector<char> packedGLs2 = glPack.GetPackedGLs();
+    ASSERT_EQ(numSamps - 1, glPack.GetLastSampIdx());
+    ASSERT_EQ(numSites, packedGLs2.size());
+    EXPECT_EQ(0, static_cast<unsigned>(packedGLs2[0]));
+    EXPECT_EQ(119, static_cast<unsigned>(packedGLs2[1]));
+  }
 }

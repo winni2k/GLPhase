@@ -9,7 +9,7 @@ using namespace HMMLikeCUDA;
 namespace HMMLikeCUDATest {
 __global__ void HostUnpackGLs(char GLset, float *GLs) { UnpackGLs(GLset, GLs); }
 
-bool UnpackGLs(char GLset, float *GLs) {
+extern "C" bool UnpackGLs(char GLset, float *GLs) {
 
   cudaError_t err = cudaSuccess;
 
@@ -49,14 +49,15 @@ bool UnpackGLs(char GLset, float *GLs) {
     return false;
 }
 
-cudaError_t CopyTranToHost(vector<float> &tran) {
+extern "C" cudaError_t CopyTranToHost(vector<float> &tran) {
 
   assert(tran.size() == NUMSITES * 3);
   return cudaMemcpyFromSymbol(tran.data(), transitionMat,
                               sizeof(float) * NUMSITES * 3, 0,
                               cudaMemcpyDeviceToHost);
 }
-cudaError_t CopyMutMatToHost(vector<float> &mutMat) {
+
+extern "C" cudaError_t CopyMutMatToHost(vector<float> &mutMat) {
 
   assert(mutMat.size() == 4 * 4);
   return cudaMemcpyFromSymbol(mutMat.data(), mutationMat, sizeof(float) * 4 * 4,

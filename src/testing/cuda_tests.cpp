@@ -1,14 +1,16 @@
 
 #include "gtest/gtest.h"
 #include "hmmLike.hpp"
+#include "sampler.hpp"
 #include <cuda_runtime.h>
+#include <gsl/gsl_rng.h>
 
 using namespace std;
 
 namespace HMMLikeCUDATest {
-extern bool UnpackGLs(char GLset, float *GLs);
-extern cudaError_t CopyTranToHost(vector<float> &tran);
-extern cudaError_t CopyMutMatToHost(vector<float> &mutMat);
+extern "C" bool UnpackGLs(char GLset, float *GLs);
+extern "C" cudaError_t CopyTranToHost(vector<float> &tran);
+extern "C" cudaError_t CopyMutMatToHost(vector<float> &mutMat);
 }
 
 TEST(FindDevice, FoundDevice) { HMMLikeCUDA::CheckDevice(); }
@@ -72,15 +74,40 @@ TEST(UnpackGLs, UnpackOk) {
   EXPECT_FLOAT_EQ(13.0f / 16, GLs[2]);
 }
 
-/*
 TEST(HMMLike, createsOK) {
 
-  hapPanel panel1;
-  vector<vector<char> > haps;
-  vector<snp> sites = { 0, 1, 2, 3 };
-  vector<string> sampIDs = { "s1", "s2", "s3", "s4" };
-  for 
-  haps.push_back(
-  panel1.Init();
+  gsl_rng *rng = gsl_rng_alloc(gsl_rng_default);
+  gsl_rng_set(rng, time(NULL));
+
+  const unsigned numSamps = 2;
+  const unsigned numHaps = 4;
+  const unsigned numSites = 512;
+  vector<uint64_t> hapPanel(numSites * numHaps / 64);
+  vector<float> GLs(3 * numSites * numSamps);
+  unsigned sampleStride = 2;
+  unsigned numCycles = 10;
+  vector<float> tran(numSites * 3);
+  float mutMat[4][4];
+  UnifSampler sampler(rng, numSamps, numHaps);
+
+  // initialize mutation matrix
+  for (int i = 0; i < 4; ++i)
+    for (int j = 0; j < 4; ++j)
+      mutMat[i][j] = gsl_rng_uniform(rng);
+
+  for (auto &GL : GLs)
+    GL = gsl_rng_uniform(rng);
+
+  HMMLike hmmLike(hapPanel, numHaps, GLs, numSamps, sampleStride, numCycles,
+                  tran, &mutMat, sampler);
+
+  unsigned firstSampIdx;
+  unsigned lastSampIdx;
+  vector<unsigned> hapIdxs =
+      hmmLike.RunHMMOnSamples(firstSampIdx, lastSampIdx);
+  ASSERT_EQ(0, firstSampIdx);
+  ASSERT_EQ(1, lastSampIdx);
+  ASSERT_EQ(numSamps * 4, hapIdxs.size());
+  for (int i = 0; i < 8; ++i)
+    EXPECT_EQ(i, hapIdxs[i]);
 }
-*/

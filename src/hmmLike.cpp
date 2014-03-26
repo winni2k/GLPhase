@@ -31,23 +31,41 @@ HMMLike::HMMLike(const vector<uint64_t> &hapPanel, unsigned numHaps,
 vector<unsigned> HMMLike::RunHMMOnSamples(unsigned &firstSampIdx,
                                           unsigned &lastSampIdx) {
 
-  vector<unsigned> hapIdxs;
-
+  // get next set of GLs
   firstSampIdx = m_glPack.GetNextSampIdx();
   vector<char> packedGLs = m_glPack.GetPackedGLs();
   lastSampIdx = m_glPack.GetLastSampIdx();
 
+  // generate initial list of four hap nums for kernel to use
+  // generate list of numCycles haplotype nums for the kernel to choose from
+  vector<unsigned> hapIdxs(4 * m_totalNumSamps);
+  assert(hapIdxs.size() == (lastSampIdx - firstSampIdx + 1) * 4);
+  vector<unsigned> extraPropHaps(m_totalNumSamps * m_numCycles);
+  for (unsigned sampIdx = firstSampIdx; sampIdx < lastSampIdx; ++sampIdx) {
+
+    // fill the initial haps
+    for (unsigned propHapIdx = 0; propHapIdx < 4; ++propHapIdx)
+      hapIdxs[sampIdx * 4 + propHapIdx] = m_sampler.SampleHap(sampIdx);
+
+    // fill the proposal haps
+    for (unsigned cycleIdx = 0; cycleIdx < m_numCycles; ++cycleIdx)
+      extraPropHaps[cycleIdx * m_glPack.GetSampleStride() + sampIdx] =
+          m_sampler.SampleHap(sampIdx);
+  }
+
   // run kernel
+  HMMLikeCUDA::RunHMMOnDevice(packedGLs, m_inHapPanel, extraPropHaps,
+                              m_glPack.GetNumSites(), m_totalNumSamps, m_numCycles,
+                              firstSampIdx, hapIdxs);
 
   // unpack results
 
   // return
-  assert(hapIdxs.size() == (lastSampIdx - firstSampIdx + 1) * 4);
   return hapIdxs;
 }
 
-void HMMLike::CheckDevice() { HMMLikeCUDA::CheckDevice(); }
-void HMMLike::CopyTranToDevice() {
+void HMMLike::CheckDevice() const { HMMLikeCUDA::CheckDevice(); }
+void HMMLike::CopyTranToDevice() const {
 
   cudaError_t err = HMMLikeCUDA::CopyTranToDevice(m_tran);
   if (err != cudaSuccess) {
@@ -57,7 +75,7 @@ void HMMLike::CopyTranToDevice() {
     throw myException(outerr.str());
   }
 }
-void HMMLike::CopyMutationMatToDevice() {
+void HMMLike::CopyMutationMatToDevice() const {
 
   cudaError_t err = HMMLikeCUDA::CopyMutationMatToDevice(m_mutationMat);
   if (err != cudaSuccess) {

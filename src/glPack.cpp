@@ -16,7 +16,7 @@ vector<char> GLPack::GetPackedGLs() {
 
   // Create appropriately strided GLs
   m_lastSampIdx = m_nextSampIdx + m_sampleStride <= m_numSamps
-                      ? m_nextSampIdx + m_sampleStride -1
+                      ? m_nextSampIdx + m_sampleStride - 1
                       : m_numSamps - 1;
 
   const unsigned numSamps = m_lastSampIdx - m_nextSampIdx + 1;
@@ -27,33 +27,41 @@ vector<char> GLPack::GetPackedGLs() {
     unsigned sampIdx = m_nextSampIdx;
     for (unsigned packSampIdx = 0; packSampIdx < numSamps;
          ++sampIdx, ++packSampIdx) {
+
+      /*
+        We are rearranging the order of GLs here.
+        inGLs, which GLTrio2Char extracts from, has its GLs ordered by sample:
+        samp1site1, samp1site2, samp1site3, samp2site1, etc.
+        packegGLs has its GLs ordered by site:
+        samp1site1, samp2site1, samp3site1, samp1site2, etc.
+      */
       packedGLs[packSampIdx + numSamps * siteIdx] =
-          GLTrio2Char(m_inGLs, sampIdx * 3 * m_numSites + siteIdx * 3);
+          GLTrio2Char(siteIdx * 3 + sampIdx * 3 * m_numSites);
     }
   }
 
+  // move next sampId along
+  m_nextSampIdx =
+      m_lastSampIdx == m_numSamps - 1 ? 0 : m_nextSampIdx + m_sampleStride;
   return packedGLs;
 }
 
-char GLPack::GLTrio2Char(const vector<float> &GLs, unsigned idx) {
+char GLPack::GLTrio2Char(unsigned glIdx) const {
 
-  // make sure I got the right set of GLs!
-  if (!(abs(1 - GLs[idx] - GLs[idx + 1] - GLs[idx + 2]) < 0.01))
-    throw myException("GLs do not add up to 1\nSample index: " +
-                      sutils::uint2str(idx) + "\nGLs: " +
-                      sutils::double2str(GLs[idx]) + " " +
-                      sutils::double2str(GLs[idx + 1]) + " " +
-                      sutils::double2str(GLs[idx + 2]));
-  char GLRR = GL2HalfChar(GLs[idx]);
-  char GLHet = GL2HalfChar(GLs[idx + 1]);
+  // normalize GLs to 1
+  float sum = m_inGLs[glIdx] + m_inGLs[glIdx + 1] + m_inGLs[glIdx + 2];
+  assert(sum > 0);
+
+  char GLRR = GL2HalfChar(m_inGLs[glIdx] / sum);
+  char GLHet = GL2HalfChar(m_inGLs[glIdx + 1] / sum);
   return ((GLRR << 4) | GLHet);
 }
 
-char GLPack::GL2HalfChar(float GL) {
+char GLPack::GL2HalfChar(float GL) const {
 
   // make sure the float is within [0,1)
   assert(GL >= 0);
-  GL = max(GL - numeric_limits<float>::min(), 0.0f);
+  GL = max(GL - numeric_limits<float>::epsilon(), 0.0f);
   assert(GL < 1);
 
   // mash that number into one of numPoss possibilities
