@@ -5,11 +5,18 @@
 #include <cassert>
 #include <stdint.h>
 #include <stdlib.h>
+#include <curand_kernel.h>
+#include <cfloat>
+#include <algorithm>
 
 #define NUMSITES 512
+#define WN 8 // word num = 512 / 64
+#define WordShift 6
+#define WordMod 63
 
 namespace HMMLikeCUDA {
-extern __device__ void UnpackGLs(char GLset, float *GLs);
+extern __device__ void UnpackGLs(char GLset, float (&GLs)[3]);
+extern __device__ void FillEmit(const float (&GLs)[3], float (&emit)[4]);
 
 // transition matrix
 extern __constant__ float transitionMat[NUMSITES * 3];

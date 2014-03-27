@@ -13,6 +13,7 @@
 #include <cmath>
 #include <cuda_runtime.h>
 #include <sstream>
+#include <gsl/gsl_rng.h>
 #include "sampler.hpp"
 #include "utils.hpp"
 #include "glPack.hpp"
@@ -42,8 +43,9 @@ extern "C" void RunHMMOnDevice(const std::vector<char> &packedGLs,
                                const std::vector<uint64_t> &hapPanel,
                                const std::vector<unsigned> &extraPropHaps,
                                unsigned numSites, unsigned numSamples,
-                               unsigned numCycles, unsigned sampIdxOffset,
-                               std::vector<unsigned> &hapIdxs);
+                               unsigned numCycles,
+                               std::vector<unsigned> &hapIdxs,
+                               unsigned long seed);
 }
 
 class HMMLike {
@@ -67,6 +69,7 @@ private:
   Sampler &m_sampler;
   unsigned m_nextSampIdx;
   GLPack m_glPack;
+  gsl_rng &m_rng;
 
   /*
     Pulls out GLs for next run and repackages them ready to call cuda code
@@ -85,7 +88,7 @@ public:
           const std::vector<float> &GLs, unsigned numSamps,
           unsigned sampleStride, unsigned numCycles,
           const std::vector<float> &tran, const float (*mutationMat)[4][4],
-          Sampler &sampler);
+          Sampler &sampler, gsl_rng &rng);
 
   /*
     Fills sampldHaps with m_sampleStride sets of NUMHAPS haplotype numbers
