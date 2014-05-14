@@ -21,18 +21,28 @@ export LIBRARY_PATH += :$(SRC_DIR)/u-wkretzsch-snptools/samtools-0.1.16:$(SRC_DI
 AR= ar
 LIBS += -lpthread
 
+ifndef NCUDA
 CUDALIBS := -lcudart
-
-
+endif
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
-TESTS := insti_unittests other_unittests cuda_tests
+TESTS := insti_unittests other_unittests 
+ifndef NCUDA
+TESTS += cuda_tests
+endif
+RUNTESTS:=$(addprefix run_,$(TESTS))
 O_FILES :=  $(addprefix $(SRC_DIR)/, $(OBJECT_FILES))
+ifndef NCUDA
 CUDA_O_FILES := $(addprefix $(SRC_DIR)/, $(CUDA_OBJ_FILES))
-INSTI_O_FILES :=  $(filter-out %main.o, $(O_FILES))
+endif
 
-all: $(TESTS)
+# hmmLike.o contains some gpu code
+INSTI_O_FILES :=  $(filter-out %main.o %hmmLike.o, $(O_FILES))
+CUDA_O_FILES += $(SRC_DIR)/hmmLike.o
+
+all: $(RUNTESTS)
+
 
 debug:
 	$(CXX) -E -x c++ - -v < /dev/null
@@ -77,26 +87,31 @@ gtest_main.a : gtest-all.o gtest_main.o
 insti_unittests.o : insti_unittests.cpp $(SRC_DIR)/*.hpp.gch $(GTEST_HEADERS)
 	$(CXX) $(CXXFLAGS) -c $<
 
-insti_unittests : insti_unittests.o gtest_main.a $(INSTI_O_FILES) $(CUDA_O_FILES)
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS) $(CUDALIBS)
-	./$@
+insti_unittests : insti_unittests.o gtest_main.a $(INSTI_O_FILES) 
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)
+
+run_insti_unittests: insti_unittests
+	./$^
 
 other_unittests.o : other_unittests.cpp $(SRC_DIR)/*.hpp.gch $(GTEST_HEADERS)
 	$(CXX) $(CXXFLAGS) -c $<
 
-other_unittests : other_unittests.o gtest_main.a $(INSTI_O_FILES) $(CUDA_O_FILES)
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS) $(CUDALIBS)
-	./$@
+other_unittests : other_unittests.o gtest_main.a $(INSTI_O_FILES)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)
 
+run_other_unittests: other_unittests
+	./$^
+
+ifndef NCUDA
 # compile cuda object file
 # ok, need to turn on sm_20 option for separate .cu file compilation
 # see: http://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#using-separate-compilation-in-cuda
 # order of nvcc options is important! options should always go last!
 
-NVCCFLAGS := -arch=sm_35 -m64 
+NVCCFLAGS := -arch=sm_35 -m64 -g -G 
 NVCC := nvcc
 
-cuda_tests.cu.o: cuda_tests.cu
+cuda_tests.cu.o: cuda_tests.cu $(SRC_DIR)/hmmLike.hcu
 	$(NVCC) $< $(NVCCFLAGS) -dc -o $@ 
 
 # compile g++ object file
@@ -107,11 +122,13 @@ cuda_tests.o: cuda_tests.cpp $(GTEST_HEADERS) $(SRC_DIR)/*.hpp.gch
 cuda_tests.link.o: cuda_tests.cu.o $(SRC_DIR)/hmmLike.cu.o 
 	$(NVCC) $^ $(NVCCFLAGS) -dlink -o $@
 
-cuda_tests: cuda_tests.link.o gtest_main.a cuda_tests.o cuda_tests.cu.o $(SRC_DIR)/hmmLike.cu.o $(INSTI_O_FILES)
+cuda_tests: cuda_tests.link.o gtest_main.a cuda_tests.o cuda_tests.cu.o $(SRC_DIR)/hmmLike.cu.o $(SRC_DIR)/hmmLike.o $(INSTI_O_FILES)
 	$(CXX) $^ $(CXXFLAGS) -o $@ $(LIBS) $(CUDALIBS)
-	./$@
 
+run_cuda_tests:cuda_tests
+	./$^
+endif
 
-.PHONY: clean all debug $(TESTS)
+.PHONY: clean all debug $(RUNTESTS)
 .SUFFIXES:
 ### Makefile ends here

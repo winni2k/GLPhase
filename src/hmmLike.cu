@@ -1,6 +1,9 @@
 #include "hmmLike.hcu"
 
-#include <iostream>
+// thrust includes need to not be in header
+// errors otherwise...
+#include <thrust/host_vector.h>
+#include <thrust/device_vector.h>
 
 using namespace std;
 
@@ -33,6 +36,7 @@ __device__ uint64_t test(const uint64_t *P, unsigned I) {
 
 __device__ float hmmLike(unsigned idx, const unsigned (&hapIdxs)[4],
                          const char *__restrict__ d_packedGLs,
+                         unsigned packedGLStride,
                          const uint64_t *__restrict__ d_hapPanel) {
 
   // pull the four haplotypes into f0, f1, m0 and m1
@@ -60,62 +64,63 @@ __device__ float hmmLike(unsigned idx, const unsigned (&hapIdxs)[4],
   float l10 = 0.25f * emit[(test(f1, 0) << 1) | test(m0, 0)],
         l11 = 0.25f * emit[(test(f1, 0) << 1) | test(m1, 0)];
 
+  for (int site = 1; site < NUMSITES; ++site) {
+    // move to next site for e and t
 
-    for (int site = 1; site < NUMSITES; ++site) {
-      // move to next site for e and t
+    // #########
+    // Convert packed GLs back to floats
 
-      // #########
-      // Convert packed GLs back to floats
+    UnpackGLs(d_packedGLs[idx + site * packedGLStride], GLs);
 
-      UnpackGLs(d_packedGLs[idx + site * NUMSITES], GLs);
+    // fill emit with next site's emission matrix
+    FillEmit(GLs, emit);
 
-      // fill emit with next site's emission matrix
-      FillEmit(GLs, emit);
+    // bxx = backward probabilities of being in phase xx
+    const float b00 = l00 * transitionMat[site * 3] +
+                      (l01 + l10) * transitionMat[site * 3 + 1] +
+                      l11 * transitionMat[site * 3 + 2];
+    const float b01 = l01 * transitionMat[site * 3] +
+                      (l00 + l11) * transitionMat[site * 3 + 1] +
+                      l10 * transitionMat[site * 3 + 2];
+    const float b10 = l10 * transitionMat[site * 3] +
+                      (l00 + l11) * transitionMat[site * 3 + 1] +
+                      l01 * transitionMat[site * 3 + 2];
+    const float b11 = l11 * transitionMat[site * 3] +
+                      (l01 + l10) * transitionMat[site * 3 + 1] +
+                      l00 * transitionMat[site * 3 + 2];
 
-      // bxx = backward probabilities of being in phase xx
-      const float b00 = l00 * transitionMat[site * 3] +
-                        (l01 + l10) * transitionMat[site * 3 + 1] +
-                        l11 * transitionMat[site * 3 + 2];
-      const float b01 = l01 * transitionMat[site * 3] +
-                        (l00 + l11) * transitionMat[site * 3 + 1] +
-                        l10 * transitionMat[site * 3 + 2];
-      const float b10 = l10 * transitionMat[site * 3] +
-                        (l00 + l11) * transitionMat[site * 3 + 1] +
-                        l01 * transitionMat[site * 3 + 2];
-      const float b11 = l11 * transitionMat[site * 3] +
-                        (l01 + l10) * transitionMat[site * 3 + 1] +
-                        l00 * transitionMat[site * 3 + 2];
+    l00 = b00 * emit[(test(f0, site) << 1) | test(m0, site)];
+    l01 = b01 * emit[(test(f0, site) << 1) | test(m1, site)];
+    l10 = b10 * emit[(test(f1, site) << 1) | test(m0, site)];
+    l11 = b11 * emit[(test(f1, site) << 1) | test(m1, site)];
 
-      l00 = b00 * emit[(test(f0, site) << 1) | test(m0, site)];
-      l01 = b01 * emit[(test(f0, site) << 1) | test(m1, site)];
-      l10 = b10 * emit[(test(f1, site) << 1) | test(m0, site)];
-      l11 = b11 * emit[(test(f1, site) << 1) | test(m1, site)];
-
-      // rescale probabilities if they become too small
-      // hopefully this does not happen too often...
-      if ((sum = l00 + l01 + l10 + l11) < norm) {
-        sum = 1.0f / sum;
-        score -= logf(sum); // add sum to score
-        l00 *= sum;
-        l01 *= sum;
-        l10 *= sum;
-        l11 *= sum;
-      }
-
+    // rescale probabilities if they become too small
+    // hopefully this does not happen too often...
+    if ((sum = l00 + l01 + l10 + l11) < norm) {
+      sum = 1.0f / sum;
+      score -= logf(sum); // add sum to score
+      l00 *= sum;
+      l01 *= sum;
+      l10 *= sum;
+      l11 *= sum;
     }
+  }
 
-    return score + logf(l00 + l01 + l10 + l11);
-
+  return score + logf(l00 + l01 + l10 + l11);
 };
 
 // definition of HMM kernel
-__global__ void findSampleSet(const char *__restrict__ d_packedGLs,
-                              const uint64_t *__restrict__ d_hapPanel,
-                              const unsigned *__restrict__ d_hapIdxs,
-                              const unsigned *__restrict__ d_extraPropHaps,
-                              unsigned *__restrict__ d_chosenHapIdxs,
-                              unsigned numSamples, unsigned numCycles,
-                              curandStateXORWOW_t *__restrict__ globalState) {
+__global__ void findHapSet(const char *__restrict__ d_packedGLs,
+                           const uint64_t *__restrict__ d_hapPanel,
+                           const unsigned *__restrict__ d_hapIdxs,
+                           const unsigned *__restrict__ d_extraPropHaps,
+                           unsigned *d_chosenHapIdxs, unsigned numSamples,
+                           unsigned numCycles, curandStateXORWOW_t *globalState
+#ifndef NDEBUG
+                           ,
+                           float *d_likes
+#endif
+                           ) {
 
   const float S = 1;
   int idx = blockDim.x * blockIdx.x + threadIdx.x;
@@ -128,7 +133,13 @@ __global__ void findSampleSet(const char *__restrict__ d_packedGLs,
       hapIdxs[i] = d_hapIdxs[idx + numSamples * i];
 
     // define emission matrix
-    float curr = hmmLike(idx, hapIdxs, d_packedGLs, d_hapPanel);
+    float curr = hmmLike(idx, hapIdxs, d_packedGLs, numSamples, d_hapPanel);
+
+#ifndef NDEBUG
+    // debugging ...
+    if (idx == 0)
+      d_likes[0] = curr;
+#endif
 
     // pick a random haplotype to replace with another one from all
     // haplotypes.  calculate the new probability of the model given
@@ -142,9 +153,8 @@ __global__ void findSampleSet(const char *__restrict__ d_packedGLs,
       unsigned replaceHapNum = curand(&localState) & 3;
       unsigned origHap = hapIdxs[replaceHapNum];
 
-      // this could be just cycle as well, but why ignore the first value?
-      hapIdxs[replaceHapNum] = d_extraPropHaps[cycle - 1];
-      float prop = hmmLike(idx, hapIdxs, d_packedGLs, d_hapPanel);
+      hapIdxs[replaceHapNum] = d_extraPropHaps[idx + cycle * numSamples];
+      float prop = hmmLike(idx, hapIdxs, d_packedGLs, numSamples, d_hapPanel);
 
       // accept new set
       if (curand_uniform(&localState) < expf((prop - curr) * S))
@@ -153,7 +163,12 @@ __global__ void findSampleSet(const char *__restrict__ d_packedGLs,
       else
         hapIdxs[replaceHapNum] = origHap;
 
-    } // end of cycle
+#ifndef NDEBUG
+      if (idx == 0)
+        d_likes[cycle + 1] = curr;
+#endif
+
+    } // last of numCycles
     for (int i = 0; i < 4; ++i)
       d_chosenHapIdxs[idx + numSamples * i] = hapIdxs[i];
 
@@ -173,7 +188,7 @@ __global__ void setup_generators(curandStateXORWOW_t *state,
   curand_init(seed, id, 0, &state[id]);
 }
 
-extern "C" void CheckDevice() {
+void CheckDevice() {
 
   cudaError_t err;
   err = cudaGetLastError();
@@ -240,15 +255,18 @@ extern "C" void CheckDevice() {
   return;
 }
 
-extern "C" cudaError_t CopyTranToDevice(const vector<float> &tran) {
+cudaError_t CopyTranToDevice(const vector<float> &tran) {
 
   assert(tran.size() == NUMSITES * 3);
+  // first three values of tran are never used
+  for (unsigned i = 3; i < tran.size(); i += 3)
+    assert(abs(tran[i] + 2 * tran[i + 1] + tran[i + 2] - 1) < 0.1);
   return cudaMemcpyToSymbol(transitionMat, tran.data(),
                             sizeof(float) * NUMSITES * 3, 0,
                             cudaMemcpyHostToDevice);
 }
 
-extern "C" cudaError_t CopyMutationMatToDevice(const float (*mutMat)[4][4]) {
+cudaError_t CopyMutationMatToDevice(const float (*mutMat)[4][4]) {
 
   vector<float> h_mutMat(4 * 4);
   for (int i = 0; i < 4; ++i)
@@ -259,12 +277,11 @@ extern "C" cudaError_t CopyMutationMatToDevice(const float (*mutMat)[4][4]) {
                             0, cudaMemcpyHostToDevice);
 }
 
-extern "C" void RunHMMOnDevice(const vector<char> &packedGLs,
-                               const vector<uint64_t> &hapPanel,
-                               const vector<unsigned> &extraPropHaps,
-                               unsigned numSites, unsigned numSamples,
-                               unsigned numCycles, vector<unsigned> &hapIdxs,
-                               unsigned long seed) {
+void RunHMMOnDevice(const vector<char> &packedGLs,
+                    const vector<uint64_t> &hapPanel,
+                    const vector<unsigned> &extraPropHaps, unsigned numSites,
+                    unsigned numSamples, unsigned numCycles,
+                    vector<unsigned> &hapIdxs, unsigned long seed) {
   assert(numSites == NUMSITES);
   assert(packedGLs.size() == numSites * numSamples);
 
@@ -272,6 +289,14 @@ extern "C" void RunHMMOnDevice(const vector<char> &packedGLs,
          WN * (*max_element(extraPropHaps.begin(), extraPropHaps.end()) + 1));
   assert(hapIdxs.size() == numSamples * 4);
   assert(extraPropHaps.size() == numSamples * numCycles);
+
+#ifndef NDEBUG
+  // debug info
+  cout << "Hap Idxs before sampling: ";
+  for (int i = 0; i < hapIdxs.size(); ++i)
+    cout << hapIdxs[i] << " ";
+  cout << endl;
+#endif
 
   cudaError_t err = cudaSuccess;
   /*
@@ -289,10 +314,12 @@ extern "C" void RunHMMOnDevice(const vector<char> &packedGLs,
     exit(EXIT_FAILURE);
   }
 
-  /*
-    copy packedGLs to device memory
-  */
-  cout << "Copying packed GLs to device\n";
+/*
+  copy packedGLs to device memory
+*/
+#ifndef NDEBUG
+  cout << "[HMMLikeCUDA] Copying packed GLs to device\n";
+#endif
   size_t glSize = packedGLs.size() * sizeof(char);
 
   // allocate memory on device
@@ -311,10 +338,12 @@ extern "C" void RunHMMOnDevice(const vector<char> &packedGLs,
     exit(EXIT_FAILURE);
   }
 
-  /*
-    copy haplotypes to device memory
-  */
-  cout << "Copying HapPanel to device\n";
+/*
+  copy haplotypes to device memory
+*/
+#ifndef NDEBUG
+  cout << "[HMMLikeCUDA] Copying HapPanel to device\n";
+#endif
   size_t hapPanelSize = hapPanel.size() * sizeof(uint64_t);
 
   // allocate memory on device
@@ -333,10 +362,12 @@ extern "C" void RunHMMOnDevice(const vector<char> &packedGLs,
     exit(EXIT_FAILURE);
   }
 
-  /*
-    copy initial hap indices to device memory
-  */
-  cout << "Copying hap indices to device\n";
+/*
+  copy initial hap indices to device memory
+*/
+#ifndef NDEBUG
+  cout << "[HMMLikeCUDA] Copying hap indices to device\n";
+#endif
   size_t hapIdxsSize = hapIdxs.size() * sizeof(unsigned);
 
   // allocate memory on device
@@ -355,10 +386,12 @@ extern "C" void RunHMMOnDevice(const vector<char> &packedGLs,
     exit(EXIT_FAILURE);
   }
 
-  /*
-    copy extra proposal haps to device memory
-  */
-  cout << "Copying extra proposal haps to device\n";
+/*
+  copy extra proposal haps to device memory
+*/
+#ifndef NDEBUG
+  cout << "[HMMLikeCUDA] Copying extra proposal haps to device\n";
+#endif
   size_t extraPropHapsSize = extraPropHaps.size() * sizeof(unsigned);
 
   // allocate memory on device
@@ -387,18 +420,33 @@ extern "C" void RunHMMOnDevice(const vector<char> &packedGLs,
     exit(EXIT_FAILURE);
   }
 
+#ifndef NDEBUG
+  /*
+    allocate device memory for debugging floats
+  */
+  thrust::device_vector<float> d_likes(numCycles + 1);
+  float *d_likePtr = thrust::raw_pointer_cast(&d_likes[0]);
+#endif
+
   // determine thread and block size
   int threadsPerBlock = 32;
   int blocksPerRun = (numSamples + threadsPerBlock - 1) / threadsPerBlock;
-  cout << "Running with " << threadsPerBlock << " threads per block in "
-       << blocksPerRun << " thread blocks\n";
+#ifndef NDEBUG
+  cout << "[HMMLikeCUDA] Running with " << threadsPerBlock
+       << " threads per block in " << blocksPerRun << " thread blocks\n";
+#endif
 
   /*
     run kernel
   */
-  findSampleSet << <blocksPerRun, threadsPerBlock>>>
+  findHapSet << <blocksPerRun, threadsPerBlock>>>
       (d_packedGLs, d_hapPanel, d_hapIdxs, d_extraPropHaps, d_chosenHapIdxs,
-       numSamples, numCycles, devStates);
+       numSamples, numCycles, devStates
+#ifndef NDEBUG
+       ,
+       d_likePtr
+#endif
+       );
   cudaDeviceSynchronize();
   err = cudaGetLastError();
   if (err != cudaSuccess) {
@@ -423,7 +471,23 @@ extern "C" void RunHMMOnDevice(const vector<char> &packedGLs,
   assert(cudaFree(d_hapPanel) == cudaSuccess);
   assert(cudaFree(d_packedGLs) == cudaSuccess);
 
+#ifndef NDEBUG
+  thrust::host_vector<float> h_likes(numCycles + 1);
+  h_likes = d_likes;
+
+  // debug info
+  cout << "Hap Idxs after sampling: ";
+  for (int i = 0; i < hapIdxs.size(); ++i)
+    cout << hapIdxs[i] << " ";
+  cout << endl;
+
+  cout << "cycle likelihoods: ";
+  for (int i = 0; i < numCycles + 1; ++i)
+    cout << h_likes[i] << " ";
+  cout << endl;
+#endif
+
   // return nothing as the return data is stored in hapIdxs
   return;
-};
+}
 }

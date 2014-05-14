@@ -4,10 +4,16 @@ using namespace std;
 
 GLPack::GLPack(const vector<float> &inGLs, unsigned numSamps,
                unsigned sampleStride)
-    : m_numSamps{ numSamps }, m_inGLs(inGLs), m_sampleStride{ sampleStride },
-      m_numSites(m_inGLs.size() / numSamps / 3) {
+    : m_numSamps(numSamps), m_inGLs(inGLs), m_sampleStride(sampleStride),
+      m_numSites(m_inGLs.size() / m_numSamps / 3) {
+
+  // make sure input GLs have right dimension
   assert(m_inGLs.size() % 3 == 0);
   assert((m_inGLs.size() / 3) % numSamps == 0);
+
+  // make sure sampleStride is valid
+  assert(m_sampleStride > 0);
+  assert(m_sampleStride <= m_numSamps);
 }
 
 vector<char> GLPack::GetPackedGLs() {

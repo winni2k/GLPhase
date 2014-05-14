@@ -30,6 +30,7 @@ public:
   unsigned GetNextSampIdx() const { return m_nextSampIdx; }
   unsigned GetLastSampIdx() const { return m_lastSampIdx; }
   unsigned GetNumSites() const { return m_numSites; }
+  unsigned GetNumSamps() const { return m_numSamps; }
 };
 
 #endif

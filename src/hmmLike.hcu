@@ -5,9 +5,12 @@
 #include <cassert>
 #include <stdint.h>
 #include <stdlib.h>
+#include <iostream>
 #include <curand_kernel.h>
 #include <cfloat>
 #include <algorithm>
+#include <iostream>
+
 
 #define NUMSITES 512
 #define WN 8 // word num = 512 / 64
@@ -17,6 +20,10 @@
 namespace HMMLikeCUDA {
 extern __device__ void UnpackGLs(char GLset, float (&GLs)[3]);
 extern __device__ void FillEmit(const float (&GLs)[3], float (&emit)[4]);
+extern __device__ float hmmLike(unsigned idx, const unsigned (&hapIdxs)[4],
+                                const char *__restrict__ d_packedGLs,
+                                unsigned packedGLStride,
+                                const uint64_t *__restrict__ d_hapPanel);
 
 // transition matrix
 extern __constant__ float transitionMat[NUMSITES * 3];

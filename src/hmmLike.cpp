@@ -3,21 +3,20 @@
 using namespace std;
 
 HMMLike::HMMLike(const vector<uint64_t> &hapPanel, unsigned numHaps,
-                 const vector<float> &GLs, unsigned numSamps,
-                 unsigned sampleStride, unsigned numCycles,
-                 const vector<float> &tran, const float (*mutationMat)[4][4],
-                 Sampler &sampler, gsl_rng &rng)
-    : m_inHapPanel(hapPanel), m_totalNumHaps{ numHaps },
-      m_totalNumSamps{ numSamps }, m_numCycles{ numCycles }, m_tran(tran),
-      m_mutationMat(mutationMat), m_sampler(sampler),
-      m_glPack(GLs, numSamps, sampleStride), m_rng(rng) {
+                 GLPack &glPack, unsigned numCycles, const vector<float> &tran,
+                 const float (*mutationMat)[4][4], Sampler &sampler,
+                 gsl_rng &rng)
+    : m_inHapPanel(hapPanel), m_totalNumHaps(numHaps), m_glPack(glPack),
+      m_totalNumSamps(m_glPack.GetNumSamps()), m_numCycles(numCycles),
+      m_tran(tran), m_mutationMat(mutationMat), m_sampler(sampler), m_rng(rng) {
 
   // Checking expectations.
   assert(m_numCycles > 0);
-  assert(m_inHapPanel.size() == m_numSites / WORDSIZE * m_totalNumHaps);
-  assert(GLs.size() == m_numSites * 3 * m_totalNumSamps);
+  assert(m_inHapPanel.size() == m_totalNumHaps * NUMSITES / WORDSIZE);
+  assert(NUMSITES == m_glPack.GetNumSites());
 
   // make sure we have a K20 or better installed
+  // also define some constants
   CheckDevice();
 
   // copy the transition matrix to constant memory on device
@@ -40,19 +39,19 @@ vector<unsigned> HMMLike::RunHMMOnSamples(unsigned &firstSampIdx,
   unsigned numRunSamps = lastSampIdx - firstSampIdx + 1;
   // generate initial list of four hap nums for kernel to use
   // generate list of numCycles haplotype nums for the kernel to choose from
-  vector<unsigned> hapIdxs(4 * m_totalNumSamps);
-  assert(hapIdxs.size() == (lastSampIdx - firstSampIdx + 1) * 4);
+  vector<unsigned> hapIdxs(4 * numRunSamps);
   vector<unsigned> extraPropHaps(m_glPack.GetSampleStride() * m_numCycles);
-  for (unsigned sampIdx = firstSampIdx; sampIdx <= lastSampIdx; ++sampIdx) {
+  unsigned sampIdx = firstSampIdx;
+  for (unsigned sampNum = 0; sampNum < numRunSamps; ++sampNum, ++sampIdx) {
 
     // fill the initial haps
     for (unsigned propHapIdx = 0; propHapIdx < 4; ++propHapIdx)
-      hapIdxs[sampIdx + propHapIdx * numRunSamps] =
+      hapIdxs[sampNum + propHapIdx * numRunSamps] =
           m_sampler.SampleHap(sampIdx);
 
     // fill the proposal haps
     for (unsigned cycleIdx = 0; cycleIdx < m_numCycles; ++cycleIdx)
-      extraPropHaps[cycleIdx * m_glPack.GetSampleStride() + sampIdx] =
+      extraPropHaps[cycleIdx * m_glPack.GetSampleStride() + sampNum] =
           m_sampler.SampleHap(sampIdx);
   }
 

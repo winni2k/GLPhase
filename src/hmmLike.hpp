@@ -36,10 +36,10 @@ static_assert(
 
 // these functions are implemented in HMMLike.cu
 namespace HMMLikeCUDA {
-extern "C" void CheckDevice();
-extern "C" cudaError_t CopyTranToDevice(const std::vector<float> &tran);
-extern "C" cudaError_t CopyMutationMatToDevice(const float (*mutMat)[4][4]);
-extern "C" void RunHMMOnDevice(const std::vector<char> &packedGLs,
+extern void CheckDevice();
+extern cudaError_t CopyTranToDevice(const std::vector<float> &tran);
+extern cudaError_t CopyMutationMatToDevice(const float (*mutMat)[4][4]);
+extern void RunHMMOnDevice(const std::vector<char> &packedGLs,
                                const std::vector<uint64_t> &hapPanel,
                                const std::vector<unsigned> &extraPropHaps,
                                unsigned numSites, unsigned numSamples,
@@ -51,11 +51,12 @@ extern "C" void RunHMMOnDevice(const std::vector<char> &packedGLs,
 class HMMLike {
 private:
   const std::vector<uint64_t> &m_inHapPanel;
-  const unsigned m_numSites = NUMSITES;
 
   // this may be more than total number of samples in the case of a reference
   // panel
   const unsigned m_totalNumHaps;
+
+  GLPack &m_glPack;
   const unsigned m_totalNumSamps;
 
   const unsigned m_numCycles;
@@ -68,7 +69,6 @@ private:
 
   Sampler &m_sampler;
   unsigned m_nextSampIdx;
-  GLPack m_glPack;
   gsl_rng &m_rng;
 
   /*
@@ -85,10 +85,8 @@ public:
     It is assumed that the word length is 64 bit.
   */
   HMMLike(const std::vector<uint64_t> &hapPanel, unsigned numHaps,
-          const std::vector<float> &GLs, unsigned numSamps,
-          unsigned sampleStride, unsigned numCycles,
-          const std::vector<float> &tran, const float (*mutationMat)[4][4],
-          Sampler &sampler, gsl_rng &rng);
+          GLPack &glPack, unsigned numCycles, const std::vector<float> &tran,
+          const float (*mutationMat)[4][4], Sampler &sampler, gsl_rng &rng);
 
   /*
     Fills sampldHaps with m_sampleStride sets of NUMHAPS haplotype numbers

@@ -1,13 +1,7 @@
-
-
 test: debug
 
-test: CXXFLAGS += -O1
-debug: CXXFLAGS += -O1
-
+debug: CXXFLAGS += -O0
 export DEBUGFLAGS := -ggdb
-
-test: CXXFLAGS += $(DEBUGFLAGS)
 debug: CXXFLAGS += $(DEBUGFLAGS)
 
 export CXX := g++-4.7+
@@ -16,9 +10,12 @@ BOOSTLIB := -lboost_iostreams-mt #alternatively: /opt/boost/boost-1.54.0-intel/l
 export LIBS += -lgsl -lgslcblas -lbam -ltabix -lbz2 $(BOOSTLIB) -lm -lstdc++ -lz
 
 # nvcc
-NVCCFLAGS := -arch=sm_35 -m64
+ifndef NCUDA
+NVCCFLAGS += -arch=sm_35 -m64
 NVCC := nvcc
 CUDALIBS := -lcudart
+test: NVCCFLAGS += -g -G
+endif
 
 # path variables
 export CPATH += :u-wkretzsch-snptools/samtools-0.1.16:u-wkretzsch-snptools/tabix-0.2.5
@@ -28,19 +25,32 @@ export LD_LIBRARY_PATH += $(LIBRARY_PATH)
 
 BDIR := ../bin
 VERSION := $(shell grep VERSION_MAJOR version.hpp | cut -f3 -d' ').$(shell grep VERSION_MINOR version.hpp | cut -f3 -d' ').$(shell grep VERSION_REVISION version.hpp | cut -f3 -d' ')
-export OBJECT_FILES := main.o impute.o insti.o emcchain.o olivier/utils.o haplotype.o kMedoids.o kNN.o hapPanel.o sampler.o hmmLike.o glPack.o
-export CUDA_OBJ_FILES := hmmLike.cu.o allCuda.link.o
+export OBJECT_FILES := main.o impute.o insti.o emcchain.o olivier/utils.o haplotype.o kMedoids.o kNN.o hapPanel.o sampler.o glPack.o
+
+ifndef NCUDA
+export CUDA_OBJ_FILES := hmmLike.cu.o allCuda.link.o hmmLike.o
+endif
 
 HEADER_FILES := insti.hpp.gch impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch version.hpp.gch snp.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch sampler.hpp
 
-all: $(BDIR)/insti.$(VERSION)
+ifndef NCUDA
+BIN :=$(BDIR)/insti.$(VERSION)
+all:  NVCCFLAGS += -DNDEBUG
+else
+BIN :=  $(BDIR)/insti.$(VERSION).ncuda
+CXXFLAGS += -DNCUDA
+endif
 
-$(BDIR)/insti.$(VERSION): CXXFLAGS += -O3
+
+all: $(BIN)
+
+all: CXXFLAGS += -O3 -DNDEBUG
+
 
 static: KERNEL := $(shell uname -r)
 static: SLIBS := u-wkretzsch-snptools/samtools-0.1.16/libbam.a u-wkretzsch-snptools/tabix-0.2.5/libtabix.a /usr/lib64/libm.a ~/lib/libz.a ~/li
 
-debug: $(BDIR)/insti.$(VERSION).debug
+debug: $(BIN).debug
 
 test : $(OBJECT_FILES) $(HEADER_FILES) $(CUDA_OBJ_FILES)
 	$(MAKE) -C testing
@@ -92,24 +102,26 @@ insti.hpp.gch: insti.hpp impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch s
 olivier/utils.o: olivier/utils.cpp olivier/utils.hpp.gch
 	$(CXX) $(CXXFLAGS) -Wno-sign-compare -c $< -o $@ $(LIBS)
 
+ifndef NCUDA
 hmmLike.cu.o: hmmLike.cu hmmLike.hcu
 	$(NVCC) $< $(NVCCFLAGS) -dc -o $@
 
 allCuda.link.o: hmmLike.cu.o
 	$(NVCC) $^ $(NVCCFLAGS) -dlink -o $@
+endif
 
 main.o: main.cpp version.hpp.gch impute.hpp.gch insti.hpp.gch
 	$(CXX) $(CXXFLAGS) -c $< $(LIBS)
 
 ## binaries
-$(BDIR)/insti.$(VERSION): $(OBJECT_FILES)
+$(BIN): $(OBJECT_FILES)
 	$(CXX) $(CXXFLAGS) $(OBJECT_FILES) -o $@ $(LIBS)
 	cd $(BDIR) && rm -f insti && ln -s insti.$(VERSION) insti
 
 static: $(OBJECT_FILES)
 	$(CXX) $(CXXFLAGS) $(OBJECT_FILES) -o $(BDIR)/insti.$(VERSION).static-$(KERNEL) $(SLIBS)
 
-$(BDIR)/insti.$(VERSION).debug: $(OBJECT_FILES) $(CUDA_OBJ_FILES)
+$(BIN).debug: $(OBJECT_FILES) $(CUDA_OBJ_FILES)
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS) $(CUDALIBS)
 
 
