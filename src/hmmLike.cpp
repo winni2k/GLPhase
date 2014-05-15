@@ -2,9 +2,30 @@
 
 using namespace std;
 
+namespace HMMLikeHelper{
+vector<unsigned> transposeHapIdxs(const std::vector<unsigned> &hapIdxs) {
+  const unsigned hapsPerSamp = 4;
+  assert(hapIdxs.size() % hapsPerSamp == 0);
+  const unsigned numSamps = hapIdxs.size() / hapsPerSamp;
+
+  // this is the transposed vector to return
+  vector<unsigned> retHapIdxs(hapIdxs.size());
+
+  // transpose
+  for (unsigned sampNum = 0; sampNum < numSamps; ++sampNum)
+    for (unsigned hapNum = 0; hapNum < hapsPerSamp; ++hapNum)
+      retHapIdxs[hapNum + sampNum * hapsPerSamp] =
+          hapIdxs[sampNum + hapNum * numSamps];
+
+  // return by reference due to c++11 magic (we hope)
+  return retHapIdxs;
+}
+}
+
+
 HMMLike::HMMLike(const vector<uint64_t> &hapPanel, unsigned numHaps,
                  GLPack &glPack, unsigned numCycles, const vector<float> &tran,
-                 const float (*mutationMat)[4][4], Sampler &sampler,
+                 const float (*mutationMat)[4][4], shared_ptr<Sampler> &sampler,
                  gsl_rng &rng)
     : m_inHapPanel(hapPanel), m_totalNumHaps(numHaps), m_glPack(glPack),
       m_totalNumSamps(m_glPack.GetNumSamps()), m_numCycles(numCycles),
@@ -47,12 +68,12 @@ vector<unsigned> HMMLike::RunHMMOnSamples(unsigned &firstSampIdx,
     // fill the initial haps
     for (unsigned propHapIdx = 0; propHapIdx < 4; ++propHapIdx)
       hapIdxs[sampNum + propHapIdx * numRunSamps] =
-          m_sampler.SampleHap(sampIdx);
+          m_sampler->SampleHap(sampIdx);
 
     // fill the proposal haps
     for (unsigned cycleIdx = 0; cycleIdx < m_numCycles; ++cycleIdx)
       extraPropHaps[cycleIdx * m_glPack.GetSampleStride() + sampNum] =
-          m_sampler.SampleHap(sampIdx);
+          m_sampler->SampleHap(sampIdx);
   }
 
   // run kernel
@@ -60,10 +81,8 @@ vector<unsigned> HMMLike::RunHMMOnSamples(unsigned &firstSampIdx,
       packedGLs, m_inHapPanel, extraPropHaps, m_glPack.GetNumSites(),
       m_glPack.GetSampleStride(), m_numCycles, hapIdxs, gsl_rng_get(&m_rng));
 
-  // unpack results
-
   // return
-  return hapIdxs;
+  return HMMLikeHelper::transposeHapIdxs(hapIdxs);
 }
 
 void HMMLike::CheckDevice() const { HMMLikeCUDA::CheckDevice(); }

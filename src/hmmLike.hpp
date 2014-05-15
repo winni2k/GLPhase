@@ -8,6 +8,7 @@
   a speed boost through parallelization.
 */
 
+#include <memory>
 #include <vector>
 #include <cstdint>
 #include <cmath>
@@ -40,12 +41,15 @@ extern void CheckDevice();
 extern cudaError_t CopyTranToDevice(const std::vector<float> &tran);
 extern cudaError_t CopyMutationMatToDevice(const float (*mutMat)[4][4]);
 extern void RunHMMOnDevice(const std::vector<char> &packedGLs,
-                               const std::vector<uint64_t> &hapPanel,
-                               const std::vector<unsigned> &extraPropHaps,
-                               unsigned numSites, unsigned numSamples,
-                               unsigned numCycles,
-                               std::vector<unsigned> &hapIdxs,
-                               unsigned long seed);
+                           const std::vector<uint64_t> &hapPanel,
+                           const std::vector<unsigned> &extraPropHaps,
+                           unsigned numSites, unsigned numSamples,
+                           unsigned numCycles, std::vector<unsigned> &hapIdxs,
+                           unsigned long seed);
+}
+
+namespace HMMLikeHelper {
+std::vector<unsigned> transposeHapIdxs(const std::vector<unsigned> &hapIdxs);
 }
 
 class HMMLike {
@@ -67,7 +71,7 @@ private:
   // mutation matrix.  pc[4][4] in impute.cpp
   const float (*m_mutationMat)[4][4];
 
-  Sampler &m_sampler;
+  std::shared_ptr<Sampler> &m_sampler;
   unsigned m_nextSampIdx;
   gsl_rng &m_rng;
 
@@ -86,7 +90,8 @@ public:
   */
   HMMLike(const std::vector<uint64_t> &hapPanel, unsigned numHaps,
           GLPack &glPack, unsigned numCycles, const std::vector<float> &tran,
-          const float (*mutationMat)[4][4], Sampler &sampler, gsl_rng &rng);
+          const float (*mutationMat)[4][4], std::shared_ptr<Sampler> &sampler,
+          gsl_rng &rng);
 
   /*
     Fills sampldHaps with m_sampleStride sets of NUMHAPS haplotype numbers

@@ -25,10 +25,15 @@
 #include "MHSampler.hpp"
 #include "kMedoids.hpp"
 #include "kNN.hpp"
+#include "glPack.hpp"
 #include <boost/uuid/uuid.hpp>            // uuid class
 #include <boost/uuid/uuid_generators.hpp> // generators
 #include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
 #include <cfloat>
+
+#ifndef NCUDA
+#include "hmmLike.hpp"
+#endif
 
 // require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
@@ -70,6 +75,10 @@ private:
 
   fast solve(unsigned I, unsigned N, fast pen,
              std::shared_ptr<Sampler> &sampler);
+#ifndef NCUDA
+  fast cudaSolve(unsigned sampleStride, unsigned numCycles, fast pen,
+                 std::shared_ptr<Sampler> &sampler);
+#endif
 
   virtual fast solve(unsigned I, unsigned &N, fast pen) override {
     std::cerr << I << N << pen;

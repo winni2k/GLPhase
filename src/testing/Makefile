@@ -21,10 +21,6 @@ export LIBRARY_PATH += :$(SRC_DIR)/u-wkretzsch-snptools/samtools-0.1.16:$(SRC_DI
 AR= ar
 LIBS += -lpthread
 
-ifndef NCUDA
-CUDALIBS := -lcudart
-endif
-
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
 TESTS := insti_unittests other_unittests 
@@ -33,13 +29,10 @@ TESTS += cuda_tests
 endif
 RUNTESTS:=$(addprefix run_,$(TESTS))
 O_FILES :=  $(addprefix $(SRC_DIR)/, $(OBJECT_FILES))
-ifndef NCUDA
-CUDA_O_FILES := $(addprefix $(SRC_DIR)/, $(CUDA_OBJ_FILES))
-endif
 
 # hmmLike.o contains some gpu code
-INSTI_O_FILES :=  $(filter-out %main.o %hmmLike.o, $(O_FILES))
-CUDA_O_FILES += $(SRC_DIR)/hmmLike.o
+INSTI_O_FILES :=  $(filter-out %main.o, $(O_FILES))
+CUDA_O_FILES := $(filter-out %allCuda.link.o, $(INSTI_O_FILES))
 
 all: $(RUNTESTS)
 
@@ -108,8 +101,7 @@ ifndef NCUDA
 # see: http://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#using-separate-compilation-in-cuda
 # order of nvcc options is important! options should always go last!
 
-NVCCFLAGS := -arch=sm_35 -m64 -g -G 
-NVCC := nvcc
+NVCCFLAGS += -isystem $(GTEST_DIR)
 
 cuda_tests.cu.o: cuda_tests.cu $(SRC_DIR)/hmmLike.hcu
 	$(NVCC) $< $(NVCCFLAGS) -dc -o $@ 
@@ -122,8 +114,8 @@ cuda_tests.o: cuda_tests.cpp $(GTEST_HEADERS) $(SRC_DIR)/*.hpp.gch
 cuda_tests.link.o: cuda_tests.cu.o $(SRC_DIR)/hmmLike.cu.o 
 	$(NVCC) $^ $(NVCCFLAGS) -dlink -o $@
 
-cuda_tests: cuda_tests.link.o gtest_main.a cuda_tests.o cuda_tests.cu.o $(SRC_DIR)/hmmLike.cu.o $(SRC_DIR)/hmmLike.o $(INSTI_O_FILES)
-	$(CXX) $^ $(CXXFLAGS) -o $@ $(LIBS) $(CUDALIBS)
+cuda_tests: cuda_tests.link.o gtest_main.a cuda_tests.o cuda_tests.cu.o $(SRC_DIR)/hmmLike.cu.o $(SRC_DIR)/hmmLike.o $(CUDA_O_FILES)
+	$(CXX) $^ $(CXXFLAGS) -o $@ $(LIBS)
 
 run_cuda_tests:cuda_tests
 	./$^

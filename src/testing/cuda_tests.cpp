@@ -5,6 +5,7 @@
 #include "glPack.hpp"
 #include <cuda_runtime.h>
 #include <gsl/gsl_rng.h>
+#include <memory>
 
 using namespace std;
 
@@ -142,10 +143,11 @@ TEST(HMMLike, createsOK) {
     GL = gsl_rng_uniform(rng);
   GLPack glPack1(GLs, numSamps, sampleStride);
 
-  UnifSampler sampler(rng, numSamps, numHaps);
+  shared_ptr<Sampler> sampler =
+      make_shared<UnifSampler>(rng, numSamps, numHaps);
 
   for (unsigned i = 0; i < numHaps * 10; ++i) {
-    unsigned val = sampler.SampleHap(0);
+    unsigned val = sampler->SampleHap(0);
     ASSERT_LT(1, val);
     ASSERT_GT(numHaps, val);
   }
@@ -162,11 +164,11 @@ TEST(HMMLike, createsOK) {
     ASSERT_EQ(0, firstSampIdx);
     ASSERT_EQ(1, lastSampIdx);
     ASSERT_EQ(numSamps * 4, hapIdxs.size());
-    for (int i = 0; i < 8; i += 2) {
+    for (int i = 0; i < 4; ++i) {
       EXPECT_GT(4, hapIdxs[i]);
       EXPECT_LT(1, hapIdxs[i]);
     }
-    for (int i = 1; i < 8; i += 2)
+    for (int i = 4; i < 8; ++i)
       EXPECT_GT(2, hapIdxs[i]);
   }
 
@@ -259,12 +261,13 @@ TEST(HMMLike, createsOK) {
     assert(GLs.size() == numSites * numSamps * 3);
   }
 
-  UnifSampler sampler2(rng, bigNumHaps / 2, bigNumHaps);
+  shared_ptr<Sampler> sampler2 =
+      make_shared<UnifSampler>(rng, bigNumHaps / 2, bigNumHaps);
 
   // make sure sampler is giving us what we expect
   vector<unsigned> sampledHaps;
   for (unsigned i = 0; i < bigNumHaps * 10; ++i)
-    sampledHaps.push_back(sampler2.SampleHap(0));
+    sampledHaps.push_back(sampler2->SampleHap(0));
   ASSERT_EQ(bigNumHaps - 1,
             *std::max_element(sampledHaps.begin(), sampledHaps.end()));
 
@@ -282,14 +285,13 @@ TEST(HMMLike, createsOK) {
     ASSERT_EQ(numSamps * 4, hapIdxs2.size());
 
     // only one of the father and mother pairs needs to be correct
-    for (unsigned i = 0; i < numSamps * 4; i += 2 * numSamps) {
+    for (unsigned i = 0; i < 4; ++i)
       EXPECT_TRUE((7 > hapIdxs2[i] && 4 < hapIdxs2[i]) ||
-                  (7 > hapIdxs2[i + numSamps] && 4 < hapIdxs2[i + numSamps]));
-    }
-    for (unsigned i = 1; i < numSamps * 4; i += 2 * numSamps) {
+                  (7 > hapIdxs2[i + 1] && 4 < hapIdxs2[i + 1]));
+
+    for (unsigned i = 5; i < 4; ++i)
       EXPECT_TRUE((9 > hapIdxs2[i] && 6 < hapIdxs2[i]) ||
-                  (9 > hapIdxs2[i + numSamps] && 6 < hapIdxs2[i + numSamps]));
-    }
+                  (9 > hapIdxs2[i + 1] && 6 < hapIdxs2[i + 1]));
   }
 
   /*
@@ -359,9 +361,9 @@ TEST(HMMLike, createsOK) {
     ASSERT_EQ(numSamps * 4, hapIdxs3.size());
 
     // only one of the father and mother pairs needs to be correct
-    for (unsigned i = 0; i < numSamps * 4; i += 2 * numSamps) {
+    for (unsigned i = 0; i < 4; i += 2) {
       unsigned hap1 = hapIdxs3[i];
-      unsigned hap2 = hapIdxs3[i + numSamps];
+      unsigned hap2 = hapIdxs3[i + 1];
       if (hap1 > hap2)
         swap(hap1, hap2);
       EXPECT_EQ(10, hap2);
@@ -369,8 +371,8 @@ TEST(HMMLike, createsOK) {
       EXPECT_GE(6, hap1);
 
       // these are haps for second sample
-      unsigned hap3 = hapIdxs3[i + 1];
-      unsigned hap4 = hapIdxs3[i + 1 + numSamps];
+      unsigned hap3 = hapIdxs3[i + 4];
+      unsigned hap4 = hapIdxs3[i + 4 + 1];
       if (hap3 > hap4)
         swap(hap3, hap4);
       EXPECT_EQ(11, hap4);
@@ -420,7 +422,7 @@ TEST(HMMLike, createsOK) {
     cout << endl;
   }
   */
-  
+
   {
     const unsigned numCycles3 = 100;
     ASSERT_EQ(3 * numSites * numSamps2, GLs.size());
@@ -438,9 +440,9 @@ TEST(HMMLike, createsOK) {
       ASSERT_EQ(numSamps * 4, hapIdxs3.size());
 
       // both of father and mother pairs need to be correct
-      for (unsigned i = 0; i < numSamps * 4; i += 2 * numSamps) {
+      for (unsigned i = 0; i < 4; i += 2) {
         unsigned hap1 = hapIdxs3[i];
-        unsigned hap2 = hapIdxs3[i + numSamps];
+        unsigned hap2 = hapIdxs3[i + 1];
         if (hap1 > hap2)
           swap(hap1, hap2);
         EXPECT_EQ(10, hap2);
@@ -448,8 +450,8 @@ TEST(HMMLike, createsOK) {
         EXPECT_GE(6, hap1);
 
         // these are haps for second sample
-        unsigned hap3 = hapIdxs3[i + 1];
-        unsigned hap4 = hapIdxs3[i + 1 + numSamps];
+        unsigned hap3 = hapIdxs3[i + 4];
+        unsigned hap4 = hapIdxs3[i + 1 + 4];
         if (hap3 > hap4)
           swap(hap3, hap4);
         EXPECT_EQ(11, hap4);
@@ -465,9 +467,9 @@ TEST(HMMLike, createsOK) {
       ASSERT_EQ(numSamps * 4, hapIdxs3.size());
 
       // both of father and mother pairs need to be correct
-      for (unsigned i = 0; i < numSamps * 4; i += 2 * numSamps) {
+      for (unsigned i = 0; i < 4; i += 2) {
         unsigned hap1 = hapIdxs3[i];
-        unsigned hap2 = hapIdxs3[i + numSamps];
+        unsigned hap2 = hapIdxs3[i + 1];
         if (hap1 > hap2)
           swap(hap1, hap2);
         EXPECT_EQ(11, hap2);
@@ -475,8 +477,8 @@ TEST(HMMLike, createsOK) {
         EXPECT_GE(6, hap1);
 
         // these are haps for second sample
-        unsigned hap3 = hapIdxs3[i + 1];
-        unsigned hap4 = hapIdxs3[i + 1 + numSamps];
+        unsigned hap3 = hapIdxs3[i + 4];
+        unsigned hap4 = hapIdxs3[i + 1 + 4];
         if (hap3 > hap4)
           swap(hap3, hap4);
         EXPECT_EQ(10, hap4);

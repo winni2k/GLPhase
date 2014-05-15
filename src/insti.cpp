@@ -4,6 +4,7 @@
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
 using namespace std;
+using namespace HMMLikeCUDA;
 
 /*
   #define DEBUG
@@ -1108,6 +1109,45 @@ void Insti::initialize() {
   }
 }
 
+#ifndef NCUDA
+fast Insti::cudaSolve(unsigned sampleStride, unsigned numCycles, fast pen,
+                      shared_ptr<Sampler> &sampler) {
+
+  assert(sampleStride == in);
+
+  // write log header
+  if (s_bIsLogging) {
+    stringstream message;
+    message
+        << "##iteration\tindividual\tproposal\taccepted\tind1\tind2\tind3\tind4"
+        << endl;
+    WriteToLog(message.str());
+  }
+
+  // repack gls for device
+  GLPack glPack(prob, in, sampleStride);
+
+  // create hap sampler object
+  HMMLike hapSampler(haps, hn, glPack, numCycles, tran, &pc, sampler, *rng);
+
+  // sample four hasp for N samples
+  unsigned firstSampIdx{ 0 }, lastSampIdx{ 0 };
+  vector<unsigned> propHaps =
+      hapSampler.RunHMMOnSamples(firstSampIdx, lastSampIdx);
+
+  // make sure the correct number of samples were updated
+  assert(firstSampIdx == 0);
+  assert(lastSampIdx == sampleStride - 1);
+
+  for (unsigned sampNum = firstSampIdx; sampNum <= lastSampIdx; ++sampNum)
+    hmm_work(sampNum, &propHaps[sampNum * 4], pen);
+
+  // this should be the sum of likelihoods eventually when I feel like
+  // implementing it...
+  return 0;
+}
+#endif
+
 // this part of the code seems to be responsible for:
 // A - finding a set of four haps that are close to the current individual
 // B - running the HMM and udating the individual I's haplotypes
@@ -1119,7 +1159,7 @@ void Insti::initialize() {
    load_bin() time
 */
 
-// solve(individual, number of cycles, penalty, burnin?)
+// solve(individual, number of cycles, penalty, sampler)
 fast Insti::solve(unsigned I, unsigned N, fast pen,
                   shared_ptr<Sampler> &sampler) {
 
@@ -1147,7 +1187,7 @@ fast Insti::solve(unsigned I, unsigned N, fast pen,
   // accept new set if probability has increased.
   // otherwise, accept with penalized probability
   MHSampler<unsigned> mhSampler(rng, curr, s_MHSamplerType, pen);
-  for (unsigned n = 0; n < N; n++) { // iterate through all samples
+  for (unsigned n = 0; n < N; n++) { // sample haps for each sample N cycles
     unsigned rp = gsl_rng_get(rng) & 3, oh = propHaps[rp];
 
     // kickstart phasing and imputation by only sampling haps
@@ -1271,35 +1311,39 @@ void Insti::estimate() {
   cout << m_tag << ":\titer\tpress\tlike\tfold\trunTime\texpectedRunTime"
        << endl;
 
-  // the uniform relationship "graph" will be used until
-  // -M option says not to.
-  shared_ptr<Sampler> uniformSampler =
-      make_shared<UnifSampler>(rng, in, hn + m_uNumRefHaps);
-
   // n is number of cycles = burnin + sampling cycles
   // increase penalty from 2/bn to 1 as we go through burnin
   // iterations.
-  for (unsigned n = 0; n < bn + sn; n++) {
-    m_nIteration = n;
+  for (m_nIteration = 0; m_nIteration < bn + sn; ++m_nIteration) {
     fast sum = 0, iter = 0;
-    fast pen = min<fast>((n + 1.0f) / Insti::s_uSABurninGen, 1);
+    fast pen = min<fast>((m_nIteration + 1.0f) / Insti::s_uSABurninGen, 1);
     pen *= pen; // pen = 1 after bn/2 iterations
 
-    // Phase each individual based on the rest of the individuals
+    // the uniform relationship "graph" will be used until
+    // -M option says not to.
+    shared_ptr<Sampler> iterationSampler;
+    if (m_nIteration < Insti::s_uStartClusterGen)
+      iterationSampler = make_shared<UnifSampler>(rng, in, hn + m_uNumRefHaps);
+    else
+      iterationSampler = m_sampler;
+
+// Phase each individual based on the rest of the individuals
+// but don't update haps between updates??? !!! !!! !!!
+#ifndef NCUDA
+    sum = cudaSolve(in, m_uCycles, pen, iterationSampler);
+    swap(hnew, haps);
+#else
     for (unsigned i = 0; i < in; i++) {
 
       // re-update graph based on current haplotypes
-      if (n < Insti::s_uStartClusterGen)
-        sum += solve(i, m_uCycles, pen, uniformSampler);
-      else
-        sum += solve(i, m_uCycles, pen, m_sampler);
-
+      sum += solve(i, m_uCycles, pen, iterationSampler);
       iter += m_uCycles;
     }
 
     swap(hnew, haps);
+#endif
 
-    if (n >= bn)
+    if (m_nIteration >= bn)
       for (unsigned i = 0; i < in; i++)
         replace(i); // call replace
 
@@ -1309,9 +1353,10 @@ void Insti::estimate() {
     gettimeofday(&currentTime, NULL);
     double runTimeInMin =
         static_cast<double>(currentTime.tv_sec - startTime.tv_sec) / 60;
-    cout << m_tag << ":\t" << n << '\t' << pen << '\t' << sum / in / mn << '\t'
-         << iter / in / in << "\t" << runTimeInMin << "m\t"
-         << runTimeInMin / (n + 1) * (bn + sn) << "m\t" << endl;
+    cout << m_tag << ":\t" << m_nIteration << '\t' << pen << '\t'
+         << sum / in / mn << '\t' << iter / in / in << "\t" << runTimeInMin
+         << "m\t" << runTimeInMin / (m_nIteration + 1) * (bn + sn) << "m\t"
+         << endl;
   }
 
   cout << endl;
