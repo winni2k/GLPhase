@@ -1110,27 +1110,14 @@ void Insti::initialize() {
 }
 
 #ifndef NCUDA
-fast Insti::cudaSolve(unsigned sampleStride, unsigned numCycles, fast pen,
-                      shared_ptr<Sampler> &sampler) {
+// update the sampler to be used
+// and replace the haplotypes when done
+
+fast Insti::cudaSolve(HMMLike &hapSampler, unsigned sampleStride, fast pen) {
 
   assert(sampleStride == in);
 
-  // write log header
-  if (s_bIsLogging) {
-    stringstream message;
-    message
-        << "##iteration\tindividual\tproposal\taccepted\tind1\tind2\tind3\tind4"
-        << endl;
-    WriteToLog(message.str());
-  }
-
-  // repack gls for device
-  GLPack glPack(prob, in, sampleStride);
-
-  // create hap sampler object
-  HMMLike hapSampler(haps, hn, glPack, numCycles, tran, &pc, sampler, *rng);
-
-  // sample four hasp for N samples
+  // sample four haps for N samples
   unsigned firstSampIdx{ 0 }, lastSampIdx{ 0 };
   vector<unsigned> propHaps =
       hapSampler.RunHMMOnSamples(firstSampIdx, lastSampIdx);
@@ -1139,8 +1126,16 @@ fast Insti::cudaSolve(unsigned sampleStride, unsigned numCycles, fast pen,
   assert(firstSampIdx == 0);
   assert(lastSampIdx == sampleStride - 1);
 
+  // do a final round of haplotype estimation
+  // this could be parallelized using threads perhaps? or an openmp pragma
   for (unsigned sampNum = firstSampIdx; sampNum <= lastSampIdx; ++sampNum)
     hmm_work(sampNum, &propHaps[sampNum * 4], pen);
+
+  // replace old by new haplotypes
+  swap(hnew, haps);
+
+  // haplotypes in the hmmLike are updated automagically next time
+  // RunHMMOnSamples is called
 
   // this should be the sum of likelihoods eventually when I feel like
   // implementing it...
@@ -1303,6 +1298,22 @@ void Insti::estimate() {
     document();
   }
 
+  // the default sampler shall be sampling randomly
+  shared_ptr<Sampler> iterationSampler =
+      make_shared<UnifSampler>(rng, in, hn + m_uNumRefHaps);
+
+#ifndef NCUDA
+
+  // create a cuda hapsampler object
+  // repack gls for device
+  const unsigned sampleStride = in;
+  GLPack glPack(prob, in, sampleStride);
+
+  // create hap sampler object
+  HMMLike cudaHapSampler(haps, hn, glPack, m_uCycles, tran, &pc,
+                         iterationSampler, *rng);
+#endif
+
   timeval startTime, currentTime;
   gettimeofday(&startTime, NULL);
 
@@ -1321,7 +1332,6 @@ void Insti::estimate() {
 
     // the uniform relationship "graph" will be used until
     // -M option says not to.
-    shared_ptr<Sampler> iterationSampler;
     if (m_nIteration < Insti::s_uStartClusterGen)
       iterationSampler = make_shared<UnifSampler>(rng, in, hn + m_uNumRefHaps);
     else
@@ -1330,8 +1340,9 @@ void Insti::estimate() {
 // Phase each individual based on the rest of the individuals
 // but don't update haps between updates??? !!! !!! !!!
 #ifndef NCUDA
-    sum = cudaSolve(in, m_uCycles, pen, iterationSampler);
-    swap(hnew, haps);
+    // update the sampler, because it might have changed
+    cudaHapSampler.UpdateSampler(iterationSampler);
+    sum = cudaSolve(cudaHapSampler, sampleStride, pen);
 #else
     for (unsigned i = 0; i < in; i++) {
 
@@ -1358,6 +1369,9 @@ void Insti::estimate() {
          << "m\t" << runTimeInMin / (m_nIteration + 1) * (bn + sn) << "m\t"
          << endl;
   }
+#ifndef NCUDA
+  cudaHapSampler.Cleanup();
+#endif
 
   cout << endl;
   result(); // call result

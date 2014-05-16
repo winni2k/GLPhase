@@ -76,8 +76,10 @@ private:
   fast solve(unsigned I, unsigned N, fast pen,
              std::shared_ptr<Sampler> &sampler);
 #ifndef NCUDA
-  fast cudaSolve(unsigned sampleStride, unsigned numCycles, fast pen,
-                 std::shared_ptr<Sampler> &sampler);
+    /*
+      update haps sampleStride haplotypes at a time
+    */
+    fast cudaSolve(HMMLike &hapSampler, unsigned sampleStride, fast pen);
 #endif
 
   virtual fast solve(unsigned I, unsigned &N, fast pen) override {

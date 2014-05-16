@@ -111,7 +111,7 @@ TEST(HMMLike, createsOK) {
   const unsigned numWords = numSites / wordSize;
   vector<uint64_t> hapPanel(numWords * numHaps);
   vector<float> GLs(3 * numSites * numSamps);
-  const unsigned sampleStride = 2;
+  const unsigned sampleStride = numSamps;
   const unsigned numCycles = 100;
 
   // initialize transition matrix
@@ -151,38 +151,42 @@ TEST(HMMLike, createsOK) {
     ASSERT_LT(1, val);
     ASSERT_GT(numHaps, val);
   }
-
-  // now test HMMLike functionality
-  HMMLike hmmLike(hapPanel, numHaps, glPack1, numCycles, tran, &mutMat, sampler,
-                  *rng);
-
-  unsigned firstSampIdx;
-  unsigned lastSampIdx;
   {
-    vector<unsigned> hapIdxs =
-        hmmLike.RunHMMOnSamples(firstSampIdx, lastSampIdx);
-    ASSERT_EQ(0, firstSampIdx);
-    ASSERT_EQ(1, lastSampIdx);
-    ASSERT_EQ(numSamps * 4, hapIdxs.size());
-    for (int i = 0; i < 4; ++i) {
-      EXPECT_GT(4, hapIdxs[i]);
-      EXPECT_LT(1, hapIdxs[i]);
+    // now test HMMLike functionality
+    HMMLike hmmLike(hapPanel, numHaps, glPack1, numCycles, tran, &mutMat,
+                    sampler, *rng);
+
+    unsigned firstSampIdx;
+    unsigned lastSampIdx;
+    {
+      vector<unsigned> hapIdxs =
+          hmmLike.RunHMMOnSamples(firstSampIdx, lastSampIdx);
+      ASSERT_EQ(0, firstSampIdx);
+      ASSERT_EQ(1, lastSampIdx);
+      ASSERT_EQ(numSamps * 4, hapIdxs.size());
+      for (int i = 0; i < 4; ++i) {
+        EXPECT_GT(4, hapIdxs[i]);
+        EXPECT_LT(1, hapIdxs[i]);
+      }
+      for (int i = 4; i < 8; ++i)
+        EXPECT_GT(2, hapIdxs[i]);
     }
-    for (int i = 4; i < 8; ++i)
-      EXPECT_GT(2, hapIdxs[i]);
-  }
 
-  {
-    // test hmmLike function
-    GLPack glPack0(GLs, numSamps, sampleStride);
-    auto packedGLs = glPack0.GetPackedGLs();
-    unsigned sampIdx = 0;
-    unsigned fixedHapIdxs[4];
-    for (int i = 0; i < 4; ++i)
-      fixedHapIdxs[i] = 2;
-    float like = HMMLikeCUDATest::CallHMMLike(
-        sampIdx, &fixedHapIdxs, packedGLs, glPack0.GetSampleStride(), hapPanel);
-    ASSERT_GE(1, like);
+    {
+      // test hmmLike function
+      GLPack glPack0(GLs, numSamps, sampleStride);
+      auto packedGLs = glPack0.GetPackedGLs();
+      unsigned sampIdx = 0;
+      unsigned fixedHapIdxs[4];
+      for (int i = 0; i < 4; ++i)
+        fixedHapIdxs[i] = 2;
+      float like =
+          HMMLikeCUDATest::CallHMMLike(sampIdx, &fixedHapIdxs, packedGLs,
+                                       glPack0.GetSampleStride(), hapPanel);
+      ASSERT_GE(1, like);
+    }
+
+    hmmLike.Cleanup();
   }
   //  cout << "Likelihood of Model: " << like << endl << endl;
 
@@ -271,27 +275,30 @@ TEST(HMMLike, createsOK) {
   ASSERT_EQ(bigNumHaps - 1,
             *std::max_element(sampledHaps.begin(), sampledHaps.end()));
 
-  GLPack glPack2(GLs, numSamps, sampleStride);
-  HMMLike hmmLike2(hapPanel, bigNumHaps, glPack2, numCycles, tran, &mutMat,
-                   sampler2, *rng);
-
-  firstSampIdx = 0;
-  lastSampIdx = 0;
   {
-    vector<unsigned> hapIdxs2 =
-        hmmLike2.RunHMMOnSamples(firstSampIdx, lastSampIdx);
-    ASSERT_EQ(0, firstSampIdx);
-    ASSERT_EQ(1, lastSampIdx);
-    ASSERT_EQ(numSamps * 4, hapIdxs2.size());
+    GLPack glPack2(GLs, numSamps, sampleStride);
+    HMMLike hmmLike2(hapPanel, bigNumHaps, glPack2, numCycles, tran, &mutMat,
+                     sampler2, *rng);
 
-    // only one of the father and mother pairs needs to be correct
-    for (unsigned i = 0; i < 4; ++i)
-      EXPECT_TRUE((7 > hapIdxs2[i] && 4 < hapIdxs2[i]) ||
-                  (7 > hapIdxs2[i + 1] && 4 < hapIdxs2[i + 1]));
+    unsigned firstSampIdx = 0;
+    unsigned lastSampIdx = 0;
+    {
+      vector<unsigned> hapIdxs2 =
+          hmmLike2.RunHMMOnSamples(firstSampIdx, lastSampIdx);
+      ASSERT_EQ(0, firstSampIdx);
+      ASSERT_EQ(1, lastSampIdx);
+      ASSERT_EQ(numSamps * 4, hapIdxs2.size());
 
-    for (unsigned i = 5; i < 4; ++i)
-      EXPECT_TRUE((9 > hapIdxs2[i] && 6 < hapIdxs2[i]) ||
-                  (9 > hapIdxs2[i + 1] && 6 < hapIdxs2[i + 1]));
+      // only one of the father and mother pairs needs to be correct
+      for (unsigned i = 0; i < 4; ++i)
+        EXPECT_TRUE((7 > hapIdxs2[i] && 4 < hapIdxs2[i]) ||
+                    (7 > hapIdxs2[i + 1] && 4 < hapIdxs2[i + 1]));
+
+      for (unsigned i = 5; i < 4; ++i)
+        EXPECT_TRUE((9 > hapIdxs2[i] && 6 < hapIdxs2[i]) ||
+                    (9 > hapIdxs2[i + 1] && 6 < hapIdxs2[i + 1]));
+    }
+    hmmLike2.Cleanup();
   }
 
   /*
@@ -351,8 +358,8 @@ TEST(HMMLike, createsOK) {
 
       ASSERT_GT(goodLike, badLike);
     }
-    firstSampIdx = 0;
-    lastSampIdx = 0;
+    unsigned firstSampIdx = 0;
+    unsigned lastSampIdx = 0;
 
     vector<unsigned> hapIdxs3 =
         hmmLike3.RunHMMOnSamples(firstSampIdx, lastSampIdx);
@@ -379,6 +386,8 @@ TEST(HMMLike, createsOK) {
       EXPECT_LE(7, hap3);
       EXPECT_GE(8, hap3);
     }
+
+    hmmLike3.Cleanup();
   }
   /*
     Now let's add two more samples to the GLs and try again
@@ -430,8 +439,8 @@ TEST(HMMLike, createsOK) {
     HMMLike hmmLike3(hapPanel, bigNumHaps, glPack3, numCycles3, tran, &mutMat,
                      sampler2, *rng);
 
-    firstSampIdx = 0;
-    lastSampIdx = 0;
+    unsigned firstSampIdx = 0;
+    unsigned lastSampIdx = 0;
     {
       vector<unsigned> hapIdxs3 =
           hmmLike3.RunHMMOnSamples(firstSampIdx, lastSampIdx);

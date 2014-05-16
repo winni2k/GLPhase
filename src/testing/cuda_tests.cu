@@ -2,12 +2,6 @@
 //#include "cuda_runtime.h"
 #include "hmmLike.hcu"
 
-// thrust includes need to not be in header
-// errors otherwise...
-#include <thrust/host_vector.h>
-#include <thrust/device_vector.h>
-
-
 using namespace std;
 using namespace HMMLikeCUDA;
 

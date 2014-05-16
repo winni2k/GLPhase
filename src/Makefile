@@ -1,6 +1,6 @@
 
 #targets
-.PHONY: clean test all debug static
+.PHONY: clean test all debug static release
 
 
 BDIR := ../bin
@@ -14,12 +14,19 @@ BIN :=  $(BDIR)/insti.$(VERSION).ncuda
 CXXFLAGS += -DNCUDA
 endif
 
+release: BIN += .release
 
 # targets
 all: $(BIN)
+release: $(BIN)
+debug: $(BIN).debug
+test: debug
+test: $(OBJECT_FILES) $(HEADER_FILES)
+	$(MAKE) -C testing
 
 # define CXXFLAGS
-all: CXXFLAGS += -O3 -DNDEBUG
+all: CXXFLAGS += -O3
+release: CXXFLAGS += -O3 -DNDEBUG
 static: CXXFLAGS += -O3 -DNDEBUG
 test: CXXFLAGS += -O0 -ggdb
 debug: CXXFLAGS += -O0 -ggdb
@@ -80,11 +87,6 @@ endif
 
 static: KERNEL := $(shell uname -r)
 static: SLIBS := u-wkretzsch-snptools/samtools-0.1.16/libbam.a u-wkretzsch-snptools/tabix-0.2.5/libtabix.a /usr/lib64/libm.a ~/lib/libz.a ~/li
-
-debug: $(BIN).debug
-
-test : $(OBJECT_FILES) $(HEADER_FILES)
-	$(MAKE) -C testing
 
 # I'm deprecating this
 #testDebug: $(OBJECT_FILES) $(HEADER_FILES) debug
@@ -153,7 +155,7 @@ main.o: main.cpp version.hpp.gch impute.hpp.gch insti.hpp.gch
 ## binaries
 $(BIN): $(OBJECT_FILES)
 	$(CXX) $(CXXFLAGS) $(OBJECT_FILES) -o $@ $(LIBS)
-	cd $(BDIR) && rm -f insti && ln -s insti.$(VERSION) insti
+	cd $(BDIR) && rm -f insti && ln -s $@ insti
 
 static: $(OBJECT_FILES)
 	$(CXX) $(CXXFLAGS) $(OBJECT_FILES) -o $(BDIR)/insti.$(VERSION).static-$(KERNEL) $(SLIBS)

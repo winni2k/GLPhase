@@ -1,16 +1,8 @@
 #include "hmmLike.hcu"
 
-// thrust includes need to not be in header
-// errors otherwise...
-#include <thrust/host_vector.h>
-#include <thrust/device_vector.h>
-
 using namespace std;
 
 namespace HMMLikeCUDA {
-
-__constant__ float transitionMat[NUMSITES * 3];
-__constant__ float mutationMat[4 * 4];
 
 // basically avoid singularity or floating point error
 __constant__ float norm;
@@ -116,7 +108,7 @@ __global__ void findHapSet(const char *__restrict__ d_packedGLs,
                            const unsigned *__restrict__ d_extraPropHaps,
                            unsigned *d_chosenHapIdxs, unsigned numSamples,
                            unsigned numCycles, curandStateXORWOW_t *globalState
-#ifndef NDEBUG
+#ifdef DEBUG
                            ,
                            float *d_likes
 #endif
@@ -135,7 +127,7 @@ __global__ void findHapSet(const char *__restrict__ d_packedGLs,
     // define emission matrix
     float curr = hmmLike(idx, hapIdxs, d_packedGLs, numSamples, d_hapPanel);
 
-#ifndef NDEBUG
+#ifdef DEBUG
     // debugging ...
     if (idx == 0)
       d_likes[0] = curr;
@@ -163,7 +155,7 @@ __global__ void findHapSet(const char *__restrict__ d_packedGLs,
       else
         hapIdxs[replaceHapNum] = origHap;
 
-#ifndef NDEBUG
+#ifdef DEBUG
       if (idx == 0)
         d_likes[cycle + 1] = curr;
 #endif
@@ -181,11 +173,12 @@ __global__ void findHapSet(const char *__restrict__ d_packedGLs,
 }
 
 // initializes random number generator states
-__global__ void setup_generators(curandStateXORWOW_t *state,
+__global__ void setup_generators(curandStateXORWOW_t *state, size_t stateSize,
                                  unsigned long seed) {
 
-  int id = threadIdx.x;
-  curand_init(seed, id, 0, &state[id]);
+  int idx = blockDim.x * blockIdx.x + threadIdx.x;
+  if (idx < stateSize)
+    curand_init(seed, idx, 0, &state[idx]);
 }
 
 void CheckDevice() {
@@ -277,20 +270,48 @@ cudaError_t CopyMutationMatToDevice(const float (*mutMat)[4][4]) {
                             0, cudaMemcpyHostToDevice);
 }
 
-void RunHMMOnDevice(const vector<char> &packedGLs,
+void Cleanup() { assert(cudaDeviceReset() == cudaSuccess); }
+
+void RunHMMOnDevice(const thrust::device_vector<char> &d_packedGLs,
                     const vector<uint64_t> &hapPanel,
                     const vector<unsigned> &extraPropHaps, unsigned numSites,
                     unsigned numSamples, unsigned numCycles,
                     vector<unsigned> &hapIdxs, unsigned long seed) {
   assert(numSites == NUMSITES);
-  assert(packedGLs.size() == numSites * numSamples);
-
+  assert(d_packedGLs.size() == numSites * numSamples);
   assert(hapPanel.size() >=
          WN * (*max_element(extraPropHaps.begin(), extraPropHaps.end()) + 1));
   assert(hapIdxs.size() == numSamples * 4);
   assert(extraPropHaps.size() == numSamples * numCycles);
 
-#ifndef NDEBUG
+/*
+  copy packedGLs to device memory
+*/
+/* hopefully we don't need this code anymore...
+#ifdef DEBUG
+cout << "[HMMLikeCUDA] Copying packed GLs to device\n";
+#endif
+
+size_t glSize = packedGLs.size() * sizeof(char);
+
+// allocate memory on device
+char *d_packedGLs;
+err = cudaMalloc(&d_packedGLs, glSize);
+if (err != cudaSuccess) {
+  cerr << "Failed to allocate packed GLs on device\n";
+  exit(EXIT_FAILURE);
+}
+
+// copy data across
+err =
+    cudaMemcpy(d_packedGLs, packedGLs.data(), glSize, cudaMemcpyHostToDevice);
+if (err != cudaSuccess) {
+  cerr << "Failed to copy packed GLs to device\n";
+  exit(EXIT_FAILURE);
+}
+*/
+
+#ifdef DEBUG
   // debug info
   cout << "Hap Idxs before sampling: ";
   for (int i = 0; i < hapIdxs.size(); ++i)
@@ -306,7 +327,11 @@ void RunHMMOnDevice(const vector<char> &packedGLs,
   cudaMalloc(&devStates, numSamples * sizeof(curandStateXORWOW_t));
 
   // set up generators
-  setup_generators << <1, numSamples>>> (devStates, seed);
+  unsigned threadsPerBlock = 32;
+  unsigned blocksPerRun = (numSamples + threadsPerBlock - 1) / threadsPerBlock;
+
+  setup_generators << <blocksPerRun, threadsPerBlock>>>
+      (devStates, numSamples, seed);
   err = cudaGetLastError();
   if (err != cudaSuccess) {
     cerr << "Failed to set up random states kernel: " << cudaGetErrorString(err)
@@ -315,33 +340,9 @@ void RunHMMOnDevice(const vector<char> &packedGLs,
   }
 
 /*
-  copy packedGLs to device memory
-*/
-#ifndef NDEBUG
-  cout << "[HMMLikeCUDA] Copying packed GLs to device\n";
-#endif
-  size_t glSize = packedGLs.size() * sizeof(char);
-
-  // allocate memory on device
-  char *d_packedGLs;
-  err = cudaMalloc(&d_packedGLs, glSize);
-  if (err != cudaSuccess) {
-    cerr << "Failed to allocate packed GLs on device\n";
-    exit(EXIT_FAILURE);
-  }
-
-  // copy data across
-  err =
-      cudaMemcpy(d_packedGLs, packedGLs.data(), glSize, cudaMemcpyHostToDevice);
-  if (err != cudaSuccess) {
-    cerr << "Failed to copy packed GLs to device\n";
-    exit(EXIT_FAILURE);
-  }
-
-/*
   copy haplotypes to device memory
 */
-#ifndef NDEBUG
+#ifdef DEBUG
   cout << "[HMMLikeCUDA] Copying HapPanel to device\n";
 #endif
   size_t hapPanelSize = hapPanel.size() * sizeof(uint64_t);
@@ -365,7 +366,7 @@ void RunHMMOnDevice(const vector<char> &packedGLs,
 /*
   copy initial hap indices to device memory
 */
-#ifndef NDEBUG
+#ifdef DEBUG
   cout << "[HMMLikeCUDA] Copying hap indices to device\n";
 #endif
   size_t hapIdxsSize = hapIdxs.size() * sizeof(unsigned);
@@ -389,7 +390,7 @@ void RunHMMOnDevice(const vector<char> &packedGLs,
 /*
   copy extra proposal haps to device memory
 */
-#ifndef NDEBUG
+#ifdef DEBUG
   cout << "[HMMLikeCUDA] Copying extra proposal haps to device\n";
 #endif
   size_t extraPropHapsSize = extraPropHaps.size() * sizeof(unsigned);
@@ -420,29 +421,34 @@ void RunHMMOnDevice(const vector<char> &packedGLs,
     exit(EXIT_FAILURE);
   }
 
-#ifndef NDEBUG
+#ifdef DEBUG
   /*
     allocate device memory for debugging floats
   */
   thrust::device_vector<float> d_likes(numCycles + 1);
-  float *d_likePtr = thrust::raw_pointer_cast(&d_likes[0]);
+  float *d_likePtr = thrust::raw_pointer_cast(d_likes.data());
 #endif
 
   // determine thread and block size
-  int threadsPerBlock = 32;
-  int blocksPerRun = (numSamples + threadsPerBlock - 1) / threadsPerBlock;
-#ifndef NDEBUG
+  threadsPerBlock = 32;
+  blocksPerRun = (numSamples + threadsPerBlock - 1) / threadsPerBlock;
+#ifdef DEBUG
   cout << "[HMMLikeCUDA] Running with " << threadsPerBlock
        << " threads per block in " << blocksPerRun << " thread blocks\n";
 #endif
 
   /*
+    convert gd_packedGLs to raw ptr
+  */
+  const char *d_packedGLPtr =  thrust::raw_pointer_cast(d_packedGLs.data());
+
+  /*
     run kernel
   */
   findHapSet << <blocksPerRun, threadsPerBlock>>>
-      (d_packedGLs, d_hapPanel, d_hapIdxs, d_extraPropHaps, d_chosenHapIdxs,
+      (d_packedGLPtr, d_hapPanel, d_hapIdxs, d_extraPropHaps, d_chosenHapIdxs,
        numSamples, numCycles, devStates
-#ifndef NDEBUG
+#ifdef DEBUG
        ,
        d_likePtr
 #endif
@@ -465,13 +471,13 @@ void RunHMMOnDevice(const vector<char> &packedGLs,
     exit(EXIT_FAILURE);
   }
 
+  assert(cudaFree(devStates) == cudaSuccess);
   assert(cudaFree(d_chosenHapIdxs) == cudaSuccess);
   assert(cudaFree(d_extraPropHaps) == cudaSuccess);
   assert(cudaFree(d_hapIdxs) == cudaSuccess);
   assert(cudaFree(d_hapPanel) == cudaSuccess);
-  assert(cudaFree(d_packedGLs) == cudaSuccess);
 
-#ifndef NDEBUG
+#ifdef DEBUG
   thrust::host_vector<float> h_likes(numCycles + 1);
   h_likes = d_likes;
 

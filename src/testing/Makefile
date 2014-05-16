@@ -101,7 +101,7 @@ ifndef NCUDA
 # see: http://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#using-separate-compilation-in-cuda
 # order of nvcc options is important! options should always go last!
 
-NVCCFLAGS += -isystem $(GTEST_DIR)
+NVCCFLAGS += -L $(GTEST_DIR)
 
 cuda_tests.cu.o: cuda_tests.cu $(SRC_DIR)/hmmLike.hcu
 	$(NVCC) $< $(NVCCFLAGS) -dc -o $@ 

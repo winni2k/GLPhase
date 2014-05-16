@@ -1,3 +1,10 @@
+1.4.2   Fri May 16 14:36:24 BST 2014
+        GLs are now only copied over once if the stride is equal to
+        the number of samples that GLs exist for 
+
+1.4.1   Fri May 16 10:58:52 BST 2014
+        Moved HMMLike object creation outside of cudaSolve
+
 1.4.0   Wed May 14 17:21:44 BST 2014
         Completed work on writing a first GPU based version of hmm_like
         all tests pass
