@@ -1369,9 +1369,6 @@ void Insti::estimate() {
          << "m\t" << runTimeInMin / (m_nIteration + 1) * (bn + sn) << "m\t"
          << endl;
   }
-#ifndef NCUDA
-  cudaHapSampler.Cleanup();
-#endif
 
   cout << endl;
   result(); // call result

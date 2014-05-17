@@ -186,7 +186,6 @@ TEST(HMMLike, createsOK) {
       ASSERT_GE(1, like);
     }
 
-    hmmLike.Cleanup();
   }
   //  cout << "Likelihood of Model: " << like << endl << endl;
 
@@ -298,7 +297,6 @@ TEST(HMMLike, createsOK) {
         EXPECT_TRUE((9 > hapIdxs2[i] && 6 < hapIdxs2[i]) ||
                     (9 > hapIdxs2[i + 1] && 6 < hapIdxs2[i + 1]));
     }
-    hmmLike2.Cleanup();
   }
 
   /*
@@ -386,8 +384,6 @@ TEST(HMMLike, createsOK) {
       EXPECT_LE(7, hap3);
       EXPECT_GE(8, hap3);
     }
-
-    hmmLike3.Cleanup();
   }
   /*
     Now let's add two more samples to the GLs and try again

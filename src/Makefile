@@ -8,7 +8,6 @@ VERSION := $(shell grep VERSION_MAJOR version.hpp | cut -f3 -d' ').$(shell grep 
 
 ifndef NCUDA
 BIN := $(BDIR)/insti.$(VERSION)
-all:  NVCCFLAGS += -DNDEBUG
 else
 BIN :=  $(BDIR)/insti.$(VERSION).ncuda
 CXXFLAGS += -DNCUDA
@@ -39,7 +38,10 @@ LIBS += -lgsl -lgslcblas -lbam -ltabix -lbz2 $(BOOSTLIB) -lm -lstdc++ -lz
 
 # nvcc
 ifndef NCUDA
-NVCCFLAGS += -arch=sm_35 -m64
+all:NVCCFLAGS += -O3
+release: NVCCFLAGS += -O3
+
+NVCCFLAGS += -arch=sm_35 -m64 #--ptxas-options=-v
 NVCC := nvcc
 CUDALIBS := -lcudart
 LIBS += $(CUDALIBS)
@@ -105,7 +107,7 @@ clean:
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
 ifndef NCUDA
-hmmLike.hpp.gch: hmmLike.hpp sampler.hpp.gch olivier/utils.hpp.gch glPack.hpp.gch
+hmmLike.hpp.gch: hmmLike.hpp sampler.hpp.gch olivier/utils.hpp.gch glPack.hpp.gch hmmLike.h
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 endif
 
@@ -141,8 +143,11 @@ endif
 olivier/utils.o: olivier/utils.cpp olivier/utils.hpp.gch
 	$(CXX) $(CXXFLAGS) -Wno-sign-compare -c $< -o $@ $(LIBS)
 
+hmmLike.o: hmmLike.cpp hmmLike.hpp.gch hmmLike.h
+	$(CXX) $(CXXFLAGS) -c $< $(LIBS)
+
 ifndef NCUDA
-hmmLike.cu.o: hmmLike.cu hmmLike.hcu
+hmmLike.cu.o: hmmLike.cu hmmLike.hcu hmmLike.h
 	$(NVCC) $< $(NVCCFLAGS) -dc -o $@
 
 allCuda.link.o: hmmLike.cu.o

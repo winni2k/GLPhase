@@ -19,7 +19,7 @@ protected:
 public:
   virtual ~Sampler() {};
   Sampler(gsl_rng *rng, unsigned numSamples, unsigned numHaps);
-    
+
   // returns a haplotype sampled using the sampler, but only from the
   // reference haplotypes if onlyFromRef = true
   unsigned SampleHap(unsigned excludeInd, bool onlyFromRef);
@@ -38,10 +38,10 @@ public:
 
   virtual void Save(std::string outputFile,
                     std::vector<std::string> &sampNames) {
-    throw myException("Attempted to save sampler state of " +
-                      sutils::uint2str(sampNames.size()) +
-                      " samples to file: " + outputFile +
-                      "\nHowever, no state worth saving was encountered");
+    throw std::runtime_error(
+        "Attempted to save sampler state of " + std::to_string(sampNames.size()) +
+        " samples to file: " + outputFile +
+        "\nHowever, no state worth saving was encountered");
   };
 };
 

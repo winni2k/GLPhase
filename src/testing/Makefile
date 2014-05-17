@@ -103,7 +103,7 @@ ifndef NCUDA
 
 NVCCFLAGS += -L $(GTEST_DIR)
 
-cuda_tests.cu.o: cuda_tests.cu $(SRC_DIR)/hmmLike.hcu
+cuda_tests.cu.o: cuda_tests.cu
 	$(NVCC) $< $(NVCCFLAGS) -dc -o $@ 
 
 # compile g++ object file

@@ -47,15 +47,15 @@ HMMLike::HMMLike(const vector<uint64_t> &hapPanel, unsigned numHaps,
   CheckDevice();
 
   // copy the transition matrix to constant memory on device
-  CopyTranToDevice();
+  HMMLikeCUDA::CopyTranToDevice(m_tran);
 
   // copy the mutation matrixt to constant memory on the device
-  CopyMutationMatToDevice();
+  HMMLikeCUDA::CopyMutationMatToDevice(m_mutationMat);
 
   // copy all strided GLs across if the sample stride is equal to the number of
   // samples
   if (m_totalNumSamps == m_glPack.GetSampleStride())
-    CopyPackedGLsToDevice(m_glPack.GetPackedGLs());
+      HMMLikeCUDA::CopyPackedGLsToDevice(m_glPack.GetPackedGLs());
 }
 
 // returns range of samples sampled, and vector of four unsigned hap indices per
@@ -63,16 +63,17 @@ HMMLike::HMMLike(const vector<uint64_t> &hapPanel, unsigned numHaps,
 vector<unsigned> HMMLike::RunHMMOnSamples(unsigned &firstSampIdx,
                                           unsigned &lastSampIdx) {
 
-  size_t numRunSamps = 0;
+  size_t numRunSamps = m_glPack.GetSampleStride();
+
+  // if we are running on complete sample set
   if (m_glPack.GetSampleStride() == m_totalNumSamps) {
-    numRunSamps = m_glPack.GetSampleStride();
     firstSampIdx = 0;
     lastSampIdx = numRunSamps - 1;
   } else {
 
     // get next set of GLs
     firstSampIdx = m_glPack.GetNextSampIdx();
-    CopyPackedGLsToDevice(m_glPack.GetPackedGLs());
+    HMMLikeCUDA::CopyPackedGLsToDevice(m_glPack.GetPackedGLs());
     lastSampIdx = m_glPack.GetLastSampIdx();
   }
 
@@ -96,36 +97,11 @@ vector<unsigned> HMMLike::RunHMMOnSamples(unsigned &firstSampIdx,
 
   // run kernel
   HMMLikeCUDA::RunHMMOnDevice(
-      md_packedGLs, m_inHapPanel, extraPropHaps, m_glPack.GetNumSites(),
+      m_inHapPanel, extraPropHaps, m_glPack.GetNumSites(),
       m_glPack.GetSampleStride(), m_numCycles, hapIdxs, gsl_rng_get(&m_rng));
 
   // return
   return HMMLikeHelper::transposeHapIdxs(hapIdxs);
 }
 
-void HMMLike::CopyTranToDevice() const {
 
-  cudaError_t err = HMMLikeCUDA::CopyTranToDevice(m_tran);
-  if (err != cudaSuccess) {
-    stringstream outerr(
-        "Could not copy transition matrix to device with error: ");
-    outerr << err;
-    throw myException(outerr.str());
-  }
-}
-void HMMLike::CopyMutationMatToDevice() const {
-
-  cudaError_t err = HMMLikeCUDA::CopyMutationMatToDevice(m_mutationMat);
-  if (err != cudaSuccess) {
-    stringstream outerr(
-        "Could not copy mutation matrix to device with error: ");
-    outerr << err;
-    throw myException(outerr.str());
-  }
-}
-
-void HMMLike::CopyPackedGLsToDevice(const vector<char> &packedGLs) {
-
-  thrust::device_vector<char> fillPackedGLs(packedGLs);
-  md_packedGLs.swap(fillPackedGLs);
-}

@@ -18,40 +18,20 @@
 #include <exception>
 #include <utility>
 #include <thrust/host_vector.h>
-#include <thrust/device_vector.h>
 #include "sampler.hpp"
 #include "utils.hpp"
 #include "glPack.hpp"
+#include "hmmLike.h" // for defines and extern functions
 
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
-// this is the number of sites that the HMM will run on
-#define NUMSITES 512
-// input wordsize is 64 because we are working with uint64_t
-#define WORDSIZE 64
+
 static_assert(NUMSITES % WORDSIZE == 0,
               "Numsites is not evenly divisible by wordsize");
 
-// this is the number of haplotypes we use in the HMM
-// That is, the HMM has NUMSITES * NUMHAPS states
-#define NUMHAPS 4
 static_assert(
     sizeof(unsigned int) >= 4,
     "Size of unsigned int is < 4. We might run into indexing issues otherwise");
-
-// these functions are implemented in HMMLike.cu
-namespace HMMLikeCUDA {
-extern void CheckDevice();
-extern cudaError_t CopyTranToDevice(const std::vector<float> &tran);
-extern cudaError_t CopyMutationMatToDevice(const float (*mutMat)[4][4]);
-extern void RunHMMOnDevice(const thrust::device_vector<char> &d_packedGLs,
-                           const std::vector<uint64_t> &hapPanel,
-                           const std::vector<unsigned> &extraPropHaps,
-                           unsigned numSites, unsigned numSamples,
-                           unsigned numCycles, std::vector<unsigned> &hapIdxs,
-                           unsigned long seed);
-extern void Cleanup();
-}
 
 namespace HMMLikeHelper {
 std::vector<unsigned> transposeHapIdxs(const std::vector<unsigned> &hapIdxs);
@@ -79,9 +59,6 @@ private:
   std::shared_ptr<Sampler> &m_sampler;
   unsigned m_nextSampIdx;
   gsl_rng &m_rng;
-  thrust::device_vector<char> md_packedGLs;
-
-  bool m_destructOK = false;
 
   /*
     Pulls out GLs for next run and repackages them ready to call cuda code
@@ -89,7 +66,6 @@ private:
   void CheckDevice() const { HMMLikeCUDA::CheckDevice(); }
   void CopyTranToDevice() const;
   void CopyMutationMatToDevice() const;
-  void CopyPackedGLsToDevice(const std::vector<char> &packedGLs);
 
 public:
   /*
@@ -101,7 +77,7 @@ public:
           const float (*mutationMat)[4][4], std::shared_ptr<Sampler> &sampler,
           gsl_rng &rng);
 
-  ~HMMLike() { assert(m_destructOK == true); }
+  ~HMMLike() { HMMLikeCUDA::Cleanup(); }
   /*
     Replaces the sampler to be used to create prop haps
     Prop haps are produced when RunHMMOnSamples is called
@@ -122,11 +98,6 @@ public:
   */
   std::vector<unsigned> RunHMMOnSamples(unsigned &firstSampIdx,
                                         unsigned &lastSampIdx);
-
-  void Cleanup() {
-    HMMLikeCUDA::Cleanup();
-    m_destructOK = true;
-  }
 };
 
 #endif

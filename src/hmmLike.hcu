@@ -1,6 +1,7 @@
 #ifndef _HMMLIKE_HCU
 #define _HMMLIKE_HCU 1
 
+
 #include <vector>
 #include <cassert>
 #include <stdint.h>
@@ -10,32 +11,23 @@
 #include <cfloat>
 #include <algorithm>
 #include <iostream>
-// thrust includes need to not be in header
-// errors otherwise...
+#include <sstream>
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
-
-#define NUMSITES 512
-#define WN 8 // word num = 512 / 64
-#define WordShift 6
-#define WordMod 63
+#include "hmmLike.h"
 
 namespace HMMLikeCUDA {
-__device__ void UnpackGLs(char GLset, float (&GLs)[3]);
-__device__ void FillEmit(const float (&GLs)[3], float (&emit)[4]);
-__device__ float hmmLike(unsigned idx, const unsigned (&hapIdxs)[4],
+
+extern __device__ void UnpackGLs(char GLset, float (&GLs)[3]);
+extern __device__ void FillEmit(const float (&GLs)[3], float (&emit)[4]);
+extern __constant__ float norm;
+extern __constant__ float transitionMat[NUMSITES * 3];
+extern __constant__ float mutationMat[4 * 4];
+extern __device__ float hmmLike(unsigned idx, const unsigned (&hapIdxs)[4],
                                 const char *__restrict__ d_packedGLs,
                                 unsigned packedGLStride,
                                 const uint64_t *__restrict__ d_hapPanel);
-void RunHMMOnDevice(const thrust::device_vector<char> &d_packedGLs,
-                    const std::vector<uint64_t> &hapPanel,
-                    const std::vector<unsigned> &extraPropHaps,
-                    unsigned numSites, unsigned numSamples, unsigned numCycles,
-                    std::vector<unsigned> &hapIdxs, unsigned long seed);
-
-// transition matrix
-__constant__ float transitionMat[NUMSITES * 3];
-__constant__ float mutationMat[4 * 4];
+extern __device__ void UnpackGLs(char GLset, float (&GLs)[3]);
 }
 
 #endif

@@ -158,9 +158,9 @@ int main(int ac, char **av) {
 
     // need to specify burnin generations as sum of SA and non-SA gens
     Impute::bn = Insti::s_uSABurninGen + Insti::s_uNonSABurninGen;
-    if(optMSet == false)
-        Insti::s_uStartClusterGen = Insti::s_uSABurninGen;
-    
+    if (optMSet == false)
+      Insti::s_uStartClusterGen = Insti::s_uSABurninGen;
+
     // need to specify ref panel if kickstarting
     if (Insti::s_bKickStartFromRef) {
       if (Insti::s_sRefLegendFile.size() == 0) {
@@ -228,7 +228,12 @@ int main(int ac, char **av) {
         outBase = file[i];
 
       lp.save_vcf(outBase.c_str(), commandLine.str());
-      lp.save_relationship_graph(outBase);
+      try {
+        lp.save_relationship_graph(outBase);
+      }
+      catch (exception &e) {
+        cerr << e.what();
+      }
 
       // printing out run time
       gettimeofday(&end, NULL);
@@ -241,6 +246,11 @@ int main(int ac, char **av) {
     cerr << e.what() << endl;
     exit(1);
   }
+
+#ifndef NCUDA
+  // this is here so I can use the profiler...
+  cudaDeviceReset();
+#endif
 
   return 0;
 }

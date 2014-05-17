@@ -1,9 +1,10 @@
-//#include "cuda.h"
-//#include "cuda_runtime.h"
+
+#include <thrust/host_vector.h>
+#include <thrust/device_vector.h>
 #include "hmmLike.hcu"
+#include "hmmLike.h"
 
 using namespace std;
-using namespace HMMLikeCUDA;
 
 namespace HMMLikeCUDATest {
 
@@ -12,7 +13,7 @@ __global__ void GlobalFillEmit(const float *GLs, float *emit) {
   float nGLs[3];
   for (int i = 0; i < 3; ++i)
     nGLs[i] = GLs[i];
-  FillEmit(nGLs, nEmit);
+  HMMLikeCUDA::FillEmit(nGLs, nEmit);
   for (int i = 0; i < 4; ++i)
     emit[i] = nEmit[i];
 }
@@ -46,7 +47,7 @@ __global__ void GlobalHmmLike(unsigned idx, const unsigned (*hapIdxs)[4],
                               unsigned packedGLStride,
                               const uint64_t *__restrict__ d_hapPanel,
                               float *retLike) {
-  *retLike = hmmLike(idx, *hapIdxs, d_packedGLs, packedGLStride, d_hapPanel);
+    *retLike = HMMLikeCUDA::hmmLike(idx, *hapIdxs, d_packedGLs, packedGLStride, d_hapPanel);
 
   return;
 }
@@ -142,7 +143,7 @@ float CallHMMLike(unsigned idx, const unsigned (*hapIdxs)[4],
 
 __global__ void GlobalUnpackGLs(char GLset, float *GLs) {
   float nGLs[3];
-  UnpackGLs(GLset, nGLs);
+  HMMLikeCUDA::UnpackGLs(GLset, nGLs);
   for (int i = 0; i < 3; ++i)
     GLs[i] = nGLs[i];
 }
@@ -193,7 +194,7 @@ bool UnpackGLs(char GLset, float *GLs) {
 cudaError_t CopyTranToHost(vector<float> &tran) {
 
   assert(tran.size() == NUMSITES * 3);
-  return cudaMemcpyFromSymbol(tran.data(), transitionMat,
+  return cudaMemcpyFromSymbol(tran.data(), HMMLikeCUDA::transitionMat,
                               sizeof(float) * NUMSITES * 3, 0,
                               cudaMemcpyDeviceToHost);
 }
@@ -201,7 +202,7 @@ cudaError_t CopyTranToHost(vector<float> &tran) {
 cudaError_t CopyMutMatToHost(vector<float> &mutMat) {
 
   assert(mutMat.size() == 4 * 4);
-  return cudaMemcpyFromSymbol(mutMat.data(), mutationMat, sizeof(float) * 4 * 4,
+  return cudaMemcpyFromSymbol(mutMat.data(), HMMLikeCUDA::mutationMat, sizeof(float) * 4 * 4,
                               0, cudaMemcpyDeviceToHost);
 }
 }

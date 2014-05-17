@@ -6,6 +6,8 @@ namespace HMMLikeCUDA {
 
 // basically avoid singularity or floating point error
 __constant__ float norm;
+__constant__ float transitionMat[NUMSITES * 3];
+__constant__ float mutationMat[4 * 4];
 
 __device__ void UnpackGLs(char GLset, float (&GLs)[3]) {
 
@@ -26,13 +28,15 @@ __device__ uint64_t test(const uint64_t *P, unsigned I) {
   return (P[I >> WordShift] >> (I & WordMod)) & static_cast<uint64_t>(1);
 }
 
+    // this should add up to around 88 registers
+    // 1 + 4 + 2 + 1 + 2 = 10 registers, maybe optimized away by compiler?
 __device__ float hmmLike(unsigned idx, const unsigned (&hapIdxs)[4],
                          const char *__restrict__ d_packedGLs,
                          unsigned packedGLStride,
                          const uint64_t *__restrict__ d_hapPanel) {
 
   // pull the four haplotypes into f0, f1, m0 and m1
-  const uint64_t *f0 = &d_hapPanel[hapIdxs[0] * WN],
+    const uint64_t *f0 = &d_hapPanel[hapIdxs[0] * WN], // 8 registers?
                  *f1 = &d_hapPanel[hapIdxs[1] * WN],
                  *m0 = &d_hapPanel[hapIdxs[2] * WN],
                  *m1 = &d_hapPanel[hapIdxs[3] * WN];
@@ -40,22 +44,24 @@ __device__ float hmmLike(unsigned idx, const unsigned (&hapIdxs)[4],
   // ##########
   // Convert packed GLs back to floats
 
-  float GLs[3];
+    float GLs[3]; // 3 registers 
   UnpackGLs(d_packedGLs[idx], GLs);
 
   // pull out phase emission and transition probabilities
-  float emit[4];
+  float emit[4]; // 4 registers
   FillEmit(GLs, emit);
 
-  float sum, score = 0;
+  float sum, score = 0; // 2 registers
 
   // l00 = prob of 0|0 phase, etc.
   // all set to 1/4 * emission probability
+  // 4 registers
   float l00 = 0.25f * emit[(test(f0, 0) << 1) | test(m0, 0)],
         l01 = 0.25f * emit[(test(f0, 0) << 1) | test(m1, 0)];
   float l10 = 0.25f * emit[(test(f1, 0) << 1) | test(m0, 0)],
         l11 = 0.25f * emit[(test(f1, 0) << 1) | test(m1, 0)];
 
+  //  1 register
   for (int site = 1; site < NUMSITES; ++site) {
     // move to next site for e and t
 
@@ -68,6 +74,7 @@ __device__ float hmmLike(unsigned idx, const unsigned (&hapIdxs)[4],
     FillEmit(GLs, emit);
 
     // bxx = backward probabilities of being in phase xx
+    // 4 registers
     const float b00 = l00 * transitionMat[site * 3] +
                       (l01 + l10) * transitionMat[site * 3 + 1] +
                       l11 * transitionMat[site * 3 + 2];
@@ -86,11 +93,13 @@ __device__ float hmmLike(unsigned idx, const unsigned (&hapIdxs)[4],
     l10 = b10 * emit[(test(f1, site) << 1) | test(m0, site)];
     l11 = b11 * emit[(test(f1, site) << 1) | test(m1, site)];
 
+    
+    
     // rescale probabilities if they become too small
     // hopefully this does not happen too often...
     if ((sum = l00 + l01 + l10 + l11) < norm) {
       sum = 1.0f / sum;
-      score -= logf(sum); // add sum to score
+      score -= __logf(sum); // add sum to score
       l00 *= sum;
       l01 *= sum;
       l10 *= sum;
@@ -98,7 +107,7 @@ __device__ float hmmLike(unsigned idx, const unsigned (&hapIdxs)[4],
     }
   }
 
-  return score + logf(l00 + l01 + l10 + l11);
+  return score + __logf(l00 + l01 + l10 + l11);
 };
 
 // definition of HMM kernel
@@ -149,7 +158,7 @@ __global__ void findHapSet(const char *__restrict__ d_packedGLs,
       float prop = hmmLike(idx, hapIdxs, d_packedGLs, numSamples, d_hapPanel);
 
       // accept new set
-      if (curand_uniform(&localState) < expf((prop - curr) * S))
+      if (curand_uniform(&localState) < __expf((prop - curr) * S))
         curr = prop;
       // reject new set
       else
@@ -248,37 +257,66 @@ void CheckDevice() {
   return;
 }
 
-cudaError_t CopyTranToDevice(const vector<float> &tran) {
+void CopyTranToDevice(const vector<float> &tran) {
 
   assert(tran.size() == NUMSITES * 3);
   // first three values of tran are never used
   for (unsigned i = 3; i < tran.size(); i += 3)
     assert(abs(tran[i] + 2 * tran[i + 1] + tran[i + 2] - 1) < 0.1);
-  return cudaMemcpyToSymbol(transitionMat, tran.data(),
-                            sizeof(float) * NUMSITES * 3, 0,
-                            cudaMemcpyHostToDevice);
+  cudaError_t err = cudaMemcpyToSymbol(transitionMat, tran.data(),
+                                       sizeof(float) * NUMSITES * 3, 0,
+                                       cudaMemcpyHostToDevice);
+  if (err != cudaSuccess) {
+    stringstream outerr(
+        "Could not copy transition matrix to device with error: ");
+    outerr << err;
+    throw std::runtime_error(outerr.str());
+  }
 }
 
-cudaError_t CopyMutationMatToDevice(const float (*mutMat)[4][4]) {
+void CopyMutationMatToDevice(const float (*mutMat)[4][4]) {
 
   vector<float> h_mutMat(4 * 4);
   for (int i = 0; i < 4; ++i)
     for (int j = 0; j < 4; ++j)
       h_mutMat[i + 4 * j] = ((*mutMat))[i][j];
 
-  return cudaMemcpyToSymbol(mutationMat, h_mutMat.data(), sizeof(float) * 4 * 4,
-                            0, cudaMemcpyHostToDevice);
+  cudaError_t err =
+      cudaMemcpyToSymbol(mutationMat, h_mutMat.data(), sizeof(float) * 4 * 4, 0,
+                         cudaMemcpyHostToDevice);
+  if (err != cudaSuccess) {
+    stringstream outerr(
+        "Could not copy mutation matrix to device with error: ");
+    outerr << err;
+    throw std::runtime_error(outerr.str());
+  }
 }
 
-void Cleanup() { assert(cudaDeviceReset() == cudaSuccess); }
+thrust::device_vector<char> *gd_packedGLs;
+void CopyPackedGLsToDevice(const vector<char> &packedGLs) {
+  thrust::device_vector<char> fillPackedGLs(packedGLs);
 
-void RunHMMOnDevice(const thrust::device_vector<char> &d_packedGLs,
-                    const vector<uint64_t> &hapPanel,
+  // gotta manually new the thrust vector because it'll get deleted too late
+  // otherwise...
+  if (!gd_packedGLs)
+    gd_packedGLs = new thrust::device_vector<char>;
+  gd_packedGLs->swap(fillPackedGLs);
+}
+
+void Cleanup() {
+    if(gd_packedGLs){
+        delete gd_packedGLs;
+        gd_packedGLs = NULL;
+    }
+}
+
+void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
                     const vector<unsigned> &extraPropHaps, unsigned numSites,
                     unsigned numSamples, unsigned numCycles,
                     vector<unsigned> &hapIdxs, unsigned long seed) {
   assert(numSites == NUMSITES);
-  assert(d_packedGLs.size() == numSites * numSamples);
+  assert(gd_packedGLs); // make sure pointer points to something
+  assert(gd_packedGLs->size() == numSites * numSamples);
   assert(hapPanel.size() >=
          WN * (*max_element(extraPropHaps.begin(), extraPropHaps.end()) + 1));
   assert(hapIdxs.size() == numSamples * 4);
@@ -327,7 +365,7 @@ if (err != cudaSuccess) {
   cudaMalloc(&devStates, numSamples * sizeof(curandStateXORWOW_t));
 
   // set up generators
-  unsigned threadsPerBlock = 32;
+  unsigned threadsPerBlock = 128;
   unsigned blocksPerRun = (numSamples + threadsPerBlock - 1) / threadsPerBlock;
 
   setup_generators << <blocksPerRun, threadsPerBlock>>>
@@ -430,7 +468,7 @@ if (err != cudaSuccess) {
 #endif
 
   // determine thread and block size
-  threadsPerBlock = 32;
+  threadsPerBlock = 128;
   blocksPerRun = (numSamples + threadsPerBlock - 1) / threadsPerBlock;
 #ifdef DEBUG
   cout << "[HMMLikeCUDA] Running with " << threadsPerBlock
@@ -440,7 +478,7 @@ if (err != cudaSuccess) {
   /*
     convert gd_packedGLs to raw ptr
   */
-  const char *d_packedGLPtr =  thrust::raw_pointer_cast(d_packedGLs.data());
+  const char *d_packedGLPtr = thrust::raw_pointer_cast(gd_packedGLs->data());
 
   /*
     run kernel
