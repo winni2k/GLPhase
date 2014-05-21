@@ -4,6 +4,7 @@
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
 using namespace std;
+using namespace Bio;
 
 void HapPanel::Init(vector<vector<char> > &inHaps, vector<snp> &inSites,
                     vector<string> &inSampleIDs) {

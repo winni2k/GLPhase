@@ -28,11 +28,10 @@ all: CXXFLAGS += -O3
 release: CXXFLAGS += -O3 -DNDEBUG
 static: CXXFLAGS += -O3 -DNDEBUG
 test: CXXFLAGS += -O0 -ggdb
-debug: CXXFLAGS += -O0 -ggdb
 
 # gcc
 CXX := g++-4.7+
-CXXFLAGS += -Wall -Wextra -std=c++11 -mpopcnt
+CXXFLAGS += -Wall -Wextra -std=c++11 -mpopcnt -fopenmp
 BOOSTLIB := -lboost_iostreams-mt #alternatively: /opt/boost/boost-1.54.0-intel/lib/libboost_iostreams.a
 LIBS += -lgsl -lgslcblas -lbam -ltabix -lbz2 $(BOOSTLIB) -lm -lstdc++ -lz
 
@@ -46,29 +45,26 @@ NVCC := nvcc
 CUDALIBS := -lcudart
 LIBS += $(CUDALIBS)
 test: NVCCFLAGS += -g -G
-debug: NVCCFLAGS += -g -G
 endif
 
 # path variables
-CPATH += :u-wkretzsch-snptools/samtools-0.1.16:u-wkretzsch-snptools/tabix-0.2.5
-CPLUS_INCLUDE_PATH += :olivier
-LIBRARY_PATH += :u-wkretzsch-snptools/samtools-0.1.16:u-wkretzsch-snptools/tabix-0.2.5
+CPATH += :u-wkretzsch-snptools/samtools-0.1.16:tabixpp
+CPLUS_INCLUDE_PATH += :olivier:tabixpp:vcfPhasedBreakMulti/src
+LIBRARY_PATH += :u-wkretzsch-snptools/samtools-0.1.16:tabixpp
 LD_LIBRARY_PATH += $(LIBRARY_PATH)
 
 
 
 # object and header files are defined here
-OBJECT_FILES := main.o impute.o insti.o emcchain.o olivier/utils.o haplotype.o kMedoids.o kNN.o hapPanel.o sampler.o glPack.o
+OBJECT_FILES := main.o impute.o insti.o emcchain.o olivier/utils.o haplotype.o kMedoids.o kNN.o hapPanel.o sampler.o glPack.o tabixpp/tabix.o
 ifndef NCUDA
 OBJECT_FILES += hmmLike.cu.o allCuda.link.o hmmLike.o
 endif
 
-HEADER_FILES := insti.hpp.gch impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch version.hpp.gch snp.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch sampler.hpp.gch
+HEADER_FILES := insti.hpp.gch impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch version.hpp.gch bio.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch sampler.hpp.gch tabixpp/tabix.hpp.gch
 ifndef NCUDA
 HEADER_FILES += hmmLike.hpp.gch
 endif
-
-
 
 
 
@@ -114,10 +110,13 @@ endif
 glPack.hpp.gch: glPack.hpp olivier/utils.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
-hapPanel.hpp.gch: hapPanel.hpp snp.hpp.gch
+hapPanel.hpp.gch: hapPanel.hpp bio.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
 olivier/utils.hpp.gch: olivier/utils.hpp
+	$(CXX) $(CXXFLAGS) -x c++-header $<
+
+tabixpp/tabix.hpp.gch: tabixpp/tabix.hpp
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
 kNN.hpp.gch: kNN.hpp haplotype.hpp.gch sampler.hpp.gch
@@ -129,11 +128,13 @@ kMedoids.hpp.gch: kMedoids.hpp haplotype.hpp.gch sampler.hpp.gch
 MHSampler.hpp.gch: MHSampler.hpp olivier/utils.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
+INSTIHEADERPRE :=insti.hpp impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch sampler.hpp.gch version.hpp.gch bio.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch kNN.hpp.gch kMedoids.hpp.gch glPack.hpp.gch tabixpp/tabix.hpp.gch 
+
 ifndef NCUDA
-insti.hpp.gch: insti.hpp impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch sampler.hpp.gch version.hpp.gch snp.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch kNN.hpp.gch kMedoids.hpp.gch glPack.hpp.gch hmmLike.hpp.gch
-else
-insti.hpp.gch: insti.hpp impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch sampler.hpp.gch version.hpp.gch snp.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch kNN.hpp.gch kMedoids.hpp.gch glPack.hpp.gch
+INSTIHEADERPRE += hmmLike.hpp.gch
 endif
+
+insti.hpp.gch: $(INSTIHEADERPRE)
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
 ## object files
@@ -142,6 +143,9 @@ endif
 
 olivier/utils.o: olivier/utils.cpp olivier/utils.hpp.gch
 	$(CXX) $(CXXFLAGS) -Wno-sign-compare -c $< -o $@ $(LIBS)
+
+tabixpp/tabix.o: 
+	$(MAKE) -C tabixpp
 
 hmmLike.o: hmmLike.cpp hmmLike.hpp.gch hmmLike.h
 	$(CXX) $(CXXFLAGS) -c $< $(LIBS)

@@ -1,3 +1,9 @@
 [submodule "src/u-wkretzsch-snptools"]
 	path = src/u-wkretzsch-snptools
 	url = git://git.code.sf.net/u/wkretzsch/snptools
+[submodule "src/tabixpp"]
+	path = src/tabixpp
+	url = https://github.com/ekg/tabixpp.git
+[submodule "src/vcfPhasedBreakMulti"]
+	path = src/vcfPhasedBreakMulti
+	url = git@github.com:wkretzsch/vcfPhasedBreakMulti.git

@@ -20,7 +20,6 @@
 #include "utils.hpp"
 #include "sampler.hpp"
 #include "version.hpp"
-#include "snp.hpp"
 #include "hapPanel.hpp"
 #include "MHSampler.hpp"
 #include "kMedoids.hpp"
@@ -29,12 +28,34 @@
 #include <boost/uuid/uuid.hpp>            // uuid class
 #include <boost/uuid/uuid_generators.hpp> // generators
 #include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
+#include <boost/algorithm/string.hpp>
 #include <cfloat>
+#include "tabix.hpp"
+#include "vcf_parser.hpp"
+#include "bio.hpp"
 
 #ifndef NCUDA
 #include "hmmLike.hpp"
 #endif
 
+#include <boost/spirit/include/qi.hpp>
+#include <boost/spirit/include/phoenix_core.hpp>
+#include <boost/spirit/include/phoenix_operator.hpp>
+//#include <boost/spirit/include/phoenix_stl.hpp>
+
+namespace qi = boost::spirit::qi;
+namespace ascii = boost::spirit::ascii;
+namespace phoenix = boost::phoenix;
+
+namespace InstiHelper {
+struct Init {
+  unsigned estimator = 0;
+  std::string scaffoldHapsFile;
+  std::string scaffoldSampleFile;   // location of scaffold sample file
+  double scaffoldFreqCutoff = 0.05; // cutoff MAF for what to fix in scaffold
+  bool initPhaseFromScaffold = false;
+};
+}
 // require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
@@ -57,7 +78,7 @@ private:
   std::shared_ptr<Sampler> m_sampler;
 
   // keep track of GL sites, names as unordered map of snps
-  std::unordered_map<unsigned, snp> m_sitesUnordered;
+  std::unordered_map<unsigned, Bio::snp> m_sitesUnordered;
 
   // name -> name index in global variable "name"
   std::unordered_map<std::string, unsigned> m_namesUnordered;
@@ -69,6 +90,15 @@ private:
   // scaffold haplotypes
   HapPanel m_scaffold;
 
+  // see InstiHelper::init for default values
+  const std::string m_scaffoldHapsFile;   // location of scaffold haps file
+  const std::string m_scaffoldSampleFile; // location of scaffold sample file
+  double m_scaffoldFreqCutoff; // cutoff MAF for what to fix in scaffold
+  bool m_initPhaseFromScaffold;
+
+  // holds chrom, start and end position, etc.
+  Bio::Region m_runRegion;
+
   // Insti redefinition of hmm_like
   // so far it only adds logging
   virtual fast hmm_like(unsigned I, unsigned *P) override;
@@ -76,10 +106,10 @@ private:
   fast solve(unsigned I, unsigned N, fast pen,
              std::shared_ptr<Sampler> &sampler);
 #ifndef NCUDA
-    /*
-      update haps sampleStride haplotypes at a time
-    */
-    fast cudaSolve(HMMLike &hapSampler, unsigned sampleStride, fast pen);
+  /*
+    update haps sampleStride haplotypes at a time
+  */
+  fast cudaSolve(HMMLike &hapSampler, unsigned sampleStride, fast pen);
 #endif
 
   virtual fast solve(unsigned I, unsigned &N, fast pen) override {
@@ -95,17 +125,24 @@ private:
 
   // data loading
   std::vector<std::vector<char> > OpenHap(std::string hapFile);
-  std::vector<snp> OpenLegend(std::string legendFile);
-  void OpenHaps(std::string hapFile, std::vector<std::vector<char> > &loadHaps,
-                std::vector<snp> &sites);
-  void OpenSample(std::string sampleFile,
+  std::vector<Bio::snp> OpenLegend(std::string legendFile);
+  void OpenVCFGZ(const std::string &vcf, const std::string &region,
+                 std::vector<std::vector<char> > &haps,
+                 std::vector<Bio::snp> &sites, std::vector<std::string> &ids);
+  void OpenHaps(const std::string &hapFile,
+                std::vector<std::vector<char> > &loadHaps,
+                std::vector<Bio::snp> &sites);
+  void OpenTabHaps(const std::string &hapFile,
+                   std::vector<std::vector<char> > &loadHaps,
+                   std::vector<Bio::snp> &sites);
+  void OpenSample(const std::string &sampleFile,
                   std::vector<std::string> &fillSampleIDs);
   void MatchSamples(const std::vector<std::string> &IDs, unsigned numHaps);
   void SubsetSamples(std::vector<std::string> &loadIDs,
                      std::vector<std::vector<char> > &loadHaps);
   void OrderSamples(std::vector<std::string> &loadIDs,
                     std::vector<std::vector<char> > &loadHaps);
-  bool SwapMatch(const snp &loadSite, const Site &existSite,
+  bool SwapMatch(const Bio::snp &loadSite, const Site &existSite,
                  std::vector<char> &loadHap, std::vector<char> &existHap);
 
   // expects scaffold to have been initialized
@@ -115,7 +152,9 @@ public:
   // uuid
   const boost::uuids::uuid m_tag;
 
-  Insti() : m_tag(boost::uuids::random_generator()()) {};
+  Insti() = delete;
+
+  Insti(InstiHelper::Init &init);
 
   unsigned GetScaffoldNumWordsPerHap() { return m_scaffold.NumWordsPerHap(); }
   std::string GetScaffoldID(unsigned idx) { return m_scaffold.GetID(idx); }
@@ -132,23 +171,28 @@ public:
 
   // data loading
   // haps/sample
-  bool LoadHapsSamp(std::string hapsFile, std::string sampleFile,
+  void LoadHapsSamp(const std::string &hapsFile, const std::string &sampleFile,
                     InstiPanelType panelType);
 
   // hap/leg/samp
-  bool LoadHapLegSamp(std::string legendFile, std::string hapFile,
-                      std::string sampleFile, InstiPanelType panelType);
+  bool LoadHapLegSamp(const std::string &legendFile, const std::string &hapFile,
+                      const std::string &sampleFile, InstiPanelType panelType);
+
+  // vcf.gz file
+  void LoadVCFGZ(const std::string &vcf, InstiPanelType panel_t,
+                 const std::string &region);
 
   // filter out sites that aren't in main gl data
   void FilterSites(std::vector<std::vector<char> > &loadHaps,
-                   std::vector<snp> &loadSites,
+                   std::vector<Bio::snp> &loadSites,
                    std::vector<std::vector<char> > &filtHaps,
-                   std::vector<snp> &filtSites, InstiPanelType panelType);
+                   std::vector<Bio::snp> &filtSites, InstiPanelType panelType);
 
-  // copy haplotypes to space in program where they actually are supposed to go
+  // copy haplotypes to space in program where they actually are supposed to
+  // go
   // along with list of sites if applicable
   void LoadHaps(std::vector<std::vector<char> > &inHaps,
-                std::vector<snp> &inSites,
+                std::vector<Bio::snp> &inSites,
                 std::vector<std::string> &inSampleIDs,
                 InstiPanelType panelType);
 
@@ -165,9 +209,8 @@ public:
 
   void CalculateVarAfs();
 
-  // print out usage
-  static void document(void);
-  static int s_iEstimator; // see main.cpp and document for documentation
+  // Metropolis Hastings with Annealing is default
+  unsigned m_estimator = 0;
 
   // see main.cpp and document for documentation
   static unsigned s_uParallelChains;
@@ -191,12 +234,10 @@ public:
   static std::string s_sRefLegendFile; // location of sample file
   static std::string s_sRefHapFile;    // location of reference haplotypes file
 
-  static std::string s_scaffoldHapsFile;   // location of scaffold haps file
-  static std::string s_scaffoldSampleFile; // location of scaffold sample file
-  static double s_scaffoldFreqCutoff; // cutoff MAF for what to fix in scaffold
-  static bool s_initPhaseFromScaffold;
-
   static MHType s_MHSamplerType;
+
+  // print out usage
+  static void document();
 
   unsigned GetNumWords() { return wn; }
 
@@ -221,7 +262,7 @@ public:
   void WriteToLog(const std::string &tInput);
   void WriteToLog(const EMCChain &rcChain, const bool bMutate);
 
-  bool load_bin(const char *F);
+  void load_bin(const std::string &binFile);
 
   void initialize();
 

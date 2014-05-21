@@ -5,6 +5,7 @@ static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
 using namespace std;
 using namespace HMMLikeCUDA;
+using namespace Bio;
 
 /*
   #define DEBUG
@@ -47,9 +48,6 @@ using namespace HMMLikeCUDA;
 
 // initializyng static member variables
 
-// Metropolis Hastings with Annealing is default
-int Insti::s_iEstimator = 0;
-
 // number of parallel chains to use for parallel estimators
 unsigned Insti::s_uParallelChains = 5;
 unsigned Insti::s_uCycles = 0;
@@ -57,10 +55,6 @@ bool Insti::s_bIsLogging = false;
 bool Insti::s_bKickStartFromRef = false;
 string Insti::s_sRefLegendFile = "";
 string Insti::s_sRefHapFile = "";
-string Insti::s_scaffoldHapsFile = "";
-string Insti::s_scaffoldSampleFile = "";
-double Insti::s_scaffoldFreqCutoff = 0.05;
-bool Insti::s_initPhaseFromScaffold = false;
 unsigned Insti::s_uNumClusters = 0;
 unsigned Insti::s_uClusterType = 0;
 kNNDistT Insti::s_clusterDistanceMetric = kNNDistT::hamming;
@@ -72,6 +66,26 @@ MHType Insti::s_MHSamplerType = MHType::MH;
 // need to reset this in main.cpp -- should really move to a better option
 // handling approach...
 unsigned Insti::s_uStartClusterGen = Insti::s_uNonSABurninGen;
+
+Insti::Insti(InstiHelper::Init &init)
+    : m_scaffoldHapsFile(init.scaffoldHapsFile),
+      m_scaffoldSampleFile(init.scaffoldSampleFile),
+      m_initPhaseFromScaffold(init.initPhaseFromScaffold),
+      m_tag(boost::uuids::random_generator()()) {
+
+  // bounds check estimator input
+  if (init.estimator < 4)
+    m_estimator = init.estimator;
+  else
+    throw std::runtime_error("[insti] Estimator needs to be less than 4");
+
+  // bounds check scaffold freq input
+  if (init.scaffoldFreqCutoff < 0 || init.scaffoldFreqCutoff > 1)
+    throw std::runtime_error(
+        "[insti] scaffold frequency cutoff needs to be in the range [0,1]");
+  else
+    m_scaffoldFreqCutoff = init.scaffoldFreqCutoff;
+}
 
 // return the probability of the model given the input haplotypes P and
 // emission and transition matrices of individual I
@@ -174,11 +188,19 @@ int Insti::RWSelection(const vector<EMCChain> &rvcChains) {
   return iChainIndex;
 }
 
-bool Insti::load_bin(const char *F) {
-  bool bRetVal = Impute::load_bin(F);
+void Insti::load_bin(const string &binFile) {
+  bool bRetVal = Impute::load_bin(binFile.c_str());
 
   if (bRetVal == false)
-    return false;
+    throw std::runtime_error("[insti] Unable to load input .bin file: " +
+                             string(binFile));
+
+  // setting range object based on load bin
+  if (site.empty())
+    throw std::runtime_error(
+        "[insti] Loaded data seems to contain no sites in file: " +
+        string(binFile));
+  m_runRegion = Region(site[0].chr, site[0].pos, site.back().pos);
 
   // setting number of cycles to use
   // here is best place to do it because in is defined in load_bin()
@@ -187,14 +209,13 @@ bool Insti::load_bin(const char *F) {
   else {
     m_uCycles = nn * in; // this was how snptools does it
   }
-
-  return true;
 }
 
 // HAPS/SAMPLE sample file
-void Insti::OpenSample(string sampleFile, vector<string> &fillSampleIDs) {
+void Insti::OpenSample(const string &sampleFile,
+                       vector<string> &fillSampleIDs) {
 
-  cout << "Loading samples file: " << sampleFile << endl;
+  cout << m_tag << ": [insti] Loading samples file: " << sampleFile << endl;
 
   // read in sample file
   ifile sampleFD(sampleFile);
@@ -251,12 +272,117 @@ void Insti::OpenSample(string sampleFile, vector<string> &fillSampleIDs) {
   }
 }
 
+void Insti::OpenTabHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
+                        vector<snp> &loadSites) {
+  cout << m_tag << ": [insti] Loading tabixed haps file: " << hapsFile << endl;
+
+  // clear all the containers that are going to be filled up
+  vector<snp> fillSites;
+  vector<vector<char> > fillHaps;
+  fillSites.reserve(site.size());
+  fillHaps.reserve(site.size());
+
+  assert(m_sitesUnordered.size() == site.size());
+
+  string file(hapsFile);
+  Tabix tabix(file);
+  string region(m_runRegion.AsString());
+  tabix.setRegion(region);
+
+  // start parsing haplotype lines
+  string buffer;
+  unsigned numHaps = 0;
+  unsigned previousPos = 0;
+  unsigned matchSites = 0;
+  unsigned glSiteIdx =
+      0; // used for checking sites against already loaded glSites
+  while (tabix.getNextLine(buffer) && glSiteIdx != site.size()) {
+
+    // split on tab
+    vector<string> tokens;
+    boost::split(tokens, buffer, boost::is_any_of("\t"));
+    if (tokens[0] != site[glSiteIdx].chr)
+      throw std::runtime_error("[insti] Found site on chromosome '" +
+                               tokens[0] + "' when chromosome '" + site[0].chr +
+                               "' was expected");
+    if (tokens.size() < 6)
+      throw std::runtime_error("[insti] Site has no haplotypes at site: " +
+                               buffer.substr(0, 50));
+
+    // parse position
+    size_t lastChar;
+    unsigned pos = stoul(tokens[2], &lastChar);
+    if (lastChar != tokens[2].size())
+      throw std::runtime_error(
+          "[insti] Malformed site: could not parse position: " +
+          buffer.substr(0, 50));
+
+    // check to see if this site exists in our gl panel
+    auto canSiteR = m_sitesUnordered.equal_range(pos);
+
+    // the load site is not in the GL sites
+    if (distance(canSiteR.first, canSiteR.second) == 0)
+      continue;
+
+    Bio::snp newSite(tokens[0], pos, tokens[3], tokens[4]);
+    // test each of the sites to see if it matches
+    bool match = false;
+    for (auto candidateSite = canSiteR.first; candidateSite != canSiteR.second;
+         ++candidateSite) {
+      const snp &cSite = candidateSite->second;
+      if ((newSite.pos == cSite.pos) && (newSite.chr == cSite.chr) &&
+          (newSite.ref == cSite.ref) && newSite.alt == cSite.alt) {
+        match = true;
+        break;
+      }
+    }
+    if (!match)
+      continue;
+
+    if (pos == previousPos)
+      throw std::runtime_error("[insti] Multiple variants at the same "
+                               "position are not implemented yet");
+    previousPos = pos;
+    ++matchSites;
+
+    // check to make sure the correct number of haplotypes exist in line
+    if (numHaps == 0)
+      numHaps = tokens.size() - 5;
+    else if (numHaps != tokens.size() - 5)
+      throw std::runtime_error("[insti] Wrong number of alleles at site: " +
+                               buffer.substr(0, 50));
+
+    // stuff haplotypes into vector
+    vector<char> alleles;
+    alleles.reserve(numHaps);
+    for (unsigned allNum = 0; allNum < numHaps; ++allNum)
+      if (tokens[allNum + 5] == "0")
+        alleles.push_back(0);
+      else if (tokens[allNum + 5] == "1")
+        alleles.push_back(1);
+      else
+        throw std::runtime_error(
+            "[insti] Malformed site: allele is neither 0 or 1 at site: " +
+            buffer.substr(0, 50));
+
+    // stuff that vector into vector of char vectors...
+    fillHaps.push_back(move(alleles));
+
+    // keep the site because it matches
+    fillSites.push_back(move(newSite));
+  }
+
+  // we are done do a swap to fill the incoming vectors
+  swap(loadSites, fillSites);
+  swap(loadHaps, fillHaps);
+}
+
 // read in the haps file
 // store haps and sites
-void Insti::OpenHaps(string hapsFile, vector<vector<char> > &loadHaps,
+void Insti::OpenHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
                      vector<snp> &sites) {
 
-  cout << "Loading haps file: " << hapsFile << endl;
+  cout << m_tag << ": [insti] Loading haps file: " << hapsFile << endl;
   ifile hapsFD(hapsFile);
 
   if (!hapsFD.isGood())
@@ -272,7 +398,6 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > &loadHaps,
 
   // for making sure input file is sorted by position
   unsigned previousPos = 0;
-
   // create a map of site positions
   while (getline(hapsFD, buffer, '\n')) {
     if (keptSites == m_sitesUnordered.size())
@@ -341,7 +466,7 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > &loadHaps,
 
     // split entire line for processing
     vector<string> tokens;
-    sutils::tokenize(buffer, tokens);
+    boost::split(tokens, buffer, boost::is_any_of(" "));
 
     // make sure header start is correct
     if (numHaps == 0) {
@@ -395,19 +520,167 @@ void Insti::OpenHaps(string hapsFile, vector<vector<char> > &loadHaps,
   assert(loadHaps[0].size() == numHaps);
 }
 
-bool Insti::LoadHapsSamp(string hapsFile, string sampleFile,
+void Insti::OpenVCFGZ(const string &vcf, const string &region,
+                      vector<vector<char> > &loadHaps, vector<snp> &loadSites,
+                      vector<string> &ids) {
+  loadHaps.clear();
+  loadSites.clear();
+  ids.clear();
+
+  // open vcf using tabixpp
+  string inVCF = vcf;
+  string inRegion = region;
+  Tabix tbx(inVCF);
+  if (tbx.setRegion(inRegion) != true)
+    throw std::runtime_error("Malformed region string: " + region);
+
+  // get the header
+  string header;
+  tbx.getHeader(header);
+
+  using qi::phrase_parse;
+  using qi::char_;
+  using qi::omit;
+  using qi::lit;
+  //  using qi::int_;
+  //  using qi::_1;
+  using qi::as_string;
+  using phoenix::push_back;
+
+  // parse header for sample names
+  auto first = header.begin();
+  auto last = header.end();
+  qi::parse(first, last,
+
+            //  Begin grammar
+            omit[*("##" > +(qi::graph | ' ' | '\t') > lit('\n'))] >
+                "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" >
+                +(qi::graph | ' ') % omit[lit('\t')] > omit[lit("\n")],
+            //  End grammar
+            ids);
+
+  if (first != last)
+    throw std::runtime_error(
+        "Could not find #CHROM line in VCF header of file: " + vcf +
+        "\nHeader found:\n" + header);
+
+  // start churning through the region of interest
+  unsigned siteNum = 0;
+  string line;
+  GTParser::vcf_grammar<string::const_iterator> grammar(siteNum);
+  while (tbx.getNextLine(line)) {
+    auto cfirst = line.cbegin();
+    vector<char> loadSite;
+    loadSite.reserve(ids.size() * 2);
+
+    // load values from string into these objects
+    //    string chr = "", ref = "", alt = "";
+    unsigned genomic_pos;
+    vector<string> firstCols(8);
+    vector<t_genotype> genotypes;
+    qi::parse(cfirst, line.cend(), grammar, firstCols[0], genomic_pos,
+              firstCols[1], firstCols[2], firstCols[3], firstCols[4],
+              firstCols[5], firstCols[6], firstCols[7], genotypes);
+
+    /*
+        phrase_parse(
+            first, line.end(),
+
+            //  Begin grammar
+            (as_string[+(char_ - lit("\t"))][ref(chr) = _1] > int_[ref(pos) =
+       _1] >
+             omit[+(char_ - lit("\t"))] >
+             as_string[+(char_ - lit("\t"))][ref(ref) = _1] >
+             as_string[+(char_ - lit("\t"))][ref(alt) = _1] >
+             omit[repeat(4)[+(char_ - lit("\t"))]] >
+             *(char_('0', '1')[push_back(phoenix::ref(site), atoi(_1))] >
+       lit('|') >
+               char_('0', '1')[push_back(phoenix::ref(site), atoi(_1))]) >
+             lit("\n")),
+            //  End grammar
+            lit("\t"));
+    */
+
+    // make sure parser parsed everything
+    if (cfirst != line.cend())
+      throw std::runtime_error(
+          "Malformed VCF line at line " + to_string(siteNum + 1) +
+          " of VCF body in file: " + vcf + "\nLine: " + line);
+    /*    if (first != line.end())
+          throw std::runtime_error("VCF line was not completely parsed at line "
+       +
+                                   to_string(siteNum + 1) +
+                                   " of VCF body in file: " + vcf);
+    */
+    // make sure the correct number of haps were found
+    if (genotypes.size() != ids.size())
+      throw std::runtime_error(
+          "Malformed VCF line: incorrect number of columns at line " +
+          to_string(siteNum + 1) + " of VCF body in file: " + vcf);
+
+    // copy alleles to site
+    for (auto geno : genotypes) {
+      loadSite.push_back(geno.allele1);
+      loadSite.push_back(geno.allele2);
+    }
+
+    loadSites.push_back(
+        snp(firstCols[0], genomic_pos, firstCols[2], firstCols[3]));
+    loadHaps.push_back(move(loadSite));
+    ++siteNum;
+  }
+}
+
+void Insti::LoadVCFGZ(const string &vcf, InstiPanelType panel_t,
+                      const string &region) {
+
+  cout << "[insti] Loading haplotypes from VCF: " << vcf << endl;
+  if (vcf.size() < 7 || vcf.compare(vcf.size() - 7, 7, ".vcf.gz") != 0)
+    throw std::runtime_error(
+        "[insti] input VCF file does not end in '.vcf.gz': " + vcf);
+
+  // load haps file
+  CheckPanelPrereqs(panel_t);
+
+  vector<vector<char> > loadHaps;
+  vector<snp> loadSites;
+  vector<string> scaffoldSampleIDs;
+
+  // read the haps and sites from a haps file
+  OpenVCFGZ(vcf, region, loadHaps, loadSites, scaffoldSampleIDs);
+  if (loadHaps.empty())
+    throw myException("VCF contains no haplotypes: " + vcf);
+
+  // get sample information if we are using a scaffold
+  // make sure samples match
+  if (panel_t == InstiPanelType::SCAFFOLD) {
+    SubsetSamples(scaffoldSampleIDs, loadHaps);
+    OrderSamples(scaffoldSampleIDs, loadHaps);
+
+    assert(!loadHaps.empty());
+    MatchSamples(scaffoldSampleIDs, loadHaps[0].size());
+  }
+
+  assert(!loadHaps.empty());
+  vector<vector<char> > filtHaps;
+  vector<snp> filtSites;
+
+  FilterSites(loadHaps, loadSites, filtHaps, filtSites, panel_t);
+
+  // loading haplotypes into place
+  LoadHaps(filtHaps, filtSites, scaffoldSampleIDs, panel_t);
+};
+
+void Insti::LoadHapsSamp(const string &hapsFile, const string &sampleFile,
                          InstiPanelType panelType) {
 
   // make sure both files are defined
-  if (sampleFile.size() == 0 && panelType == InstiPanelType::SCAFFOLD) {
-    cout << "Need to define a sample file\n";
-    document();
-  }
+  if (sampleFile.empty() && panelType == InstiPanelType::SCAFFOLD)
+    throw std::runtime_error("[insti] Error while loading scaffold haps/sample "
+                             "files: Need to define a sample file");
 
-  if (hapsFile.size() == 0) {
-    cout << "Need to define a haps file\n";
-    document();
-  }
+  if (hapsFile.size() == 0)
+    throw std::runtime_error("[insti] Need to define a haps file");
 
   // load haps file
   CheckPanelPrereqs(panelType);
@@ -416,7 +689,11 @@ bool Insti::LoadHapsSamp(string hapsFile, string sampleFile,
   vector<snp> loadSites;
 
   // read the haps and sites from a haps file
-  OpenHaps(hapsFile, loadHaps, loadSites);
+  if (hapsFile.size() > 11 &&
+      hapsFile.compare(hapsFile.size() - 11, 11, ".tabhaps.gz") == 0)
+    OpenTabHaps(hapsFile, loadHaps, loadSites);
+  else
+    OpenHaps(hapsFile, loadHaps, loadSites);
   if (loadHaps.empty())
     throw myException("Haplotypes file is empty: " + hapsFile);
 
@@ -440,8 +717,6 @@ bool Insti::LoadHapsSamp(string hapsFile, string sampleFile,
 
   // loading haplotypes into place
   LoadHaps(filtHaps, filtSites, scaffoldSampleIDs, panelType);
-
-  return true;
 }
 
 void Insti::OrderSamples(vector<string> &loadIDs,
@@ -566,77 +841,87 @@ void Insti::FilterSites(vector<vector<char> > &loadHaps, vector<snp> &loadSites,
 
   const unsigned numHaplotypesLoaded = loadHaps[0].size();
 
-  // search with gl data as sites to match
-  unsigned numCandidateSitesToSearch;
-  unsigned numTargetSitesSearchable;
+  if (panelType == InstiPanelType::REFERENCE) {
 
-  if (panelType != InstiPanelType::SCAFFOLD) {
-    numCandidateSitesToSearch = loadSites.size();
-    numTargetSitesSearchable = site.size();
-  } else {
-    numCandidateSitesToSearch = site.size();
-    numTargetSitesSearchable = loadSites.size();
-  }
+    // the reference panel may not have less sites than the GLs
+    assert(site.size() <= loadSites.size());
+    filtHaps.reserve(site.size());
+  } else if (panelType == InstiPanelType::SCAFFOLD) {
 
-  filtHaps.resize(numTargetSitesSearchable);
+    // the scaffold may have less or more sites than the GLs
+  } else
+    assert(false); // programming error
 
-  unsigned targetSiteIdx = 0;
-  unsigned candidateSiteIdx = 0;
+  // now keep all sites that are in the GL set of sites
+  // look up each load site to see if its in the GL sites
+  unsigned previousPos = 0;
+  unsigned matchSites = 0;
+  for (unsigned loadSiteIdx = 0; loadSiteIdx < loadSites.size();
+       ++loadSiteIdx) {
+    const snp &loadSite = loadSites[loadSiteIdx];
+    auto canSiteR = m_sitesUnordered.equal_range(loadSite.pos);
 
-  while (candidateSiteIdx < numCandidateSitesToSearch) {
+    // the load site is not in the GL sites
+    if (distance(canSiteR.first, canSiteR.second) == 0)
+      continue;
 
-    // just making sure the scaffold sites are all found in already loaded sites
-    if (panelType == InstiPanelType::SCAFFOLD) {
-      if (loadSites[targetSiteIdx].pos == site[candidateSiteIdx].pos)
-        targetSiteIdx++;
-    } else if (panelType == InstiPanelType::REFERENCE) {
-      if (SwapMatch(loadSites[candidateSiteIdx], site[targetSiteIdx],
-                    loadHaps[candidateSiteIdx], filtHaps[targetSiteIdx])) {
-        filtSites.push_back(loadSites[candidateSiteIdx]);
-        targetSiteIdx++;
+    // test each of the sites to see if it matches
+    bool match = false;
+    for (auto candidateSite = canSiteR.first; candidateSite != canSiteR.second;
+         ++candidateSite) {
+      const snp &cSite = candidateSite->second;
+      if ((loadSite.pos == cSite.pos) &&
+          (loadSite.chr.empty() ? true : loadSite.chr == cSite.chr) &&
+          (loadSite.ref == cSite.ref) && loadSite.alt == cSite.alt) {
+        match = true;
+        break;
       }
-    } else {
-      assert(false); // programming error
     }
+    if (match) {
+      if (loadSite.pos < previousPos)
+        throw std::runtime_error(
+            "[insti] Haplotypes file is not ordered by position: ");
+      if (loadSite.pos == previousPos)
+        throw std::runtime_error("[insti] Multiple variants at the same "
+                                 "position are not implemented yet");
+      previousPos = loadSite.pos;
+      ++matchSites;
 
-    candidateSiteIdx++;
+      // keep the site because it matches
+      filtSites.push_back(loadSite);
+      filtHaps.push_back(move(loadHaps[loadSiteIdx]));
+    }
   }
 
-  assert(targetSiteIdx == numTargetSitesSearchable);
-
-  if (panelType == InstiPanelType::SCAFFOLD) {
-    swap(filtHaps, loadHaps);
-    swap(filtSites, loadSites);
-  }
-
-  assert(filtSites.size() == targetSiteIdx);
-
-  cout << "Number of loaded haplotypes: " << numHaplotypesLoaded << endl;
-  cout << "Number of haplotypes left after filtering: " << filtHaps[0].size()
+  cout << "[insti] Number of loaded haplotypes: " << numHaplotypesLoaded
        << endl;
-  cout << "Number of candidate sites: " << numCandidateSitesToSearch << endl;
-  cout << "Number of sites kept: " << numTargetSitesSearchable << endl;
-  assert(loadHaps[0].size() == 0);
+  cout << "[insti] Number of haplotypes left after filtering: "
+       << filtHaps[0].size() << endl;
+  cout << "[insti] Number of candidate sites: " << site.size() << endl;
+  cout << "[insti] Number of sites kept: " << filtSites.size() << endl;
 
   if (filtHaps[0].size() != numHaplotypesLoaded)
-    throw myException(
+    throw std::runtime_error(
         "Error: No sites in loaded panel matched already loaded sites. Is your "
         "input file sorted?");
 
-  assert(targetSiteIdx <= site.size());
-  assert(targetSiteIdx > 0);
+  // we always want to find at most as many matches as are in GL sites
+  if (matchSites > site.size())
+    throw std::runtime_error("[insti] too many matching sites found");
+
+  assert(matchSites > 0);
 
   if (panelType == InstiPanelType::REFERENCE)
-    if (site.size() != targetSiteIdx)
-      throw myException("Error: site " +
-                        sutils::uint2str(site[targetSiteIdx - 1].pos) +
-                        " could not be found in loaded haplotype panel");
+    if (site.size() != matchSites)
+      throw std::runtime_error(
+          "[insti] Could not find all GL sites in loaded haplotype panel");
 }
 
 // swap two haps if they match and return true on swap, false otherwise
 bool Insti::SwapMatch(const snp &loadSite, const Site &existSite,
                       vector<char> &loadHap, vector<char> &existHap) {
-  if (loadSite.pos == existSite.pos) {
+  if (loadSite.pos == existSite.pos && loadSite.chr == existSite.chr &&
+      loadSite.ref + loadSite.alt == existSite.all) {
     std::swap(loadHap, existHap);
 
     return 1;
@@ -773,8 +1058,8 @@ vector<snp> Insti::OpenLegend(string legendFile) {
     }
 
     // add each site to loadLeg
-    loadLeg.push_back(snp(tokens[0], strtoul(tokens[1].c_str(), NULL, 0),
-                          tokens[2], tokens[3]));
+    loadLeg.push_back(
+        snp("", strtoul(tokens[1].c_str(), NULL, 0), tokens[2], tokens[3]));
   }
 
   return loadLeg;
@@ -839,8 +1124,8 @@ vector<vector<char> > Insti::OpenHap(string hapFile) {
   return loadHaps;
 }
 
-bool Insti::LoadHapLegSamp(string legendFile, string hapFile, string sampleFile,
-                           InstiPanelType panelType) {
+bool Insti::LoadHapLegSamp(const string &legendFile, const string &hapFile,
+                           const string &sampleFile, InstiPanelType panelType) {
 
   // make sure required files are defined
   if (legendFile.size() == 0) {
@@ -1099,12 +1384,25 @@ void Insti::initialize() {
   }
 
   // load the scaffold
-  if (s_scaffoldSampleFile.size() > 0 || s_scaffoldHapsFile.size() > 0)
-    LoadHapsSamp(s_scaffoldHapsFile, s_scaffoldSampleFile,
-                 InstiPanelType::SCAFFOLD);
+  if (!m_scaffoldHapsFile.empty()) {
+    if (!m_scaffoldSampleFile.empty())
+      LoadHapsSamp(m_scaffoldHapsFile, m_scaffoldSampleFile,
+                   InstiPanelType::SCAFFOLD);
 
+    // then this might be a VCF instead!
+    else if (m_scaffoldHapsFile.size() >= 7 &&
+             m_scaffoldHapsFile.compare(m_scaffoldHapsFile.size() - 7, 7,
+                                        ".vcf.gz") == 0)
+      LoadVCFGZ(m_scaffoldHapsFile, InstiPanelType::SCAFFOLD,
+                m_runRegion.AsString());
+    else {
+      throw std::runtime_error(
+          "[insti] Error while loading scaffold haps/sample "
+          "files: Need to define a sample file");
+    }
+  }
   // change phase and genotype of main haps to that from scaffold
-  if (s_initPhaseFromScaffold) {
+  if (m_initPhaseFromScaffold) {
     SetHapsAccordingToScaffold();
   }
 }
@@ -1126,8 +1424,9 @@ fast Insti::cudaSolve(HMMLike &hapSampler, unsigned sampleStride, fast pen) {
   assert(firstSampIdx == 0);
   assert(lastSampIdx == sampleStride - 1);
 
-  // do a final round of haplotype estimation
-  // this could be parallelized using threads perhaps? or an openmp pragma
+// do a final round of haplotype estimation
+// this could be parallelized using threads perhaps? or an openmp pragma
+#pragma omp for
   for (unsigned sampNum = firstSampIdx; sampNum <= lastSampIdx; ++sampNum)
     hmm_work(sampNum, &propHaps[sampNum * 4], pen);
 
@@ -1161,9 +1460,9 @@ fast Insti::solve(unsigned I, unsigned N, fast pen,
   // write log header
   if (s_bIsLogging) {
     stringstream message;
-    message
-        << "##iteration\tindividual\tproposal\taccepted\tind1\tind2\tind3\tind4"
-        << endl;
+    message << "##"
+               "iteration\tindividual\tproposal\taccepted\tind1\tind2\tind3\t"
+               "ind4" << endl;
     WriteToLog(message.str());
   }
 
@@ -1233,7 +1532,7 @@ fast Insti::solve(unsigned I, unsigned N, fast pen,
 void Insti::estimate() {
 
   // choose a sampling scheme
-  switch (s_iEstimator) {
+  switch (m_estimator) {
 
   // simulated annealing MH
   case 0:
@@ -1255,7 +1554,7 @@ void Insti::estimate() {
           m_sampler = make_shared<KNN>(
               s_uNumClusters, (*m_scaffold.Haplotypes()),
               m_scaffold.NumWordsPerHap(), m_scaffold.NumSites(),
-              s_scaffoldFreqCutoff, rng);
+              m_scaffoldFreqCutoff, rng);
         else
           throw myException(
               "kNN sampler with no scaffold is not implemented yet");
@@ -1859,7 +2158,7 @@ void Insti::SetHapsAccordingToScaffold() {
   }
 }
 
-void Insti::document(void) {
+void Insti::document() {
   cerr << "Author\tWarren W. Kretzschmar @ Marchini Group @ Universiy of "
           "Oxford - Statistics";
   cerr << "\n\nThis code is based on SNPTools impute:";
@@ -1870,7 +2169,8 @@ void Insti::document(void) {
 
   //    cerr << "\n\t-b <burn>       burn-in generations (56)";
   cerr << "\n\t-l <file>       list of input files";
-  cerr << "\n\t-n <fold>       sample size*fold of nested MH sampler iteration "
+  cerr << "\n\t-n <fold>       sample size*fold of nested MH sampler "
+          "iteration "
           "(2)";
   cerr << "\n\t-o <name>\tPrefix to use for output files";
 
@@ -1886,12 +2186,13 @@ void Insti::document(void) {
   cerr << "\n\t-B <integer>    number of simulated annealing generations (28)";
   cerr << "\n\t-i <integer>    number of non-simulated annealing burnin "
           "generations (28)";
-  cerr << "\n\t-M <integer>    generation number at which to start clustering, "
+  cerr << "\n\t-M <integer>    generation number at which to start "
+          "clustering, "
           "0-based (28)";
   cerr << "\n\n    HAPLOTYPE ESTIMATION OPTIONS";
   cerr << "\n\t-E <integer>    choice of estimation algorithm (0)";
-  cerr
-      << "\n\t                0 - Metropolis Hastings with simulated annealing";
+  cerr << "\n\t                0 - Metropolis Hastings with simulated "
+          "annealing";
   cerr << "\n\t                1 - Evolutionary Monte Carlo with -p parallel "
           "chains";
   cerr << "\n\t                2 - Adaptive Metropolis Hastings - "

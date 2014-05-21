@@ -8,12 +8,13 @@
 
 //
 
+#include <chrono>
 #include "version.hpp"
 #include "impute.hpp"
 #include "insti.hpp"
-#include <chrono>
 
 using namespace std;
+namespace po = boost::program_options;
 
 int main(int ac, char **av) {
 
@@ -27,6 +28,9 @@ int main(int ac, char **av) {
         commandLine << " " << av[i];
       }
     }
+
+    // init is used to pass initialization options to Insti
+    InstiHelper::Init init;
 
     Impute::sn = 200;
     Impute::nn = 2;
@@ -80,8 +84,8 @@ int main(int ac, char **av) {
         sLogFile = optarg;
         break;
       case 'E':
-        Insti::s_iEstimator = atoi(optarg);
-        if (Insti::s_iEstimator > 3) {
+        init.estimator = atoi(optarg);
+        if (init.estimator > 3) {
           cerr << "-E needs to be between 0 and 3" << endl;
           Insti::document();
         }
@@ -129,16 +133,16 @@ int main(int ac, char **av) {
         optMSet = true;
         break;
       case 'h':
-        Insti::s_scaffoldHapsFile = optarg;
+        init.scaffoldHapsFile = optarg;
         break;
       case 's':
-        Insti::s_scaffoldSampleFile = optarg;
+        init.scaffoldSampleFile = optarg;
         break;
       case 'q':
-        Insti::s_scaffoldFreqCutoff = std::stod(optarg);
+        init.scaffoldFreqCutoff = std::stod(optarg);
         break;
       case 'f':
-        Insti::s_initPhaseFromScaffold = true;
+        init.initPhaseFromScaffold = true;
         break;
       case 'o':
         outBase = optarg;
@@ -193,7 +197,7 @@ int main(int ac, char **av) {
       gettimeofday(&sta, NULL);
 
       // create an Insti instance!
-      Insti lp;
+      Insti lp(init);
 
       if (Insti::s_bIsLogging)
         lp.SetLog(sLogFile);
@@ -207,9 +211,13 @@ int main(int ac, char **av) {
 
       // load gls
       // add a reserve of space
-      if (!lp.load_bin(file[i].c_str())) {
-        cerr << "fail to load " << file[i] << endl;
-        continue;
+      try {
+        lp.load_bin(file[i]);
+      }
+      catch (std::exception &e) {
+        cerr << "[main] While loading .bin file: " << file[i] << endl
+             << e.what() << endl;
+        exit(1);
       }
 
       for (uint j = 0; j < Impute::vcf_file.size(); j++)
@@ -232,7 +240,7 @@ int main(int ac, char **av) {
         lp.save_relationship_graph(outBase);
       }
       catch (exception &e) {
-        cerr << e.what();
+        cerr << e.what() << endl;
       }
 
       // printing out run time

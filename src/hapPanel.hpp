@@ -12,7 +12,7 @@ static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 #include <string>
 #include <cassert>
 #include <iostream>
-#include "snp.hpp"
+#include "bio.hpp"
 #include "utils.hpp"
 
 #define WordShift 6
@@ -23,7 +23,7 @@ class HapPanel {
 private:
   unsigned m_wordSize = 64;
   std::vector<uint64_t> m_haps;
-  std::vector<snp> m_sites;
+  std::vector<Bio::snp> m_sites;
   std::vector<std::string> m_sampleIDs;
   unsigned m_numHaps = 0;
   unsigned m_numWordsPerHap;
@@ -42,7 +42,8 @@ private:
   }
 
 public:
-  void Init(std::vector<std::vector<char> > &inHaps, std::vector<snp> &inSites,
+  void Init(std::vector<std::vector<char> > &inHaps,
+            std::vector<Bio::snp> &inSites,
             std::vector<std::string> &inSampleIDs);
 
   std::string GetID(unsigned idx) {

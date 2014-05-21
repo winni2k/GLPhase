@@ -106,7 +106,7 @@ TEST(HMMLike, createsOK) {
 
   const unsigned numSamps = 2;
   const unsigned numHaps = 4;
-  const unsigned numSites = 512;
+  const unsigned numSites = 1024;
   const unsigned wordSize = 64;
   const unsigned numWords = numSites / wordSize;
   vector<uint64_t> hapPanel(numWords * numHaps);

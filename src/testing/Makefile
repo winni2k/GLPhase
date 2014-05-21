@@ -16,8 +16,8 @@ GTEST_DIR = $(SRC_DIR)/gtest-1.7.0
 export CXXFLAGS += -isystem $(GTEST_DIR)
 
 export CPATH += :$(GTEST_DIR)/include:$(SRC_DIR)/u-wkretzsch-snptools/samtools-0.1.16:$(SRC_DIR)/u-wkretzsch-snptools/tabix-0.2.5:$(GTEST_DIR)
-export CPLUS_INCLUDE_PATH += :$(SRC_DIR):$(SRC_DIR)/olivier:$(GTEST_DIR)/src
-export LIBRARY_PATH += :$(SRC_DIR)/u-wkretzsch-snptools/samtools-0.1.16:$(SRC_DIR)/u-wkretzsch-snptools/tabix-0.2.5
+export CPLUS_INCLUDE_PATH += :$(SRC_DIR):$(SRC_DIR)/olivier:$(GTEST_DIR)/src:$(SRC_DIR)/tabixpp:$(SRC_DIR)/vcfPhasedBreakMulti/src
+export LIBRARY_PATH += :$(SRC_DIR)/u-wkretzsch-snptools/samtools-0.1.16:$(SRC_DIR)/tabixpp
 AR= ar
 LIBS += -lpthread
 

@@ -18,6 +18,8 @@ string refLegend =
     sampleDir + "/20_0_62000000.011976121_012173018.paste.onlyThree.legend";
 string refHaps =
     sampleDir + "/20_0_62000000.011976121_012173018.paste.onlyThree.haps";
+string refVCFGZ =
+    sampleDir + "/20_0_62000000.011976121_012173018.paste.onlyThree.vcf.gz";
 
 string scaffHapLegSampSample = sampleDir + "/onlyThree.hapLegSamp.sample";
 string scaffHapsSampSample = sampleDir + "/onlyThree.hapsSample.sample";
@@ -27,10 +29,18 @@ string scaffHapsSampUnorderedSample =
 string scaffoldUnorderedHaps =
     sampleDir +
     "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted.unordered.haps";
+string scaffoldUnorderedVCFGZ =
+    sampleDir +
+    "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted.unordered.vcf.gz";
 string scaffoldHap =
     sampleDir + "/20_011976121_012173018.bin.onlyThree.scaffold50.hap";
 string scaffoldHaps =
     sampleDir + "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted.haps";
+string scaffoldTabHaps =
+    sampleDir + "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted.tabhaps.gz";
+string scaffoldVCFGZ =
+    sampleDir +
+    "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted.vcf.gz";
 string scaffoldHapsWrongReg =
     sampleDir +
     "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted.wrongRegion.haps";
@@ -49,8 +59,9 @@ gsl_rng *rng = gsl_rng_alloc(gsl_rng_default);
 
 TEST(Insti, loadBin) {
 
-  Insti lp;
-  lp.load_bin(sampleBin.c_str());
+  InstiHelper::Init init;
+  Insti lp(init);
+  lp.load_bin(sampleBin);
 
   ASSERT_EQ(3, lp.in);
 
@@ -132,10 +143,12 @@ TEST(Insti, loadBin) {
 
 TEST(Insti, loadHapsSamp) {
 
-  Insti lp;
-  lp.load_bin(sampleBin.c_str());
+  InstiHelper::Init init;
+  Insti lp(init);
+  lp.load_bin(sampleBin);
   lp.initialize();
-  lp.LoadHapsSamp(refHaps, "", InstiPanelType::REFERENCE);
+  const string nothing = "";
+  lp.LoadHapsSamp(refHaps, nothing, InstiPanelType::REFERENCE);
 
   for (unsigned i = 0; i != 601; i++) {
     EXPECT_EQ(0, lp.TestRefHap(0, i));
@@ -179,8 +192,8 @@ TEST(Insti, loadHapsSamp) {
   }
 
   // unordered haps test
-  Insti lp2;
-  lp2.load_bin(sampleBin.c_str());
+  Insti lp2(init);
+  lp2.load_bin(sampleBin);
   lp2.initialize();
 
   // test the scaffold loading
@@ -209,31 +222,65 @@ TEST(Insti, loadHapsSamp) {
   }
 
   // try some quirky input
-  Insti lp3;
-  lp3.load_bin(sampleBin.c_str());
+  Insti lp3(init);
+  lp3.load_bin(sampleBin);
   lp3.initialize();
-  lp3.LoadHapsSamp(refHaps, "", InstiPanelType::REFERENCE);
+  lp3.LoadHapsSamp(refHaps, nothing, InstiPanelType::REFERENCE);
 
   // test the scaffold loading
   ASSERT_EXIT(lp3.LoadHapsSamp(scaffoldHapsWrongReg, scaffHapsSampSample,
                                InstiPanelType::SCAFFOLD),
               ::testing::ExitedWithCode(1),
               "Number of haplotypes in haps file is 0.  Haps file empty?");
+
+  // test the scaffold loading using tabhaps
+    // unordered haps test
+  Insti lp4(init);
+  lp4.load_bin(sampleBin);
+  lp4.initialize();
+
+  // test the scaffold loading
+  lp4.LoadHapsSamp(scaffoldTabHaps, scaffHapsSampUnorderedSample,
+                   InstiPanelType::SCAFFOLD);
+  ASSERT_EQ("samp1", lp4.GetScaffoldID(0));
+  ASSERT_EQ("samp2", lp4.GetScaffoldID(1));
+  ASSERT_EQ("samp3", lp4.GetScaffoldID(2));
+
+  for (unsigned i = 0; i != 26; i++) {
+    EXPECT_EQ(0, lp4.TestScaffoldSite(4, i));
+    EXPECT_EQ(1, lp4.TestScaffoldSite(5, i));
+    EXPECT_EQ(0, lp4.TestScaffoldSite(0, i));
+    EXPECT_EQ(1, lp4.TestScaffoldSite(1, i));
+    EXPECT_EQ(0, lp4.TestScaffoldSite(2, i));
+    EXPECT_EQ(0, lp4.TestScaffoldSite(3, i));
+  }
+
+  for (unsigned i = 26; i != 50; i++) {
+    EXPECT_EQ(1, lp4.TestScaffoldSite(4, i));
+    EXPECT_EQ(0, lp4.TestScaffoldSite(5, i));
+    EXPECT_EQ(0, lp4.TestScaffoldSite(0, i));
+    EXPECT_EQ(1, lp4.TestScaffoldSite(1, i));
+    EXPECT_EQ(1, lp4.TestScaffoldSite(2, i));
+    EXPECT_EQ(0, lp4.TestScaffoldSite(3, i));
+  }
+
 }
 
 TEST(Insti, loadHapLegSampErrors) {
 
-  Insti lp;
-  lp.load_bin(sampleBin.c_str());
+  InstiHelper::Init init;
+  Insti lp(init);
+  lp.load_bin(sampleBin);
   lp.initialize();
 
   //    cerr << "BLOINC1\n";
   ASSERT_EXIT(lp.LoadHapLegSamp("", sampleHap, "", InstiPanelType::REFERENCE),
               ::testing::ExitedWithCode(1),
               "Need to define a legend file if defining a hap file");
-  ASSERT_EXIT(lp.LoadHapLegSamp(sampleLegend, "", "", InstiPanelType::REFERENCE),
-              ::testing::ExitedWithCode(1),
-              "Need to define a hap file if defining a legend file");
+  ASSERT_EXIT(
+      lp.LoadHapLegSamp(sampleLegend, "", "", InstiPanelType::REFERENCE),
+      ::testing::ExitedWithCode(1),
+      "Need to define a hap file if defining a legend file");
   EXPECT_ANY_THROW(
       lp.LoadHapsSamp(refHaps, brokenHapsSampSample, InstiPanelType::SCAFFOLD));
 
@@ -241,16 +288,18 @@ TEST(Insti, loadHapLegSampErrors) {
                   "Input haplotypes file " + unsortedRefHaps +
                   " needs to be sorted by position");
   */
-  EXPECT_ANY_THROW(lp.LoadHapsSamp(unsortedRefHaps, scaffHapsSampUnorderedSample,
-                              InstiPanelType::SCAFFOLD));
+  EXPECT_ANY_THROW(lp.LoadHapsSamp(
+      unsortedRefHaps, scaffHapsSampUnorderedSample, InstiPanelType::SCAFFOLD));
 }
 
 TEST(Insti, initializingHapsFromScaffold) {
-  Insti lp;
-  Insti::s_initPhaseFromScaffold = true;
-  Insti::s_scaffoldHapsFile = scaffoldHaps;
-  Insti::s_scaffoldSampleFile = scaffHapsSampSample;
-  lp.load_bin(sampleBin.c_str());
+  InstiHelper::Init init;
+  init.scaffoldHapsFile = scaffoldHaps;
+  init.initPhaseFromScaffold = true;
+  init.scaffoldSampleFile = scaffHapsSampSample;
+  Insti lp(init);
+
+  lp.load_bin(sampleBin);
   // test the scaffold loading
   lp.initialize();
 
@@ -273,5 +322,86 @@ TEST(Insti, initializingHapsFromScaffold) {
     EXPECT_EQ(1, lp.TestMainHap_(3, i));
     EXPECT_EQ(1, lp.TestMainHap_(4, i));
     EXPECT_EQ(0, lp.TestMainHap_(5, i));
+  }
+}
+
+TEST(Insti, LoadVCFGZ) {
+
+  string region = "20:43281-61958963";
+
+  InstiHelper::Init init;
+  Insti lp(init);
+  lp.load_bin(sampleBin);
+  lp.initialize();
+  lp.LoadVCFGZ(refVCFGZ, InstiPanelType::REFERENCE, region);
+
+  for (unsigned i = 0; i != 601; i++) {
+    EXPECT_EQ(0, lp.TestRefHap(0, i));
+    EXPECT_EQ(0, lp.TestRefHap(2, i));
+    EXPECT_EQ(1, lp.TestRefHap(3, i));
+  }
+
+  for (unsigned i = 601; i != 1024; i++) {
+    EXPECT_EQ(1, lp.TestRefHap(0, i));
+    EXPECT_EQ(0, lp.TestRefHap(1, i));
+    EXPECT_EQ(0, lp.TestRefHap(2, i));
+    EXPECT_EQ(1, lp.TestRefHap(3, i));
+  }
+
+  // test the scaffold loading
+  lp.LoadVCFGZ(scaffoldVCFGZ, InstiPanelType::SCAFFOLD, region);
+  ASSERT_EQ("samp1", lp.GetScaffoldID(0));
+  ASSERT_EQ("samp2", lp.GetScaffoldID(1));
+  ASSERT_EQ("samp3", lp.GetScaffoldID(2));
+
+  ASSERT_EQ(6, lp.GetScaffoldNumHaps());
+  ASSERT_EQ(1, lp.GetScaffoldNumWordsPerHap());
+  ASSERT_EQ(50, lp.GetScaffoldNumSites());
+
+  for (unsigned i = 0; i != 26; i++) {
+    EXPECT_EQ(0, lp.TestScaffoldSite(0, i));
+    EXPECT_EQ(1, lp.TestScaffoldSite(1, i));
+    EXPECT_EQ(0, lp.TestScaffoldSite(2, i));
+    EXPECT_EQ(1, lp.TestScaffoldSite(3, i));
+    EXPECT_EQ(0, lp.TestScaffoldSite(4, i));
+    EXPECT_EQ(0, lp.TestScaffoldSite(5, i));
+  }
+
+  for (unsigned i = 26; i != 50; i++) {
+    EXPECT_EQ(1, lp.TestScaffoldSite(0, i));
+    EXPECT_EQ(0, lp.TestScaffoldSite(1, i));
+    EXPECT_EQ(0, lp.TestScaffoldSite(2, i));
+    EXPECT_EQ(1, lp.TestScaffoldSite(3, i));
+    EXPECT_EQ(1, lp.TestScaffoldSite(4, i));
+    EXPECT_EQ(0, lp.TestScaffoldSite(5, i));
+  }
+
+  // unordered haps test
+  Insti lp2(init);
+  lp2.load_bin(sampleBin);
+  lp2.initialize();
+
+  // test the scaffold loading
+  lp2.LoadVCFGZ(scaffoldUnorderedVCFGZ, InstiPanelType::SCAFFOLD, region);
+  ASSERT_EQ("samp1", lp2.GetScaffoldID(0));
+  ASSERT_EQ("samp2", lp2.GetScaffoldID(1));
+  ASSERT_EQ("samp3", lp2.GetScaffoldID(2));
+
+  for (unsigned i = 0; i != 26; i++) {
+    EXPECT_EQ(0, lp2.TestScaffoldSite(4, i));
+    EXPECT_EQ(1, lp2.TestScaffoldSite(5, i));
+    EXPECT_EQ(0, lp2.TestScaffoldSite(0, i));
+    EXPECT_EQ(1, lp2.TestScaffoldSite(1, i));
+    EXPECT_EQ(0, lp2.TestScaffoldSite(2, i));
+    EXPECT_EQ(0, lp2.TestScaffoldSite(3, i));
+  }
+
+  for (unsigned i = 26; i != 50; i++) {
+    EXPECT_EQ(1, lp2.TestScaffoldSite(4, i));
+    EXPECT_EQ(0, lp2.TestScaffoldSite(5, i));
+    EXPECT_EQ(0, lp2.TestScaffoldSite(0, i));
+    EXPECT_EQ(1, lp2.TestScaffoldSite(1, i));
+    EXPECT_EQ(1, lp2.TestScaffoldSite(2, i));
+    EXPECT_EQ(0, lp2.TestScaffoldSite(3, i));
   }
 }
