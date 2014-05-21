@@ -113,7 +113,7 @@ int haplotypeCluster::kplusplus(int K, vector<int> &input,
   int cand;
 
   for (int i = 0; i < K; i++) {
-    set<int> candidates = sampleIndex(ncand, input.size());
+    set<int> candidates = HCHelper::sampleIndex(ncand, input.size());
     if (i == 0) {
       cand = input[*candidates.begin()];
       output[i] = cand;
@@ -145,7 +145,7 @@ int haplotypeCluster::kplusplus(int K, vector<int> &output) {
   set<int>::iterator idx1;
 
   for (int i = 0; i < K; i++) {
-    set<int> candidates = sampleIndex(ncand, nhap);
+    set<int> candidates = HCHelper::sampleIndex(ncand, nhap);
     if (i == 0) {
       output[i] = *candidates.begin();
     } else {
@@ -358,7 +358,7 @@ pair<int, int> haplotypeCluster::kmeans(unsigned int cluster,
   }
 
   //	if(_DEBUG>0) cout << "Lloyds Total SS = " << SS() << "\t"<<nchanged << "
-  //haps changed clusters on last iteration" << endl;
+  // haps changed clusters on last iteration" << endl;
 
   int minind = cluster_size.first > cluster_size.second;
   int minsize = min(cluster_size.first, cluster_size.second);
