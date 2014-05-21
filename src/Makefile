@@ -33,7 +33,7 @@ test: CXXFLAGS += -O0 -ggdb
 CXX := g++-4.7+
 CXXFLAGS += -Wall -Wextra -std=c++11 -mpopcnt -fopenmp
 BOOSTLIB := -lboost_iostreams-mt #alternatively: /opt/boost/boost-1.54.0-intel/lib/libboost_iostreams.a
-LIBS += -lgsl -lgslcblas -lbam -ltabix -lbz2 $(BOOSTLIB) -lm -lstdc++ -lz
+LIBS += -lgsl -lgslcblas -ltabix -lbz2 $(BOOSTLIB) -lm -lstdc++ -lz
 
 # nvcc
 ifndef NCUDA
@@ -48,9 +48,8 @@ test: NVCCFLAGS += -g -G
 endif
 
 # path variables
-CPATH += :u-wkretzsch-snptools/samtools-0.1.16:tabixpp
 CPLUS_INCLUDE_PATH += :olivier:tabixpp:vcfPhasedBreakMulti/src
-LIBRARY_PATH += :u-wkretzsch-snptools/samtools-0.1.16:tabixpp
+LIBRARY_PATH += ::tabixpp
 LD_LIBRARY_PATH += $(LIBRARY_PATH)
 
 
@@ -69,7 +68,6 @@ endif
 
 
 # perform all exporting here
-export CPATH
 export CPLUS_INCLUDE_PATH
 export LIBRARY_PATH
 export LD_LIBRARY_PATH
