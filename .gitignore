@@ -5,3 +5,4 @@
 /src/testing/insti_unittests
 /src/testing/other_unittests
 /src/testing/cuda_tests
+/src/testing/glPack_unittests

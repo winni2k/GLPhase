@@ -22,9 +22,8 @@
 #include	<ctime>
 //#include	<omp.h>
 #include	<set>
+#include "globals.h"
 
-#define    WordShift    6
-#define    WordMod    63
 #define    MaskHA    0x80
 #define    MaskHB    0x40
 #define    MaskG    0x3f
@@ -55,16 +54,16 @@ protected:
     void set1(uint64_t *P, unsigned I) {
         // I >> Uint64_TShift is moving along the array according to which uint64_t I is in
         // e.g. I <= 63 is first uint64_t, and so forth in blocks of 64 bits
-        P[I >> WordShift] |= static_cast<uint64_t>(1) << (I & WordMod);
+        P[I >> WORDSHIFT] |= static_cast<uint64_t>(1) << (I & WORDMOD);
     }
 
     void set0(uint64_t *P, unsigned I) {
-        P[I >> WordShift] &= ~(static_cast<uint64_t>(1) << (I & WordMod));
+        P[I >> WORDSHIFT] &= ~(static_cast<uint64_t>(1) << (I & WORDMOD));
     }
 
     // test if bit I is 1
     uint64_t test(uint64_t *P, unsigned I) {
-        return (P[I >> WordShift] >> (I & WordMod)) & static_cast<uint64_t>(1);
+        return (P[I >> WORDSHIFT] >> (I & WORDMOD)) & static_cast<uint64_t>(1);
     }
 
     fast hmm(unsigned I, unsigned *P, fast S);

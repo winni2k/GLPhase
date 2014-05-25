@@ -11,12 +11,12 @@ void Haplotype::Set(unsigned uSite, bool bAllele) {
 
   // set uSite to 1
   if (bAllele)
-    m_hap[uSite >> h_WordShift] |= static_cast<uint64_t>(1)
-                                   << (uSite & h_WordMod);
+    m_hap[uSite >> WORDSHIFT] |= static_cast<uint64_t>(1)
+                                   << (uSite & WORDMOD);
   // set uSite to 0
   else
-    m_hap[uSite >> h_WordShift] &=
-        ~(static_cast<uint64_t>(1) << (uSite & h_WordMod));
+    m_hap[uSite >> WORDSHIFT] &=
+        ~(static_cast<uint64_t>(1) << (uSite & WORDMOD));
 }
 
 unsigned Haplotype::HammingDist(const Haplotype &oCompareHap) const {

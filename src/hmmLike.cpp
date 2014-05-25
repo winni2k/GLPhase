@@ -41,6 +41,8 @@ HMMLike::HMMLike(const vector<uint64_t> &hapPanel, unsigned numHaps,
   assert(m_numCycles > 0);
   assert(m_inHapPanel.size() == m_totalNumHaps * NUMSITES / WORDSIZE);
   assert(NUMSITES == m_glPack.GetNumSites());
+  assert(m_glPack.GetCodeBook().size() == 1 << BITSPERCODE);
+  assert(m_glPack.GetNumBitsPerGL() == BITSPERCODE);
 
   // make sure we have a K20 or better installed
   // also define some constants
@@ -52,6 +54,9 @@ HMMLike::HMMLike(const vector<uint64_t> &hapPanel, unsigned numHaps,
   // copy the mutation matrixt to constant memory on the device
   HMMLikeCUDA::CopyMutationMatToDevice(m_mutationMat);
 
+  // copy code book for VQ to device
+  HMMLikeCUDA::CopyCodeBookToDevice(glPack.GetCodeBook());
+  
   // copy all strided GLs across if the sample stride is equal to the number of
   // samples
   if (m_totalNumSamps == m_glPack.GetSampleStride())
@@ -86,7 +91,7 @@ vector<unsigned> HMMLike::RunHMMOnSamples(unsigned &firstSampIdx,
 
     // fill the initial haps
     for (unsigned propHapIdx = 0; propHapIdx < 4; ++propHapIdx)
-      hapIdxs[sampNum + propHapIdx * numRunSamps] =
+        hapIdxs.at(sampNum + propHapIdx * numRunSamps) =
           m_sampler->SampleHap(sampIdx);
 
     // fill the proposal haps

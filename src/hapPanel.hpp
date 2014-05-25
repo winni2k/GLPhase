@@ -14,14 +14,12 @@ static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 #include <iostream>
 #include "bio.hpp"
 #include "utils.hpp"
-
-#define WordShift 6
-#define WordMod 63
+#include "globals.h"
 
 class HapPanel {
 
 private:
-  unsigned m_wordSize = 64;
+  unsigned m_wordSize = WORDSIZE;
   std::vector<uint64_t> m_haps;
   std::vector<Bio::snp> m_sites;
   std::vector<std::string> m_sampleIDs;
@@ -34,11 +32,11 @@ private:
     // I >> Uint64_TShift is moving along the array according to which uint64_t
     // I is in
     // e.g. I <= 63 is first uint64_t, and so forth in blocks of 64 bits
-    P[I >> WordShift] |= static_cast<uint64_t>(1) << (I & WordMod);
+    P[I >> WORDSHIFT] |= static_cast<uint64_t>(1) << (I & WORDMOD);
   }
 
   void set0(uint64_t *P, unsigned I) {
-    P[I >> WordShift] &= ~(static_cast<uint64_t>(1) << (I & WordMod));
+    P[I >> WORDSHIFT] &= ~(static_cast<uint64_t>(1) << (I & WORDMOD));
   }
 
 public:

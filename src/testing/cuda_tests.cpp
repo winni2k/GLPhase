@@ -6,17 +6,21 @@
 #include <cuda_runtime.h>
 #include <gsl/gsl_rng.h>
 #include <memory>
+#include <limits>
+#include <utility>
 
 using namespace std;
 
 namespace HMMLikeCUDATest {
-extern bool UnpackGLs(char GLset, float *GLs);
+extern bool UnpackGLs(unsigned char GLset, float *GLs);
 extern void FillEmit(const vector<float> &GLs, vector<float> &emit);
 extern cudaError_t CopyTranToHost(vector<float> &tran);
 extern cudaError_t CopyMutMatToHost(vector<float> &mutMat);
 extern float CallHMMLike(unsigned idx, const unsigned (*hapIdxs)[4],
-                         const vector<char> &packedGLs, unsigned packedGLStride,
+                         unsigned packedGLStride,
                          const vector<uint64_t> &h_hapPanel);
+extern void UnpackGLsWithCodeBook(uint32_t GLcodes, vector<float> &GLs,
+                                  unsigned char glIdx);
 }
 
 TEST(FindDevice, FoundDevice) { HMMLikeCUDA::CheckDevice(); }
@@ -58,26 +62,36 @@ TEST(CopyToMutMat, CopySuccess) {
 }
 
 // testing UnpackGLs
-TEST(UnpackGLs, UnpackOk) {
+TEST(UnpackGLsWithCodeBook, UnpackOk) {
 
-  // testing silly vaules
-  char num = 255;
-  float GLs[3];
-  for (int i = 0; i < 4; ++i)
-    GLs[i] = 0;
-  ASSERT_TRUE(HMMLikeCUDATest::UnpackGLs(num, GLs));
-  EXPECT_FLOAT_EQ(15.5f / 16, GLs[0]);
-  EXPECT_FLOAT_EQ(15.5f / 16, GLs[1]);
-  EXPECT_FLOAT_EQ(0, GLs[2]);
+  // testing silly values
+  uint32_t num = 1;
+  vector<pair<float, float> > codeBook(exp2(BITSPERCODE));
+  for (int i = 0; i < codeBook.size(); ++i) {
+    codeBook[i].first = static_cast<float>(i) / 10;
+    codeBook[i].second = static_cast<float>(i) * 2 / 100;
+  }
+  HMMLikeCUDA::CopyCodeBookToDevice(codeBook);
+
+  vector<float> GLs(3, 0);
+  HMMLikeCUDATest::UnpackGLsWithCodeBook(num, GLs,
+                                         (UINT32T_SIZE / BITSPERCODE) - 1);
+  EXPECT_FLOAT_EQ(0.1, GLs[0]);
+  EXPECT_FLOAT_EQ(0.02, GLs[1]);
+  EXPECT_FLOAT_EQ(0.88, GLs[2]);
 
   // testing realistic values
-  num = 17;
+  num = 19088743;
   for (int i = 0; i < 4; ++i)
     GLs[i] = 0;
-  ASSERT_TRUE(HMMLikeCUDATest::UnpackGLs(num, GLs));
-  EXPECT_FLOAT_EQ(1.5f / 16, GLs[0]);
-  EXPECT_FLOAT_EQ(1.5f / 16, GLs[1]);
-  EXPECT_FLOAT_EQ(13.0f / 16, GLs[2]);
+  for (size_t i = 0; i < UINT32T_SIZE / BITSPERCODE; ++i) {
+    HMMLikeCUDATest::UnpackGLsWithCodeBook(num, GLs, i);
+    EXPECT_FLOAT_EQ(static_cast<float>(i) / 10, GLs[0]);
+    EXPECT_FLOAT_EQ(static_cast<float>(i) * 2 / 100, GLs[1]);
+    EXPECT_FLOAT_EQ(1.0f - static_cast<float>(i) / 10 -
+                        static_cast<float>(i) * 2 / 100,
+                    GLs[2]);
+  }
 }
 
 TEST(HMMLike, FillEmitFillsOK) {
@@ -110,7 +124,6 @@ TEST(HMMLike, createsOK) {
   const unsigned wordSize = 64;
   const unsigned numWords = numSites / wordSize;
   vector<uint64_t> hapPanel(numWords * numHaps);
-  vector<float> GLs(3 * numSites * numSamps);
   const unsigned sampleStride = numSamps;
   const unsigned numCycles = 100;
 
@@ -139,9 +152,21 @@ TEST(HMMLike, createsOK) {
     for (int j = 0; j < 4; ++j)
       mutMat[i][j] = gsl_rng_uniform(rng);
 
+  vector<float> GLs(3 * numSites * numSamps, 0);
   for (auto &GL : GLs)
     GL = gsl_rng_uniform(rng);
-  GLPack glPack1(GLs, numSamps, sampleStride);
+  assert(GLs.size() == 1024 * 3 * 2);
+
+  GLPackHelper::Init init(GLs, *rng);
+  init.numSamps = numSamps;
+  init.sampleStride = sampleStride;
+  init.useVQ = true;
+  init.numBitsPerGL = BITSPERCODE;
+  GLPack glPack1(init);
+
+  vector<uint32_t> packedGLs = glPack1.GetPackedGLs();
+  ASSERT_EQ(numSites * BITSPERCODE / UINT32T_SIZE * numSamps, packedGLs.size());
+  ASSERT_EQ(1 << BITSPERCODE, glPack1.GetCodeBook().size());
 
   shared_ptr<Sampler> sampler =
       make_shared<UnifSampler>(rng, numSamps, numHaps);
@@ -174,18 +199,24 @@ TEST(HMMLike, createsOK) {
 
     {
       // test hmmLike function
-      GLPack glPack0(GLs, numSamps, sampleStride);
+      GLPackHelper::Init init2(GLs, *rng);
+      init2.numSamps = numSamps;
+      init2.sampleStride = sampleStride;
+      init2.useVQ = true;
+      init2.numBitsPerGL = BITSPERCODE;
+
+      GLPack glPack0(init2);
       auto packedGLs = glPack0.GetPackedGLs();
       unsigned sampIdx = 0;
       unsigned fixedHapIdxs[4];
       for (int i = 0; i < 4; ++i)
         fixedHapIdxs[i] = 2;
-      float like =
-          HMMLikeCUDATest::CallHMMLike(sampIdx, &fixedHapIdxs, packedGLs,
-                                       glPack0.GetSampleStride(), hapPanel);
+      HMMLikeCUDA::CopyPackedGLsToDevice(packedGLs);
+      HMMLikeCUDA::CopyCodeBookToDevice(glPack0.GetCodeBook());
+      float like = HMMLikeCUDATest::CallHMMLike(
+          sampIdx, &fixedHapIdxs, glPack0.GetSampleStride(), hapPanel);
       ASSERT_GE(1, like);
     }
-
   }
   //  cout << "Likelihood of Model: " << like << endl << endl;
 
@@ -275,7 +306,14 @@ TEST(HMMLike, createsOK) {
             *std::max_element(sampledHaps.begin(), sampledHaps.end()));
 
   {
-    GLPack glPack2(GLs, numSamps, sampleStride);
+    gsl_rng_set(rng, 112);
+    GLPackHelper::Init init(GLs, *rng);
+    init.numSamps = numSamps;
+    init.sampleStride = sampleStride;
+    init.useVQ = true;
+    init.numBitsPerGL = BITSPERCODE;
+
+    GLPack glPack2(init);
     HMMLike hmmLike2(hapPanel, bigNumHaps, glPack2, numCycles, tran, &mutMat,
                      sampler2, *rng);
 
@@ -289,13 +327,19 @@ TEST(HMMLike, createsOK) {
       ASSERT_EQ(numSamps * 4, hapIdxs2.size());
 
       // only one of the father and mother pairs needs to be correct
-      for (unsigned i = 0; i < 4; ++i)
-        EXPECT_TRUE((7 > hapIdxs2[i] && 4 < hapIdxs2[i]) ||
-                    (7 > hapIdxs2[i + 1] && 4 < hapIdxs2[i + 1]));
+      for (unsigned i = 0; i < 4; i += 2) {
+        cout << "Hap idx " << i << " is " << hapIdxs2[i] << endl;
+        cout << "Hap idx " << i + 1 << " is " << hapIdxs2[i + 1] << endl;
+        EXPECT_TRUE((7 > hapIdxs2.at(i) && 4 < hapIdxs2.at(i)) ||
+                    (7 > hapIdxs2.at(i + 1) && 4 < hapIdxs2.at(i + 1)));
+      }
 
-      for (unsigned i = 5; i < 4; ++i)
-        EXPECT_TRUE((9 > hapIdxs2[i] && 6 < hapIdxs2[i]) ||
-                    (9 > hapIdxs2[i + 1] && 6 < hapIdxs2[i + 1]));
+      for (unsigned i = 4; i < 8; i += 2) {
+        cout << "Hap idx " << i << " is " << hapIdxs2[i] << endl;
+        cout << "Hap idx " << i + 1 << " is " << hapIdxs2[i + 1] << endl;
+        EXPECT_TRUE((9 > hapIdxs2.at(i) && 6 < hapIdxs2.at(i)) ||
+                    (9 > hapIdxs2.at(i + 1) && 6 < hapIdxs2.at(i + 1)));
+      }
     }
   }
 
@@ -306,7 +350,7 @@ TEST(HMMLike, createsOK) {
   hapPanel.at(10 *numWords + 2) = ~0;
   hapPanel.at(11 *numWords + 3) = ~0;
 
-  /* debugging
+  // debugging
   {
     vector<unsigned> haps = { 5, 6, 7, 8, 10, 11 };
     for (auto hapNum : haps) {
@@ -317,7 +361,7 @@ TEST(HMMLike, createsOK) {
     }
     cout << endl;
   }
-  */
+
   {
     const float highExp = 100;
     for (unsigned i = 0; i < wordSize * 3; i += 3) {
@@ -328,34 +372,88 @@ TEST(HMMLike, createsOK) {
     }
   }
 
+  // print GL states for debugging
   {
-    const unsigned numCycles3 = 100;
-    GLPack glPack3(GLs, numSamps, sampleStride);
-    HMMLike hmmLike3(hapPanel, bigNumHaps, glPack3, numCycles3, tran, &mutMat,
-                     sampler2, *rng);
+    unsigned sampNum = 0;
+    for (unsigned siteNum = 0; siteNum < numSites * numSamps;
+         siteNum += wordSize) {
 
+      if (siteNum % numSites == 0) {
+        cout << endl << "SampNum: " << sampNum << endl;
+        ++sampNum;
+      }
+      cout << GLs[siteNum * 3] << ',' << GLs[siteNum * 3 + 1] << ','
+           << GLs[siteNum * 3 + 2] << "\t";
+    }
+    cout << endl;
+  }
+
+  {
     {
+      GLPackHelper::Init init(GLs, *rng);
+      init.numSamps = numSamps;
+      init.sampleStride = sampleStride;
+      init.useVQ = true;
+      init.numBitsPerGL = BITSPERCODE;
+
       // let's test the hmmLike function first
-      GLPack glPack4(GLs, numSamps, sampleStride);
+      GLPack glPack4(init);
       auto packedGLs = glPack4.GetPackedGLs();
       unsigned sampIdx = 0;
       unsigned fixedHapIdxs[4];
       for (int i = 0; i < 4; ++i)
         fixedHapIdxs[i] = 2;
-      float badLike =
-          HMMLikeCUDATest::CallHMMLike(sampIdx, &fixedHapIdxs, packedGLs,
-                                       glPack4.GetSampleStride(), hapPanel);
+      HMMLikeCUDA::CopyPackedGLsToDevice(packedGLs);
+      HMMLikeCUDA::CopyCodeBookToDevice(glPack4.GetCodeBook());
+      float badLike = HMMLikeCUDATest::CallHMMLike(
+          sampIdx, &fixedHapIdxs, glPack4.GetSampleStride(), hapPanel);
       ASSERT_GE(1, badLike);
 
-      GLPack glPack5(GLs, numSamps, sampleStride);
+      GLPack glPack5(init);
       auto packedGLs2 = glPack4.GetPackedGLs();
       unsigned fixedHapIdxs2[4] = { 5, 10, 6, 10 };
-      float goodLike =
-          HMMLikeCUDATest::CallHMMLike(sampIdx, &fixedHapIdxs2, packedGLs2,
-                                       glPack5.GetSampleStride(), hapPanel);
+      HMMLikeCUDA::CopyPackedGLsToDevice(packedGLs2);
+      HMMLikeCUDA::CopyCodeBookToDevice(glPack5.GetCodeBook());
+      float goodLike = HMMLikeCUDATest::CallHMMLike(
+          sampIdx, &fixedHapIdxs2, glPack5.GetSampleStride(), hapPanel);
 
       ASSERT_GT(goodLike, badLike);
     }
+
+    gsl_rng_set(rng, 114);
+    const unsigned numCycles3 = 100;
+    GLPackHelper::Init init(GLs, *rng);
+    init.numSamps = numSamps;
+    init.sampleStride = sampleStride;
+    init.useVQ = true;
+    init.numBitsPerGL = BITSPERCODE;
+
+    GLPack glPack3(init);
+    HMMLike hmmLike3(hapPanel, bigNumHaps, glPack3, numCycles3, tran, &mutMat,
+                     sampler2, *rng);
+
+    // printing out codebook
+    auto codeBook = glPack3.GetCodeBook();
+    cout << "CodeBook:" << endl;
+
+    for (unsigned i = 0; i < codeBook.size(); ++i)
+      cout << i << ": " << codeBook[i].first << ", " << codeBook[i].second
+           << endl;
+
+    // printing out VQ GLs
+    cout << "VQ packed GLS:\n";
+    auto pGLs = glPack3.GetPackedGLs();
+    for (unsigned i = 0; i < pGLs.size(); ++i) {
+      if (i % numWords == 0)
+        cout << "Word: " << i / numWords << "\t\t";
+      cout << pGLs.at(i) << "\t";
+      if (i % numWords == 4) {
+        cout << "..." << endl;
+        i += numWords - 5;
+      }
+    }
+    cout << endl;
+
     unsigned firstSampIdx = 0;
     unsigned lastSampIdx = 0;
 
@@ -365,7 +463,11 @@ TEST(HMMLike, createsOK) {
     ASSERT_EQ(1, lastSampIdx);
     ASSERT_EQ(numSamps * 4, hapIdxs3.size());
 
-    // only one of the father and mother pairs needs to be correct
+    // both of the father and mother pairs needs to be correct
+    cout << "Hap indices:\n";
+    for (auto h : hapIdxs3)
+      cout << h << " ";
+    cout << endl << endl;
     for (unsigned i = 0; i < 4; i += 2) {
       unsigned hap1 = hapIdxs3[i];
       unsigned hap2 = hapIdxs3[i + 1];
@@ -409,11 +511,11 @@ TEST(HMMLike, createsOK) {
 
   /* print GL state
      for debugging...
+  // print GL states for debugging
   {
     unsigned sampNum = 0;
-    for (unsigned siteNum = 0; siteNum < numSites * numSamps2; ++siteNum) {
-      if (siteNum % wordSize == 2)
-        siteNum += wordSize - 3;
+    for (unsigned siteNum = 0; siteNum < numSites * numSamps2;
+         siteNum += wordSize) {
 
       if (siteNum % wordSize == 0)
         cout << endl;
@@ -427,11 +529,18 @@ TEST(HMMLike, createsOK) {
     cout << endl;
   }
   */
-
   {
+    gsl_rng_set(rng, 111);
     const unsigned numCycles3 = 100;
     ASSERT_EQ(3 * numSites * numSamps2, GLs.size());
-    GLPack glPack3(GLs, numSamps2, sampleStride);
+
+    GLPackHelper::Init init(GLs, *rng);
+    init.numSamps = numSamps2;
+    init.sampleStride = sampleStride;
+    init.useVQ = true;
+    init.numBitsPerGL = BITSPERCODE;
+
+    GLPack glPack3(init);
     HMMLike hmmLike3(hapPanel, bigNumHaps, glPack3, numCycles3, tran, &mutMat,
                      sampler2, *rng);
 
@@ -465,11 +574,55 @@ TEST(HMMLike, createsOK) {
       }
     }
     {
+
+      // debugging
+
+      vector<unsigned> haps = { 5, 6, 7, 8, 10, 11 };
+      for (auto hapNum : haps) {
+        cout << endl << "HapNum: " << hapNum << endl;
+        for (unsigned wordNum = 0; wordNum < numWords; ++wordNum) {
+          cout << hapPanel.at(numWords * hapNum + wordNum) << ' ';
+        }
+      }
+      cout << endl;
+
+      // printing out codebook
+      auto codeBook = glPack3.GetCodeBook();
+      cout << "CodeBook:" << endl;
+
+      for (unsigned i = 0; i < codeBook.size(); ++i)
+        cout << i << ": " << codeBook[i].first << ", " << codeBook[i].second
+             << endl;
+
+      // printing out VQ GLs
+      cout << "VQ packed GLS:\n";
+      auto pGLs = glPack3.GetPackedGLs();
+      for (unsigned i = 0; i < pGLs.size(); ++i) {
+        if (i % numWords == 0)
+          cout << "Word: " << i / numWords << "\t\t";
+        cout << (pGLs.at(i) >> 28) << "\t";
+        if (i % numWords == 4) {
+          cout << "..." << endl;
+          i += numWords - 5;
+        }
+      }
+      cout << endl;
+
+      // pulling out GLs again to cycle back round to the right set
+      glPack3.GetPackedGLs();
+    }
+    {
+      gsl_rng_set(rng, 112);
       vector<unsigned> hapIdxs3 =
           hmmLike3.RunHMMOnSamples(firstSampIdx, lastSampIdx);
       ASSERT_EQ(2, firstSampIdx);
       ASSERT_EQ(3, lastSampIdx);
       ASSERT_EQ(numSamps * 4, hapIdxs3.size());
+
+      cout << "Hap indices:\n";
+      for (auto h : hapIdxs3)
+        cout << h << " ";
+      cout << endl << endl;
 
       // both of father and mother pairs need to be correct
       for (unsigned i = 0; i < 4; i += 2) {

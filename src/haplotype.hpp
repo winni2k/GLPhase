@@ -10,16 +10,14 @@
 #include <assert.h>
 #include <bitset>
 #include <iostream>
+#include "globals.h"
 
 // require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
-#define h_WordMod 63  // word size -1
-#define h_WordShift 6 // 2^6 = 64
-
 class Haplotype {
 public:
-  static constexpr unsigned s_wordSize = std::pow(2, h_WordShift);
+  static constexpr unsigned s_wordSize = std::pow(2, WORDSHIFT);
 
 private:
   std::vector<std::bitset<s_wordSize> > m_hap;
@@ -44,14 +42,14 @@ public:
     assert(uSite < m_uNumAlleles);
 
     // need to rework all of this
-    unsigned wordIdx = uSite >> h_WordShift;
+    unsigned wordIdx = uSite >> WORDSHIFT;
     unsigned siteIdx = uSite - s_wordSize * wordIdx;
     return m_hap[wordIdx][siteIdx] == 1;
   };
 
   // test if bit uSite is 1
   uint64_t TestSite(unsigned uSite, const uint64_t *P) const {
-    return (P[uSite >> h_WordShift] >> (uSite & h_WordMod)) &
+    return (P[uSite >> WORDSHIFT] >> (uSite & WORDMOD)) &
            static_cast<uint64_t>(1);
   };
 

@@ -190,7 +190,7 @@ void Impute::initialize(void) {
   // if total sites overlaps with 00111111,  then wn = mn number of sites
   // shifter to right....
   // we define a minimum block size of 64.
-  wn = (mn & WordMod) ? (mn >> WordShift) + 1 : (mn >> WordShift);
+  wn = (mn & WORDMOD) ? (mn >> WORDSHIFT) + 1 : (mn >> WORDSHIFT);
 
   hn = in * 2; // number of haps
   haps.resize(hn * wn); // space to store all haplotypes

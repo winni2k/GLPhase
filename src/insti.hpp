@@ -33,6 +33,7 @@
 #include "tabix.hpp"
 #include "vcf_parser.hpp"
 #include "bio.hpp"
+#include "globals.h"
 
 #ifndef NCUDA
 #include "hmmLike.hpp"

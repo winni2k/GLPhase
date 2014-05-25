@@ -9,12 +9,32 @@ __constant__ float norm;
 __constant__ float transitionMat[NUMSITES * 3];
 __constant__ float mutationMat[4 * 4];
 
-__device__ void UnpackGLs(char GLset, float (&GLs)[3]) {
+__device__ void UnpackGLsWithCodeBook(uint32_t GLcodes, float (&GLs)[3],
+                                      const float *__restrict__ codeBook,
+                                      unsigned char glIdx) {
 
-  GLs[0] = (((GLset >> 4) & 15) + 0.5f) / 16;
-  GLs[1] = ((GLset & 15) + 0.5f) / 16;
+  // create mask that gives me just the rightmost n bits
+  const uint32_t mask = (1 << BITSPERCODE) - 1;
+
+  // push the code of interest to the right
+  uint32_t GLcode =
+      GLcodes >> UINT32T_SIZE - (BITSPERCODE * glIdx) - BITSPERCODE;
+
+  // keep onlyt the code of interest
+  GLcode &= mask;
+  GLs[0] = codeBook[2 * GLcode];
+  GLs[1] = codeBook[2 * GLcode + 1];
   GLs[2] = max(1 - GLs[0] - GLs[1], 0.0f);
 }
+
+/* deprecated
+__device__ void UnpackGLs(unsigned char GLset, float (&GLs)[3]) {
+
+GLs[0] = (((GLset >> 4) & 15) + 0.5f) / 16;
+GLs[1] = ((GLset & 15) + 0.5f) / 16;
+GLs[2] = max(1 - GLs[0] - GLs[1], 0.0f);
+}
+*/
 
 __device__ void FillEmit(const float (&GLs)[3], float (&emit)[4]) {
 
@@ -25,27 +45,27 @@ __device__ void FillEmit(const float (&GLs)[3], float (&emit)[4]) {
 
 // test if bit I is 1
 __device__ uint64_t test(const uint64_t *P, unsigned I) {
-  return (P[I >> WordShift] >> (I & WordMod)) & static_cast<uint64_t>(1);
+  return (P[I >> WORDSHIFT] >> (I & WORDMOD)) & static_cast<uint64_t>(1);
 }
 
-    // this should add up to around 88 registers
-    // 1 + 4 + 2 + 1 + 2 = 10 registers, maybe optimized away by compiler?
+// this should add up to around 88 registers
+// 1 + 4 + 2 + 1 + 2 = 10 registers, maybe optimized away by compiler?
 __device__ float hmmLike(unsigned idx, const unsigned (&hapIdxs)[4],
-                         const char *__restrict__ d_packedGLs,
+                         const uint32_t *__restrict__ d_packedGLs,
                          unsigned packedGLStride,
-                         const uint64_t *__restrict__ d_hapPanel) {
+                         const uint64_t *__restrict__ d_hapPanel,
+                         const float *__restrict__ d_codeBook) {
 
   // pull the four haplotypes into f0, f1, m0 and m1
-    const uint64_t *f0 = &d_hapPanel[hapIdxs[0] * WN], // 8 registers?
-                 *f1 = &d_hapPanel[hapIdxs[1] * WN],
-                 *m0 = &d_hapPanel[hapIdxs[2] * WN],
+  const uint64_t *f0 = &d_hapPanel[hapIdxs[0] * WN], // 8 registers?
+      *f1 = &d_hapPanel[hapIdxs[1] * WN], *m0 = &d_hapPanel[hapIdxs[2] * WN],
                  *m1 = &d_hapPanel[hapIdxs[3] * WN];
 
   // ##########
   // Convert packed GLs back to floats
 
-    float GLs[3]; // 3 registers 
-  UnpackGLs(d_packedGLs[idx], GLs);
+  float GLs[3]; // 3 registers
+  UnpackGLsWithCodeBook(d_packedGLs[idx], GLs, d_codeBook, 0);
 
   // pull out phase emission and transition probabilities
   float emit[4]; // 4 registers
@@ -62,13 +82,25 @@ __device__ float hmmLike(unsigned idx, const unsigned (&hapIdxs)[4],
         l11 = 0.25f * emit[(test(f1, 0) << 1) | test(m1, 0)];
 
   //  1 register
-  for (int site = 1; site < NUMSITES; ++site) {
+  for (uint32_t site = 1; site < NUMSITES; ++site) {
     // move to next site for e and t
 
     // #########
     // Convert packed GLs back to floats
 
-    UnpackGLs(d_packedGLs[idx + site * packedGLStride], GLs);
+    const unsigned char numGLsPerUint32 = UINT32T_SIZE / BITSPERCODE;
+
+    // poor man's modulo: site % numGLsPerUint32 = (site & (numGLsPerUint32 -
+    // 1))
+    // Works only if numGLsPerUint32 is a factor of 2
+    //
+    // poor man's log2(n) =  __ffs(n) - 1
+    // only works if n is a factor of 2
+    const unsigned packedGLIdx =
+        idx + (site >> (__ffs(numGLsPerUint32) - 1)) * packedGLStride;
+    const unsigned char withinUINTCodeNum = site & (numGLsPerUint32 - 1);
+    UnpackGLsWithCodeBook(d_packedGLs[packedGLIdx], GLs, d_codeBook,
+                          withinUINTCodeNum);
 
     // fill emit with next site's emission matrix
     FillEmit(GLs, emit);
@@ -93,8 +125,6 @@ __device__ float hmmLike(unsigned idx, const unsigned (&hapIdxs)[4],
     l10 = b10 * emit[(test(f1, site) << 1) | test(m0, site)];
     l11 = b11 * emit[(test(f1, site) << 1) | test(m1, site)];
 
-    
-    
     // rescale probabilities if they become too small
     // hopefully this does not happen too often...
     if ((sum = l00 + l01 + l10 + l11) < norm) {
@@ -111,12 +141,13 @@ __device__ float hmmLike(unsigned idx, const unsigned (&hapIdxs)[4],
 };
 
 // definition of HMM kernel
-__global__ void findHapSet(const char *__restrict__ d_packedGLs,
+__global__ void findHapSet(const uint32_t *__restrict__ d_packedGLs,
                            const uint64_t *__restrict__ d_hapPanel,
                            const unsigned *__restrict__ d_hapIdxs,
                            const unsigned *__restrict__ d_extraPropHaps,
                            unsigned *d_chosenHapIdxs, unsigned numSamples,
-                           unsigned numCycles, curandStateXORWOW_t *globalState
+                           unsigned numCycles, curandStateXORWOW_t *globalState,
+                           const float *__restrict__ d_codeBook
 #ifdef DEBUG
                            ,
                            float *d_likes
@@ -134,7 +165,8 @@ __global__ void findHapSet(const char *__restrict__ d_packedGLs,
       hapIdxs[i] = d_hapIdxs[idx + numSamples * i];
 
     // define emission matrix
-    float curr = hmmLike(idx, hapIdxs, d_packedGLs, numSamples, d_hapPanel);
+    float curr =
+        hmmLike(idx, hapIdxs, d_packedGLs, numSamples, d_hapPanel, d_codeBook);
 
 #ifdef DEBUG
     // debugging ...
@@ -155,7 +187,8 @@ __global__ void findHapSet(const char *__restrict__ d_packedGLs,
       unsigned origHap = hapIdxs[replaceHapNum];
 
       hapIdxs[replaceHapNum] = d_extraPropHaps[idx + cycle * numSamples];
-      float prop = hmmLike(idx, hapIdxs, d_packedGLs, numSamples, d_hapPanel);
+      float prop = hmmLike(idx, hapIdxs, d_packedGLs, numSamples, d_hapPanel,
+                           d_codeBook);
 
       // accept new set
       if (curand_uniform(&localState) < __expf((prop - curr) * S))
@@ -292,22 +325,43 @@ void CopyMutationMatToDevice(const float (*mutMat)[4][4]) {
   }
 }
 
-thrust::device_vector<char> *gd_packedGLs;
-void CopyPackedGLsToDevice(const vector<char> &packedGLs) {
-  thrust::device_vector<char> fillPackedGLs(packedGLs);
+thrust::device_vector<uint32_t> *gd_packedGLs;
+void CopyPackedGLsToDevice(const vector<uint32_t> &packedGLs) {
+  thrust::device_vector<uint32_t> fillPackedGLs(packedGLs);
 
   // gotta manually new the thrust vector because it'll get deleted too late
   // otherwise...
   if (!gd_packedGLs)
-    gd_packedGLs = new thrust::device_vector<char>;
+    gd_packedGLs = new thrust::device_vector<uint32_t>;
   gd_packedGLs->swap(fillPackedGLs);
 }
 
+thrust::device_vector<float> *gd_codeBook;
+void CopyCodeBookToDevice(const vector<pair<float, float> > &codeBook) {
+
+  thrust::host_vector<float> h_codeBook;
+  h_codeBook.reserve(codeBook.size() * 2);
+  for (unsigned idx = 0; idx < codeBook.size(); ++idx) {
+    h_codeBook.push_back(codeBook[idx].first);
+    h_codeBook.push_back(codeBook[idx].second);
+  }
+
+  // gotta manually new the thrust vector because it'll get deleted too late
+  // otherwise...
+  if (!gd_codeBook)
+    gd_codeBook = new thrust::device_vector<float>;
+  *gd_codeBook = h_codeBook;
+}
+
 void Cleanup() {
-    if(gd_packedGLs){
-        delete gd_packedGLs;
-        gd_packedGLs = NULL;
-    }
+  if (gd_packedGLs) {
+    delete gd_packedGLs;
+    gd_packedGLs = NULL;
+  }
+  if (gd_codeBook) {
+    delete gd_codeBook;
+    gd_codeBook = NULL;
+  }
 }
 
 void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
@@ -316,7 +370,15 @@ void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
                     vector<unsigned> &hapIdxs, unsigned long seed) {
   assert(numSites == NUMSITES);
   assert(gd_packedGLs); // make sure pointer points to something
-  assert(gd_packedGLs->size() == numSites * numSamples);
+  if (gd_packedGLs->size() !=
+      numSamples * numSites * BITSPERCODE / UINT32T_SIZE) {
+    ostringstream err;
+    err << "gd_packed GLs has wrong size: " << gd_packedGLs->size();
+    throw std::runtime_error(err.str());
+  }
+  assert(gd_codeBook); // make sure pointer points to something
+  assert(gd_codeBook->size() == 2 * (1 << BITSPERCODE));
+
   assert(hapPanel.size() >=
          WN * (*max_element(extraPropHaps.begin(), extraPropHaps.end()) + 1));
   assert(hapIdxs.size() == numSamples * 4);
@@ -478,14 +540,16 @@ if (err != cudaSuccess) {
   /*
     convert gd_packedGLs to raw ptr
   */
-  const char *d_packedGLPtr = thrust::raw_pointer_cast(gd_packedGLs->data());
+  const uint32_t *d_packedGLPtr =
+      thrust::raw_pointer_cast(gd_packedGLs->data());
 
+  const float *d_codeBook = thrust::raw_pointer_cast(gd_codeBook->data());
   /*
     run kernel
   */
   findHapSet << <blocksPerRun, threadsPerBlock>>>
       (d_packedGLPtr, d_hapPanel, d_hapIdxs, d_extraPropHaps, d_chosenHapIdxs,
-       numSamples, numCycles, devStates
+       numSamples, numCycles, devStates, d_codeBook
 #ifdef DEBUG
        ,
        d_likePtr

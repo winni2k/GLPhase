@@ -1,7 +1,6 @@
 #ifndef _HMMLIKE_HCU
 #define _HMMLIKE_HCU 1
 
-
 #include <vector>
 #include <cassert>
 #include <stdint.h>
@@ -12,22 +11,32 @@
 #include <algorithm>
 #include <iostream>
 #include <sstream>
-#include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
 #include "hmmLike.h"
+#include <climits>
+
+#if CHAR_BIT != 8
+#error the number of bits in a char must be 8!
+#endif
 
 namespace HMMLikeCUDA {
 
-extern __device__ void UnpackGLs(char GLset, float (&GLs)[3]);
-extern __device__ void FillEmit(const float (&GLs)[3], float (&emit)[4]);
 extern __constant__ float norm;
 extern __constant__ float transitionMat[NUMSITES * 3];
 extern __constant__ float mutationMat[4 * 4];
 extern __device__ float hmmLike(unsigned idx, const unsigned (&hapIdxs)[4],
-                                const char *__restrict__ d_packedGLs,
+                                const uint32_t *__restrict__ d_packedGLs,
                                 unsigned packedGLStride,
-                                const uint64_t *__restrict__ d_hapPanel);
-extern __device__ void UnpackGLs(char GLset, float (&GLs)[3]);
+                                const uint64_t *__restrict__ d_hapPanel,
+                                const float *__restrict__ d_codeBook);
+// extern __device__ void UnpackGLs(unsigned char GLset, float (&GLs)[3]);
+extern __device__ void FillEmit(const float (&GLs)[3], float (&emit)[4]);
+extern __device__ void UnpackGLsWithCodeBook(uint32_t GLcodes, float (&GLs)[3],
+                                             const float *__restrict__ codeBook,
+                                             unsigned char glIdx);
+
+extern thrust::device_vector<float> *gd_codeBook;
+extern thrust::device_vector<uint32_t> *gd_packedGLs;
 }
 
 #endif

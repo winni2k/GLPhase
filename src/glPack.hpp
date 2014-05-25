@@ -10,16 +10,25 @@ static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 #include "utils.hpp"
 #include <vector_types.h>
 #include "glVQ.hpp"
+#include <limits>
+#include <utility>
+#include <gsl/gsl_rng.h>
+#include "globals.h"
 
+// we want our chars to be unsigned
 namespace GLPackHelper {
 
 struct Init {
-  std::vector<float> &inGLs;
+  const std::vector<float> &inGLs;
+  gsl_rng &rng;
   unsigned numSamps = 0;
   unsigned sampleStride = 0;
   bool useVQ = false;
+
+  // 32 % numBits needs to be zero
   unsigned numBitsPerGL = 8;
-  Init(std::vector<float> &GLs) : inGLs(GLs) {};
+
+  Init(const std::vector<float> &GLs, gsl_rng &rng) : inGLs(GLs), rng(rng) {};
 };
 }
 
@@ -32,22 +41,23 @@ private:
   const unsigned m_numSites;
   const bool m_useVQ;
   unsigned m_numBitsPerGL;
-  unsigned m_numGLsPeruchar4;
+  unsigned m_numGLsPeruint32_t;
 
   unsigned m_nextSampIdx = 0;
   unsigned m_lastSampIdx = 0;
   GLVQ m_VQ;
 
-  char GLTrio2Char(unsigned idx) const;
-  char GL2HalfChar(float GL) const;
-  void GenerateCodeBook() {};
-  char FindGLCode(float RR, float Het);
+  uint32_t GLIdxs2uint32_t(const std::vector<unsigned> &glIdxs) const;
+  unsigned char GLs2VQChar(const std::vector<unsigned> &glIdxs, size_t glIdx,
+                           size_t numGLsPerChar) const;
+  unsigned char GLTrio2Char(unsigned idx) const;
+  unsigned char GL2HalfChar(float GL) const;
 
 public:
   // set VQBits > 0 for vector quantization
-  GLPack(GLPackHelper::Init &init);
+  GLPack(const GLPackHelper::Init &init);
 
-  std::vector<uchar4> GetPackedGLs();
+  std::vector<uint32_t> GetPackedGLs();
   unsigned GetSampleStride() const { return m_sampleStride; }
   unsigned GetNextSampIdx() const { return m_nextSampIdx; }
   unsigned GetLastSampIdx() const { return m_lastSampIdx; }
@@ -59,7 +69,7 @@ public:
 
   // vector of size bits per sample * 2 (hom ref, alt)
   // gl of hom alt is max(1 - hom ref - alt,1)
-  std::vector<pair<float, float> > GetCodeBook() const {
+  std::vector<std::pair<float, float> > GetCodeBook() const {
     return m_VQ.GetCodeBook();
   }
 };

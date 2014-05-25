@@ -1,3 +1,9 @@
+1.4.5   Sun May 25 20:26:47 BST 2014
+        GLs are now compressed using vector quantization (Lloyd's
+        algorithm on a subset of GLs)
+        Compressed vectors are now stored in uint32_t instead of char
+        as the char gets stored in a 32 bit register anyway, duh.
+
 1.4.4   Wed May 21 11:08:34 BST 2014
         hmm_work() is now executed in parallel on the host
         Input haplotypes for scaffold are now read from tabhaps.gz file

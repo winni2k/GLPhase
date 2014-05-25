@@ -43,18 +43,19 @@ void FillEmit(const vector<float> &GLs, vector<float> &emit) {
 };
 
 __global__ void GlobalHmmLike(unsigned idx, const unsigned (*hapIdxs)[4],
-                              const char *__restrict__ d_packedGLs,
+                              const uint32_t *__restrict__ d_packedGLs,
                               unsigned packedGLStride,
                               const uint64_t *__restrict__ d_hapPanel,
+                              const float *__restrict__ d_codeBook,
                               float *retLike) {
-    *retLike = HMMLikeCUDA::hmmLike(idx, *hapIdxs, d_packedGLs, packedGLStride, d_hapPanel);
+  *retLike = HMMLikeCUDA::hmmLike(idx, *hapIdxs, d_packedGLs, packedGLStride,
+                                  d_hapPanel, d_codeBook);
 
   return;
 }
 
 float CallHMMLike(unsigned idx, const unsigned (*hapIdxs)[4],
-                  const vector<char> &packedGLs, unsigned packedGLStride,
-                  const vector<uint64_t> &h_hapPanel) {
+                  unsigned packedGLStride, const vector<uint64_t> &h_hapPanel) {
 
   cudaError_t err = cudaSuccess;
 
@@ -79,26 +80,15 @@ float CallHMMLike(unsigned idx, const unsigned (*hapIdxs)[4],
   }
 
   /*
-    copy packedGLs to device memory
-  */
-  cout << "Copying packed GLs to device\n";
-  size_t glSize = packedGLs.size() * sizeof(char);
+  convert gd_packedGLs to raw ptr
+*/
+  assert(HMMLikeCUDA::gd_packedGLs);
+  const uint32_t *d_packedGLPtr =
+      thrust::raw_pointer_cast(HMMLikeCUDA::gd_packedGLs->data());
 
-  // allocate memory on device
-  char *d_packedGLs;
-  err = cudaMalloc(&d_packedGLs, glSize);
-  if (err != cudaSuccess) {
-    cerr << "Failed to allocate packed GLs on device\n";
-    exit(EXIT_FAILURE);
-  }
-
-  // copy data across
-  err =
-      cudaMemcpy(d_packedGLs, packedGLs.data(), glSize, cudaMemcpyHostToDevice);
-  if (err != cudaSuccess) {
-    cerr << "Failed to copy packed GLs to device\n";
-    exit(EXIT_FAILURE);
-  }
+  assert(HMMLikeCUDA::gd_codeBook);
+  const float *d_codeBookPtr =
+      thrust::raw_pointer_cast(HMMLikeCUDA::gd_codeBook->data());
 
   /*
     copy haplotypes to device memory
@@ -128,8 +118,8 @@ float CallHMMLike(unsigned idx, const unsigned (*hapIdxs)[4],
   /*
     run kernel
   */
-  GlobalHmmLike << <1, 1>>>
-      (idx, d_hapIdxs, d_packedGLs, packedGLStride, d_hapPanel, d_likePtr);
+  GlobalHmmLike << <1, 1>>> (idx, d_hapIdxs, d_packedGLPtr, packedGLStride,
+                             d_hapPanel, d_codeBookPtr, d_likePtr);
   cudaDeviceSynchronize();
   err = cudaGetLastError();
   if (err != cudaSuccess) {
@@ -141,54 +131,30 @@ float CallHMMLike(unsigned idx, const unsigned (*hapIdxs)[4],
   return d_like[0];
 };
 
-__global__ void GlobalUnpackGLs(char GLset, float *GLs) {
+__global__ void GlobalUnpackGLsWithCodeBook(uint32_t GLcodes, float *GLs,
+                                            const float *__restrict__ codeBook,
+                                            unsigned char glIdx) {
   float nGLs[3];
-  HMMLikeCUDA::UnpackGLs(GLset, nGLs);
+  HMMLikeCUDA::UnpackGLsWithCodeBook(GLcodes, nGLs, codeBook, glIdx);
   for (int i = 0; i < 3; ++i)
     GLs[i] = nGLs[i];
 }
 
-bool UnpackGLs(char GLset, float *GLs) {
+void UnpackGLsWithCodeBook(uint32_t GLcodes, vector<float> &GLs,
+                           unsigned char glIdx) {
+  assert(GLs.size() == 3);
 
-  cudaError_t err = cudaSuccess;
+  thrust::device_vector<float> d_GLs(3, 0);
+  float *d_GLPtr = thrust::raw_pointer_cast(d_GLs.data());
+  const float *d_codeBook =
+      thrust::raw_pointer_cast(HMMLikeCUDA::gd_codeBook->data());
 
-  // figure out how big output will be
-  size_t size = 3 * sizeof(float);
+  GlobalUnpackGLsWithCodeBook << <1, 1>>> (GLcodes, d_GLPtr, d_codeBook, glIdx);
 
-  // Allocate the device input GLset
-  float *d_GLs;
-  err = cudaMalloc(&d_GLs, size);
-
-  if (err != cudaSuccess) {
-    cerr << "Failed to allocate device GLset vector (error code "
-         << cudaGetErrorString(err) << ")!\n";
-
-    exit(EXIT_FAILURE);
-  }
-
-  GlobalUnpackGLs << <1, 1>>> (GLset, d_GLs);
-
-  const cudaError_t retErr = cudaGetLastError();
-
-  err = cudaMemcpy(GLs, d_GLs, size, cudaMemcpyDeviceToHost);
-
-  if (err != cudaSuccess) {
-    cerr << "Failed to copy vector GLs from device to host (error code "
-         << cudaGetErrorString(err) << ")!\n";
-
-    exit(EXIT_FAILURE);
-  }
-
-  // deallocate memory
-  cudaFree(d_GLs);
-
-  if (retErr == cudaSuccess)
-    return true;
-  else {
-    cerr << "Failed to unpack gls. Error: " << cudaGetErrorString(retErr)
-         << "\nError code: " << retErr << "\n";
-    exit(EXIT_FAILURE);
-  }
+  thrust::host_vector<float> h_GLs;
+  h_GLs = d_GLs;
+  for (int i = 0; i < 3; ++i)
+      GLs[i] = h_GLs[i];
 }
 
 cudaError_t CopyTranToHost(vector<float> &tran) {
@@ -202,7 +168,7 @@ cudaError_t CopyTranToHost(vector<float> &tran) {
 cudaError_t CopyMutMatToHost(vector<float> &mutMat) {
 
   assert(mutMat.size() == 4 * 4);
-  return cudaMemcpyFromSymbol(mutMat.data(), HMMLikeCUDA::mutationMat, sizeof(float) * 4 * 4,
-                              0, cudaMemcpyDeviceToHost);
+  return cudaMemcpyFromSymbol(mutMat.data(), HMMLikeCUDA::mutationMat,
+                              sizeof(float) * 4 * 4, 0, cudaMemcpyDeviceToHost);
 }
 }

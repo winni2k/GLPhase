@@ -20,7 +20,7 @@ KNN::KNN(unsigned numClust, const std::vector<uint64_t> &haplotypes,
 
   // make sure uNumSites is a sensible number
   assert(m_numSites > 0);
-  assert(m_numWordsPerHap * (h_WordMod + 1) >= m_numSites);
+  assert(m_numWordsPerHap * (WORDMOD + 1) >= m_numSites);
 
   // dereferencing the vector pointer
   assert(haplotypes.size() % m_numWordsPerHap == 0);

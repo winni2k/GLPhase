@@ -969,7 +969,7 @@ void Insti::LoadHaps(vector<vector<char> > &inHaps, vector<snp> &inSites,
   case InstiPanelType::REFERENCE: {
     HapPanel temp;
     vector<uint64_t> storeHaps =
-        temp.Char2BitVec(inHaps, GetNumWords(), WordMod + 1);
+        temp.Char2BitVec(inHaps, GetNumWords(), WORDMOD + 1);
     storeHaps.swap(m_vRefHaps);
     m_uNumRefHaps = numHaps;
     cout << "Reference panel haplotypes\t" << m_uNumRefHaps << endl;
@@ -977,7 +977,7 @@ void Insti::LoadHaps(vector<vector<char> > &inHaps, vector<snp> &inSites,
   }
 
   case InstiPanelType::SCAFFOLD: {
-    assert(WordMod >= 0);
+    static_assert(WORDMOD >= 0, "WORDMOD global is not greater or equal to 0");
     m_scaffold.Init(inHaps, inSites, inSampleIDs);
     cout << "Scaffold haplotypes\t" << m_scaffold.NumHaps() << endl;
 
@@ -1196,7 +1196,7 @@ void Insti::initialize() {
   // if total sites overlaps with 00111111,  then wn = mn number of sites
   // shifter to right....
   // we define a minimum block size of 64.
-  wn = (mn & WordMod) ? (mn >> WordShift) + 1 : (mn >> WordShift);
+  wn = (mn & WORDMOD) ? (mn >> WORDSHIFT) + 1 : (mn >> WORDSHIFT);
   hn = in * 2;             // number of haps
   haps.resize(hn * wn);    // space to store all haplotypes
   hnew.resize(hn * wn);    // number of haplotypes = 2 * number of samples  ...
@@ -1606,7 +1606,12 @@ void Insti::estimate() {
   // create a cuda hapsampler object
   // repack gls for device
   const unsigned sampleStride = in;
-  GLPack glPack(prob, in, sampleStride);
+  GLPackHelper::Init init(prob, *rng);
+  init.numSamps = in;
+  init.sampleStride = sampleStride;
+  init.useVQ = true;
+  init.numBitsPerGL = BITSPERCODE;
+  GLPack glPack(init);
 
   // create hap sampler object
   HMMLike cudaHapSampler(haps, hn, glPack, m_uCycles, tran, &pc,
