@@ -1,7 +1,9 @@
 1.4.x
         Moved hmm_work to device
-        Removed some unnecessary copying
         If sampler is uniform, then sampling is now done on device as well
+
+1.4.6   Mon May 26 11:12:14 BST 2014
+        Removed some unnecessary copying
 
 1.4.5   Sun May 25 20:26:47 BST 2014
         GLs are now compressed using vector quantization (Lloyd's
