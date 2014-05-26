@@ -533,7 +533,7 @@ TEST(HMMLike, createsOK) {
   }
   */
   {
-    gsl_rng_set(rng, 111);
+    gsl_rng_set(rng, 112);
     const unsigned numCycles3 = 100;
     ASSERT_EQ(3 * numSites * numSamps2, GLs.size());
 

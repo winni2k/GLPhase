@@ -25,7 +25,6 @@
 
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
-
 static_assert(NUMSITES % WORDSIZE == 0,
               "Numsites is not evenly divisible by wordsize");
 
@@ -35,6 +34,13 @@ static_assert(
 
 namespace HMMLikeHelper {
 std::vector<unsigned> transposeHapIdxs(const std::vector<unsigned> &hapIdxs);
+
+std::vector<unsigned> InitialHapIdxs(size_t numRunSamps, size_t firstSampIdx,
+                                     std::shared_ptr<Sampler> &sampler);
+
+std::vector<unsigned> ExtraPropHaps(size_t numRunSamps, size_t firstSampIdx,
+                                    std::shared_ptr<Sampler> &sampler,
+                                    size_t numCycles, GLPack &glPack);
 }
 
 class HMMLike {
@@ -91,6 +97,12 @@ public:
   */
   std::vector<unsigned> RunHMMOnSamples(unsigned &firstSampIdx,
                                         unsigned &lastSampIdx);
+
+    /*
+      searches for best "parents" and phases all haplotypes
+    */
+    void SolveOnDevice();
+    
 };
 
 #endif
