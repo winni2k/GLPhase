@@ -457,6 +457,9 @@ TEST(HMMLike, createsOK) {
     unsigned firstSampIdx = 0;
     unsigned lastSampIdx = 0;
 
+    gsl_rng_set(rng, 114);
+    HMMLikeCUDA::SetUpRNGs(glPack3.GetSampleStride(), gsl_rng_get(rng));
+
     vector<unsigned> hapIdxs3 =
         hmmLike3.RunHMMOnSamples(firstSampIdx, lastSampIdx);
     ASSERT_EQ(0, firstSampIdx);
@@ -547,6 +550,7 @@ TEST(HMMLike, createsOK) {
     unsigned firstSampIdx = 0;
     unsigned lastSampIdx = 0;
     {
+
       vector<unsigned> hapIdxs3 =
           hmmLike3.RunHMMOnSamples(firstSampIdx, lastSampIdx);
       ASSERT_EQ(0, firstSampIdx);
@@ -612,7 +616,8 @@ TEST(HMMLike, createsOK) {
       glPack3.GetPackedGLs();
     }
     {
-      gsl_rng_set(rng, 112);
+      gsl_rng_set(rng, 113);
+      HMMLikeCUDA::SetUpRNGs(glPack3.GetSampleStride(), gsl_rng_get(rng));
       vector<unsigned> hapIdxs3 =
           hmmLike3.RunHMMOnSamples(firstSampIdx, lastSampIdx);
       ASSERT_EQ(2, firstSampIdx);
