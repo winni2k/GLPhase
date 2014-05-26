@@ -46,7 +46,7 @@ HMMLike::HMMLike(const vector<uint64_t> &hapPanel, unsigned numHaps,
 
   // make sure we have a K20 or better installed
   // also define some constants
-  CheckDevice();
+  HMMLikeCUDA::CheckDevice();
 
   // copy the transition matrix to constant memory on device
   HMMLikeCUDA::CopyTranToDevice(m_tran);

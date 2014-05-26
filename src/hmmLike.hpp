@@ -60,13 +60,6 @@ private:
   unsigned m_nextSampIdx;
   gsl_rng &m_rng;
 
-  /*
-    Pulls out GLs for next run and repackages them ready to call cuda code
-  */
-  void CheckDevice() const { HMMLikeCUDA::CheckDevice(); }
-  void CopyTranToDevice() const;
-  void CopyMutationMatToDevice() const;
-
 public:
   /*
     HMMLike constructor.  takes input to a 2*NxnumWordsPerHap matrix.
