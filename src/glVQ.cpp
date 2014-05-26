@@ -52,7 +52,7 @@ void GLVQ::BuildCodeBook(unsigned codeBookSize, const vector<float> &inGLs) {
 
   // create random set of points to train on
   vector<tuple<float, float, unsigned char> > trainingSet;
-  const size_t trainingSetSize = min(codeBookSize * 100, numGLs);
+  const size_t trainingSetSize = min(codeBookSize * 5000, numGLs);
   trainingSet.reserve(trainingSetSize);
   for (unsigned iter = 0; iter < trainingSetSize; ++iter) {
     unsigned glIdx = 0;
@@ -73,7 +73,7 @@ void GLVQ::BuildCodeBook(unsigned codeBookSize, const vector<float> &inGLs) {
   double previousVar = numeric_limits<double>::max();
   double currentVar = AssignPoints(trainingSet);
   size_t iter = 0;
-  const size_t maxIter = 100000;
+  const size_t maxIter = 100;
   while (abs(currentVar - previousVar) > currentVar / 100) {
     if (++iter > maxIter)
       throw std::runtime_error("[GLVQ] Clustering failed to converge within " +
