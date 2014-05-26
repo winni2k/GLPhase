@@ -19,6 +19,8 @@
 #error the number of bits in a char must be 8!
 #endif
 
+// number of threads per block
+
 namespace HMMLikeCUDA {
 
 extern __constant__ float norm;
@@ -37,6 +39,8 @@ extern __device__ void UnpackGLsWithCodeBook(uint32_t GLcodes, float (&GLs)[3],
 
 extern thrust::device_vector<float> *gd_codeBook;
 extern thrust::device_vector<uint32_t> *gd_packedGLs;
+extern curandStateXORWOW_t *gd_devStates;
+extern thrust::device_vector<uint64_t> *gd_hapPanel;
 }
 
 #endif

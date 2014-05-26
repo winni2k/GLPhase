@@ -56,6 +56,12 @@ HMMLike::HMMLike(const vector<uint64_t> &hapPanel, unsigned numHaps,
 
   // copy code book for VQ to device
   HMMLikeCUDA::CopyCodeBookToDevice(glPack.GetCodeBook());
+
+  // initialize random number generators
+  HMMLikeCUDA::SetUpRNGs(m_glPack.GetSampleStride(), gsl_rng_get(&m_rng));
+
+  // copy initial hap panel across
+  HMMLikeCUDA::CopyHapPanelToDevice(m_inHapPanel);
   
   // copy all strided GLs across if the sample stride is equal to the number of
   // samples
@@ -103,7 +109,7 @@ vector<unsigned> HMMLike::RunHMMOnSamples(unsigned &firstSampIdx,
   // run kernel
   HMMLikeCUDA::RunHMMOnDevice(
       m_inHapPanel, extraPropHaps, m_glPack.GetNumSites(),
-      m_glPack.GetSampleStride(), m_numCycles, hapIdxs, gsl_rng_get(&m_rng));
+      m_glPack.GetSampleStride(), m_numCycles, hapIdxs);
 
   // return
   return HMMLikeHelper::transposeHapIdxs(hapIdxs);
