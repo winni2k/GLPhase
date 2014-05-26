@@ -33,14 +33,16 @@ static_assert(
     "Size of unsigned int is < 4. We might run into indexing issues otherwise");
 
 namespace HMMLikeHelper {
-std::vector<unsigned> transposeHapIdxs(const std::vector<unsigned> &hapIdxs);
+std::vector<unsigned> TransposeHapIdxs(const std::vector<unsigned> &hapIdxs);
 
-std::vector<unsigned> InitialHapIdxs(size_t numRunSamps, size_t firstSampIdx,
-                                     std::shared_ptr<Sampler> &sampler);
+std::vector<unsigned> GenerateInitialHapIdxs(size_t numRunSamps,
+                                             size_t firstSampIdx,
+                                             std::shared_ptr<Sampler> &sampler);
 
-std::vector<unsigned> ExtraPropHaps(size_t numRunSamps, size_t firstSampIdx,
-                                    std::shared_ptr<Sampler> &sampler,
-                                    size_t numCycles, GLPack &glPack);
+std::vector<unsigned> GenerateExtraPropHaps(size_t numRunSamps,
+                                            size_t firstSampIdx,
+                                            std::shared_ptr<Sampler> &sampler,
+                                            size_t numCycles, GLPack &glPack);
 }
 
 class HMMLike {
@@ -98,11 +100,12 @@ public:
   std::vector<unsigned> RunHMMOnSamples(unsigned &firstSampIdx,
                                         unsigned &lastSampIdx);
 
-    /*
-      searches for best "parents" and phases all haplotypes
-    */
-    void SolveOnDevice();
-    
+  /*
+    searches for best "parents" and phases all haplotypes
+    solved haps are kept on device
+  */
+  void SolveOnDevice(bool updateHapSum);
+  void FillHapSum(std::vector<unsigned> &hapSum);
 };
 
 #endif

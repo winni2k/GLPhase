@@ -1641,12 +1641,14 @@ void Insti::estimate() {
     else
       iterationSampler = m_sampler;
 
+    const bool updateHapSum = m_nIteration >= bn;
 // Phase each individual based on the rest of the individuals
 // but don't update haps between updates??? !!! !!! !!!
 #ifndef NCUDA
     // update the sampler, because it might have changed
     cudaHapSampler.UpdateSampler(iterationSampler);
-    sum = cudaSolve(cudaHapSampler, sampleStride, pen);
+    cudaHapSampler.SolveOnDevice(updateHapSum);
+//    sum = cudaSolve(cudaHapSampler, sampleStride, pen);
 #else
     for (unsigned i = 0; i < in; i++) {
 
@@ -1656,11 +1658,12 @@ void Insti::estimate() {
     }
 
     swap(hnew, haps);
-#endif
 
-    if (m_nIteration >= bn)
+    if (updateHapSum)
       for (unsigned i = 0; i < in; i++)
         replace(i); // call replace
+
+#endif
 
     m_sampler->UpdatePropDistHaps(haps);
 
@@ -1673,6 +1676,11 @@ void Insti::estimate() {
          << "m\t" << runTimeInMin / (m_nIteration + 1) * (bn + sn) << "m\t"
          << endl;
   }
+
+  // copy hapsum across
+  #ifndef NCUDA
+  cudaHapSampler.FillHapSum(hsum);
+  #endif
 
   cout << endl;
   result(); // call result

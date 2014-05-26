@@ -57,8 +57,10 @@ __device__ float hmmLike(unsigned idx, const unsigned (&hapIdxs)[4],
                          const float *__restrict__ d_codeBook) {
 
   // pull the four haplotypes into f0, f1, m0 and m1
-  const uint64_t *f0 = &d_hapPanel[hapIdxs[0] * WN], // 8 registers?
-      *f1 = &d_hapPanel[hapIdxs[1] * WN], *m0 = &d_hapPanel[hapIdxs[2] * WN],
+  // 8 registers?
+  const uint64_t *f0 = &d_hapPanel[hapIdxs[0] * WN],
+                 *f1 = &d_hapPanel[hapIdxs[1] * WN],
+                 *m0 = &d_hapPanel[hapIdxs[2] * WN],
                  *m1 = &d_hapPanel[hapIdxs[3] * WN];
 
   // ##########
@@ -353,6 +355,14 @@ void CopyCodeBookToDevice(const vector<pair<float, float> > &codeBook) {
   *gd_codeBook = h_codeBook;
 }
 
+// copy hsum into stl vector
+thrust::device_vector<uint32_t> *gd_hapSum = NULL;
+void CopyHapSumToHost(thrust::host_vector<uint32_t> &h_hapSums) {
+  assert(gd_hapSum);
+  h_hapSums = *gd_hapSum;
+  return;
+}
+
 void Cleanup() {
   if (gd_packedGLs) {
     delete gd_packedGLs;
@@ -366,9 +376,17 @@ void Cleanup() {
     assert(cudaFree(gd_devStates) == cudaSuccess);
     gd_devStates = NULL;
   }
-  if(gd_hapPanel){
-      delete gd_hapPanel;
-      gd_hapPanel = NULL;
+  if (gd_hapPanel) {
+    delete gd_hapPanel;
+    gd_hapPanel = NULL;
+  }
+  if (gd_newHapPanel) {
+    delete gd_newHapPanel;
+    gd_newHapPanel = NULL;
+  }
+  if (gd_hapSum) {
+    delete gd_hapSum;
+    gd_hapSum = NULL;
   }
 }
 
@@ -412,6 +430,15 @@ void CopyHapPanelToDevice(const vector<uint64_t> &hapPanel) {
   if (!gd_hapPanel)
     gd_hapPanel = new thrust::device_vector<uint64_t>;
   gd_hapPanel->swap(fillHapPanel);
+}
+
+thrust::device_vector<uint64_t> *gd_newHapPanel = NULL;
+void InitializeNewHapPanel(thrust::device_vector<uint64_t> *d_hapPanel) {
+
+  assert(d_hapPanel);
+  assert(gd_hapPanel == NULL);
+  gd_hapPanel = new thrust::device_vector<uint64_t>;
+  *gd_newHapPanel = *d_hapPanel;
 }
 
 void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
@@ -531,6 +558,7 @@ void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
   /*
     run kernel
   */
+  assert(gd_devStates);
   findHapSet << <blocksPerRun, threadsPerBlock>>>
       (d_packedGLPtr, d_hapPanel, d_hapIdxs, d_extraPropHaps, d_chosenHapIdxs,
        numSamples, numCycles, gd_devStates, d_codeBook
@@ -578,6 +606,311 @@ void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
 #endif
 
   // return nothing as the return data is stored in hapIdxs
+  return;
+}
+
+// take an individual number I, a set of four haplotypes P, and
+// penalty S and update haplotypes of individual I
+__global__ void hmmWork(const uint32_t *__restrict__ d_packedGLs,
+                        const uint64_t *__restrict__ d_hapPanel,
+                        const unsigned *__restrict__ d_hapIdxs,
+                        unsigned numSamples, curandStateXORWOW_t *globalState,
+                        const float *__restrict__ d_codeBook,
+                        uint64_t *d_newHapPanel) {
+
+  const float S = 1;
+  int idx = blockDim.x * blockIdx.x + threadIdx.x;
+  if (idx < numSamples) {
+
+    curandStateXORWOW_t localState = globalState[idx];
+
+    // setup the different haplotypes
+    const uint64_t *
+    f0 = &d_hapPanel[d_hapIdxs[idx] * numSamples],
+   *f1 = &d_hapPanel[d_hapIdxs[idx + numSamples] * numSamples],
+   *m0 = &d_hapPanel[d_hapIdxs[idx + numSamples * 2] * numSamples],
+   *m1 = &d_hapPanel[d_hapIdxs[idx + numSamples * 3] * numSamples];
+
+    //	backward recursion
+    float beta[NUMSITES * 4];
+
+    // create pointers that point to last set of elements of emit, tran and beta
+    float *bPtr = &beta[(NUMSITES - 1) * 4];
+    float b00, b01, b10, b11;
+
+    // initial state of backward sampler
+    bPtr[0] = bPtr[1] = bPtr[2] = bPtr[3] = 1;
+
+    float emit[4]; // 4 registers
+    float GLs[3];  // 3 registers
+    const unsigned char numGLsPerUint32 = UINT32T_SIZE / BITSPERCODE;
+
+    // fill beta with the forward probabilites
+    for (unsigned site = NUMSITES - 1; site; --site) {
+
+      // poor man's modulo: site % numGLsPerUint32 = (site & (numGLsPerUint32 -
+      // 1))
+      // Works only if numGLsPerUint32 is a factor of 2
+      //
+      // poor man's log2(n) =  __ffs(n) - 1
+      // only works if n is a factor of 2
+      const unsigned packedGLIdx =
+          idx + (site >> (__ffs(numGLsPerUint32) - 1)) * numSamples;
+      const unsigned char withinUINTCodeNum = site & (numGLsPerUint32 - 1);
+      UnpackGLsWithCodeBook(d_packedGLs[packedGLIdx], GLs, d_codeBook,
+                            withinUINTCodeNum);
+
+      // fill emit with next site's emission matrix
+      FillEmit(GLs, emit);
+
+      b00 = bPtr[0] * emit[(test(f0, site) << 1) | test(m0, site)];
+      b01 = bPtr[1] * emit[(test(f0, site) << 1) | test(m1, site)];
+      b10 = bPtr[2] * emit[(test(f1, site) << 1) | test(m0, site)];
+      b11 = bPtr[3] * emit[(test(f1, site) << 1) | test(m1, site)];
+      bPtr -= 4;
+      bPtr[0] = b00 * transitionMat[site * 3] +
+                (b01 + b10) * transitionMat[site * 3 + 1] +
+                b11 * transitionMat[site * 3 + 2];
+      bPtr[1] = b01 * transitionMat[site * 3] +
+                (b00 + b11) * transitionMat[site * 3 + 1] +
+                b10 * transitionMat[site * 3 + 2];
+      bPtr[2] = b10 * transitionMat[site * 3] +
+                (b00 + b11) * transitionMat[site * 3 + 1] +
+                b01 * transitionMat[site * 3 + 2];
+      bPtr[3] = b11 * transitionMat[site * 3] +
+                (b01 + b10) * transitionMat[site * 3 + 1] +
+                b00 * transitionMat[site * 3 + 2];
+      float sum = 1.0f / (bPtr[0] + bPtr[1] + bPtr[2] + bPtr[3]);
+      bPtr[0] *= sum;
+      bPtr[1] *= sum;
+      bPtr[2] *= sum;
+      bPtr[3] *= sum;
+    }
+
+    //	forward sampling
+    // walk through b
+    uint64_t *ha = &d_newHapPanel[idx * 2 * WN], *hb = ha + WN;
+    const float *tran = &transitionMat[0];
+    bPtr = &beta[0];
+    float l00 = 0, l01 = 0, l10 = 0, l11 = 0;
+
+    for (unsigned site = 0; site != NUMSITES; ++site, tran += 3, bPtr += 4) {
+      // unpack GLs
+      const unsigned packedGLIdx =
+          idx + (site >> (__ffs(numGLsPerUint32) - 1)) * numSamples;
+      const unsigned char withinUINTCodeNum = site & (numGLsPerUint32 - 1);
+      UnpackGLsWithCodeBook(d_packedGLs[packedGLIdx], GLs, d_codeBook,
+                            withinUINTCodeNum);
+
+      // fill emit with next site's emission matrix
+      FillEmit(GLs, emit);
+
+      const unsigned char s00 = (test(f0, site) << 1) | test(m0, site);
+      const unsigned char s01 = (test(f0, site) << 1) | test(m1, site);
+      const unsigned char s10 = (test(f1, site) << 1) | test(m0, site);
+      const unsigned char s11 = (test(f1, site) << 1) | test(m1, site);
+      if (site) {
+        b00 = l00 * tran[0] + l01 * tran[1] + l10 * tran[1] + l11 * tran[2],
+        b01 = l00 * tran[1] + l01 * tran[0] + l10 * tran[2] + l11 * tran[1];
+        b10 = l00 * tran[1] + l01 * tran[2] + l10 * tran[0] + l11 * tran[1],
+        b11 = l00 * tran[2] + l01 * tran[1] + l10 * tran[1] + l11 * tran[0];
+        l00 = b00 * emit[s00];
+        l01 = b01 * emit[s01];
+        l10 = b10 * emit[s10];
+        l11 = b11 * emit[s11];
+      } else {
+        l00 = 0.25f * emit[s00];
+        l01 = 0.25f * emit[s01];
+        l10 = 0.25f * emit[s10];
+        l11 = 0.25f * emit[s11];
+      }
+      {
+        const float sum = 1.0f / (l00 + l01 + l10 + l11);
+        l00 *= sum;
+        l01 *= sum;
+        l10 *= sum;
+        l11 *= sum;
+      }
+
+      // p00 is P(phase 0|0 | l, b)
+      const float p00 = l00 * bPtr[0], p01 = l01 * bPtr[1], p10 = l10 * bPtr[2],
+                  p11 = l11 * bPtr[3];
+
+      // c00 is P(phase 0|0 | emit, l, b, GL) at site m penalized by S
+      // powf effectively inflates the importance of small numbers
+      // while S is < 1 (first bn/2 iterations)
+      const float c00 =
+          powf(GLs[0] * (p00 * mutationMat[s00] + p01 * mutationMat[s01] +
+                         p10 * mutationMat[s10] + p11 * mutationMat[s11]),
+               S);
+      const float c01 = powf(
+          GLs[1] * (p00 * mutationMat[s00 + 4] + p01 * mutationMat[s01 + 4] +
+                    p10 * mutationMat[s10 + 4] + p11 * mutationMat[s11 + 4]),
+          S);
+      const float c10 = powf(
+          GLs[1] *
+              (p00 * mutationMat[s00 + 4 * 2] + p01 * mutationMat[s01 + 4 * 2] +
+               p10 * mutationMat[s10 + 4 * 2] + p11 * mutationMat[s11 + 4 * 2]),
+          S);
+      const float c11 = powf(
+          GLs[2] *
+              (p00 * mutationMat[s00 + 4 * 3] + p01 * mutationMat[s01 + 4 * 3] +
+               p10 * mutationMat[s10 + 4 * 3] + p11 * mutationMat[s11 + 4 * 3]),
+          S);
+
+      // randomly choose new haplotypes at this site weighted by c
+      {
+        const float sum = curand_uniform(&localState) * (c00 + c01 + c10 + c11);
+        if (sum < c00) {
+          set0(ha, site);
+          set0(hb, site);
+        } else if (sum < c00 + c01) {
+          set0(ha, site);
+          set1(hb, site);
+        } else if (sum < c00 + c01 + c10) {
+          set1(ha, site);
+          set0(hb, site);
+        } else {
+          set1(ha, site);
+          set1(hb, site);
+        }
+      }
+    }
+    globalState[idx] = localState;
+  }
+}
+
+// keep a count of the number of 1s at each site for each haplotype
+// ha will always have more or as many 1 alleles as hb
+__global__ void sumHaps(const uint64_t *__restrict__ d_newHaps,
+                        uint32_t *d_hapSum, unsigned numSamps) {
+
+  int idx = blockDim.x * blockIdx.x + threadIdx.x;
+  if (idx < numSamps) {
+
+    // oa and ob are the observed haplotypes for individual idx
+    const uint64_t *oa = &d_newHaps[idx * 2 * WN], *ob = oa + WN;
+
+    // ha and hb are the running tally of individual idx's haplotypes
+    uint32_t *ha = &d_hapSum[idx * 2 * NUMSITES], *hb = ha + NUMSITES;
+
+    // cis and tra are used to match the haplotypes found with the correct sum
+    // of haplotypes
+    uint32_t cis = 0, tra = 0;
+    for (unsigned site = 0; site < NUMSITES; ++site) {
+      if (test(oa, site)) {
+        cis += ha[site];
+        tra += hb[site];
+      }
+      if (test(ob, site)) {
+        cis += hb[site];
+        tra += ha[site];
+      }
+    }
+    if (cis > tra)
+      for (unsigned site = 0; site < NUMSITES; ++site) {
+        ha[site] += test(oa, site);
+        hb[site] += test(ob, site);
+      }
+    else
+      for (unsigned site = 0; site < NUMSITES; ++site) {
+        ha[site] += test(ob, site);
+        hb[site] += test(oa, site);
+      }
+  }
+}
+
+void SolveOnDevice(const vector<unsigned> &extraPropHaps, unsigned numSites,
+                   unsigned numSamples, unsigned numCycles,
+                   vector<unsigned> &hapIdxs, bool updateSum) {
+  assert(numSites == NUMSITES);
+  assert(hapIdxs.size() == numSamples * 4);
+  assert(extraPropHaps.size() == numSamples * numCycles);
+
+  // hap panel must have been copied over previously
+  assert(gd_hapPanel);
+  assert(gd_hapPanel->size() >=
+         WN * (*max_element(extraPropHaps.begin(), extraPropHaps.end()) + 1));
+  // get pointer to hap panel
+  const uint64_t *d_hapPanelPtr = thrust::raw_pointer_cast(gd_hapPanel->data());
+
+  // copy initial hap indices to device memory
+  thrust::device_vector<unsigned> d_hapIdxs(hapIdxs);
+  const unsigned *d_hapIdxsPtr = thrust::raw_pointer_cast(d_hapIdxs.data());
+
+  // allocate chosen hap idxs on device
+  thrust::device_vector<unsigned> d_chosenHapIdxs(d_hapIdxs.size());
+  unsigned *d_chosenHapIdxsPtr = thrust::raw_pointer_cast(d_chosenHapIdxsPtr);
+
+  // copy extra proposal haps to device memory
+  thrust::device_vector<unsigned> d_extraPropHaps(extraPropHaps);
+  const unsigned *d_extraPropHapsPtr =
+      thrust::raw_pointer_cast(d_extraPropHaps.data());
+
+  // get packed gl pointer
+  assert(gd_packedGLs); // make sure pointer points to something
+  assert(gd_packedGLs->size() ==
+         numSamples * numSites * BITSPERCODE / UINT32T_SIZE);
+  const uint32_t *d_packedGLPtr =
+      thrust::raw_pointer_cast(gd_packedGLs->data());
+
+  // get codebook pointer
+  assert(gd_codeBook); // make sure pointer points to something
+  assert(gd_codeBook->size() == 2 * (1 << BITSPERCODE));
+  const float *d_codeBookPtr = thrust::raw_pointer_cast(gd_codeBook->data());
+
+  /*
+    run kernel
+  */
+  // determine thread and block size
+  size_t threadsPerBlock = 128;
+  size_t blocksPerRun = (numSamples + threadsPerBlock - 1) / threadsPerBlock;
+  assert(gd_devStates);
+  findHapSet << <blocksPerRun, threadsPerBlock>>>
+      (d_packedGLPtr, d_hapPanelPtr, d_hapIdxsPtr, d_extraPropHapsPtr,
+       d_chosenHapIdxsPtr, numSamples, numCycles, gd_devStates, d_codeBookPtr);
+
+  cudaDeviceSynchronize();
+
+  cudaError_t err = cudaSuccess;
+  err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    cerr << "Failed to run HMM kernel: " << cudaGetErrorString(err) << "\n";
+    exit(EXIT_FAILURE);
+  }
+
+  /*
+    now run hmm_work to get new haplotypes
+  */
+
+  //  create new hap panel if it does not point to something
+  if (gd_newHapPanel == NULL)
+    InitializeNewHapPanel(gd_hapPanel);
+  assert(gd_newHapPanel->size() == gd_hapPanel->size());
+  // get pointer to hap panel
+  uint64_t *d_newHapPanelPtr = thrust::raw_pointer_cast(gd_newHapPanel->data());
+
+  hmmWork << <blocksPerRun, threadsPerBlock>>>
+      (d_packedGLPtr, d_hapPanelPtr, d_chosenHapIdxsPtr, numSamples,
+       gd_devStates, d_codeBookPtr, d_newHapPanelPtr);
+
+  cudaDeviceSynchronize();
+
+  // exchange new and old hap panels
+  swap(*gd_hapPanel, *gd_newHapPanel);
+
+  //  update the haplotype sum if requested
+
+  if (gd_hapSum == NULL) {
+    gd_hapSum = new thrust::device_vector<uint32_t>;
+    gd_hapSum->resize(numSites * numSamples * 2,
+                      0); // one uint for every site and sample
+  }
+  uint32_t *d_hapSumPtr = thrust::raw_pointer_cast(gd_hapSum->data());
+  sumHaps << <blocksPerRun, threadsPerBlock>>>
+      (d_newHapPanelPtr, d_hapSumPtr, numSamples);
+
+  // return nothing as the return data is stored in gd_newHapPanel
   return;
 }
 }

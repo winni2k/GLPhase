@@ -28,11 +28,16 @@ extern void CopyPackedGLsToDevice(const std::vector<uint32_t> &packedGLs);
 extern void
 CopyCodeBookToDevice(const std::vector<std::pair<float, float> > &codeBook);
 extern void CopyHapPanelToDevice(const std::vector<uint64_t> &hapPanel);
+extern void CopyHapSumToHost(thrust::host_vector<uint32_t> &h_hapSums);
 extern void SetUpRNGs(size_t numSamples, unsigned long seed);
 extern void RunHMMOnDevice(const std::vector<uint64_t> &hapPanel,
                            const std::vector<unsigned> &extraPropHaps,
                            unsigned numSites, unsigned numSamples,
                            unsigned numCycles, std::vector<unsigned> &hapIdxs);
+extern void SolveOnDevice(const std::vector<unsigned> &extraPropHaps,
+                          unsigned numSites, unsigned numSamples,
+                          unsigned numCycles, std::vector<unsigned> &hapIdxs,
+                          bool updateSum = false);
 
 extern void Cleanup();
 }
