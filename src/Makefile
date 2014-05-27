@@ -24,11 +24,11 @@ BIN :=  $(BDIR)/insti.$(VERSION).ncuda
 CXXFLAGS += -DNCUDA
 endif
 
-release: BIN += .release
+RBIN := $(addsuffix .release, $(BIN))
 
 # targets
 all: $(BIN)
-release: $(BIN)
+release: $(RBIN)
 debug: $(BIN).debug
 test: debug
 test: $(OBJECT_FILES) $(HEADER_FILES)
@@ -161,6 +161,10 @@ main.o: main.cpp version.hpp.gch impute.hpp.gch insti.hpp.gch
 
 ## binaries
 $(BIN): $(OBJECT_FILES)
+	$(CXX) $(CXXFLAGS) $(OBJECT_FILES) -o $@ $(LIBS)
+	cd $(BDIR) && rm -f insti && ln -s $@ insti
+
+$(RBIN): $(OBJECT_FILES)
 	$(CXX) $(CXXFLAGS) $(OBJECT_FILES) -o $@ $(LIBS)
 	cd $(BDIR) && rm -f insti && ln -s $@ insti
 
