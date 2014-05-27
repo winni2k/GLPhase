@@ -436,8 +436,8 @@ thrust::device_vector<uint64_t> *gd_newHapPanel = NULL;
 void InitializeNewHapPanel(thrust::device_vector<uint64_t> *d_hapPanel) {
 
   assert(d_hapPanel);
-  assert(gd_hapPanel == NULL);
-  gd_hapPanel = new thrust::device_vector<uint64_t>;
+  assert(gd_newHapPanel == NULL);
+  gd_newHapPanel = new thrust::device_vector<uint64_t>;
   *gd_newHapPanel = *d_hapPanel;
 }
 
@@ -474,58 +474,72 @@ void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
   CopyHapPanelToDevice(hapPanel);
   const uint64_t *d_hapPanel = thrust::raw_pointer_cast(gd_hapPanel->data());
 
-/*
-  copy initial hap indices to device memory
-*/
-#ifdef DEBUG
-  cout << "[HMMLikeCUDA] Copying hap indices to device\n";
-#endif
-  size_t hapIdxsSize = hapIdxs.size() * sizeof(unsigned);
+  /*
+    copy initial hap indices to device memory
+  */
+  // copy initial hap indices to device memory
+  thrust::device_vector<unsigned> d_hapIdxs(hapIdxs);
+  const unsigned *d_hapIdxsPtr = thrust::raw_pointer_cast(d_hapIdxs.data());
 
-  // allocate memory on device
-  unsigned *d_hapIdxs;
-  err = cudaMalloc(&d_hapIdxs, hapIdxsSize);
-  if (err != cudaSuccess) {
-    cerr << "Failed to allocate hap indices on device\n";
-    exit(EXIT_FAILURE);
-  }
+  /*
+  #ifdef DEBUG
+    cout << "[HMMLikeCUDA] Copying hap indices to device\n";
+  #endif
+    size_t hapIdxsSize = hapIdxs.size() * sizeof(unsigned);
 
-  // copy data across
-  err = cudaMemcpy(d_hapIdxs, hapIdxs.data(), hapIdxsSize,
-                   cudaMemcpyHostToDevice);
-  if (err != cudaSuccess) {
-    cerr << "Failed to copy hap indices to device\n";
-    exit(EXIT_FAILURE);
-  }
 
-/*
-  copy extra proposal haps to device memory
-*/
-#ifdef DEBUG
-  cout << "[HMMLikeCUDA] Copying extra proposal haps to device\n";
-#endif
-  size_t extraPropHapsSize = extraPropHaps.size() * sizeof(unsigned);
+    // allocate memory on device
+    unsigned *d_hapIdxs;
+    err = cudaMalloc(&d_hapIdxs, hapIdxsSize);
+    if (err != cudaSuccess) {
+      cerr << "Failed to allocate hap indices on device\n";
+      exit(EXIT_FAILURE);
+    }
 
-  // allocate memory on device
-  unsigned *d_extraPropHaps;
-  err = cudaMalloc(&d_extraPropHaps, extraPropHapsSize);
-  if (err != cudaSuccess) {
-    cerr << "Failed to allocate extra prop haps on device\n";
-    exit(EXIT_FAILURE);
-  }
+    // copy data across
+    err = cudaMemcpy(d_hapIdxs, hapIdxs.data(), hapIdxsSize,
+                     cudaMemcpyHostToDevice);
+    if (err != cudaSuccess) {
+      cerr << "Failed to copy hap indices to device\n";
+      exit(EXIT_FAILURE);
+    }
+  */
+  /*
+    copy extra proposal haps to device memory
+  */
 
-  // copy data across
-  err = cudaMemcpy(d_extraPropHaps, extraPropHaps.data(), extraPropHapsSize,
-                   cudaMemcpyHostToDevice);
-  if (err != cudaSuccess) {
-    cerr << "Failed to copy extra prop haps to device\n";
-    exit(EXIT_FAILURE);
-  }
+  // copy extra proposal haps to device memory
+  thrust::device_vector<unsigned> d_extraPropHaps(extraPropHaps);
+  const unsigned *d_extraPropHapsPtr =
+      thrust::raw_pointer_cast(d_extraPropHaps.data());
+  /*
+  #ifdef DEBUG
+    cout << "[HMMLikeCUDA] Copying extra proposal haps to device\n";
+  #endif
+    size_t extraPropHapsSize = extraPropHaps.size() * sizeof(unsigned);
+
+    // allocate memory on device
+    unsigned *d_extraPropHaps;
+    err = cudaMalloc(&d_extraPropHaps, extraPropHapsSize);
+    if (err != cudaSuccess) {
+      cerr << "Failed to allocate extra prop haps on device\n";
+      exit(EXIT_FAILURE);
+    }
+
+    // copy data across
+    err = cudaMemcpy(d_extraPropHaps, extraPropHaps.data(), extraPropHapsSize,
+                     cudaMemcpyHostToDevice);
+    if (err != cudaSuccess) {
+      cerr << "Failed to copy extra prop haps to device\n";
+      exit(EXIT_FAILURE);
+    }
+  */
 
   /*
     allocate device memory for results
   */
   unsigned *d_chosenHapIdxs;
+  const size_t hapIdxsSize = hapIdxs.size() * sizeof(unsigned);
   err = cudaMalloc(&d_chosenHapIdxs, hapIdxsSize);
   if (err != cudaSuccess) {
     cerr << "Failed to allocate memory for result hap idxs on device\n";
@@ -560,8 +574,8 @@ void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
   */
   assert(gd_devStates);
   findHapSet << <blocksPerRun, threadsPerBlock>>>
-      (d_packedGLPtr, d_hapPanel, d_hapIdxs, d_extraPropHaps, d_chosenHapIdxs,
-       numSamples, numCycles, gd_devStates, d_codeBook
+      (d_packedGLPtr, d_hapPanel, d_hapIdxsPtr, d_extraPropHapsPtr,
+       d_chosenHapIdxs, numSamples, numCycles, gd_devStates, d_codeBook
 #ifdef DEBUG
        ,
        d_likePtr
@@ -570,7 +584,8 @@ void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
   cudaDeviceSynchronize();
   err = cudaGetLastError();
   if (err != cudaSuccess) {
-    cerr << "Failed to run HMM kernel: " << cudaGetErrorString(err) << "\n";
+    cerr << "Failed to run findHapset kernel: " << cudaGetErrorString(err)
+         << "\n";
     exit(EXIT_FAILURE);
   }
 
@@ -586,8 +601,8 @@ void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
   }
 
   assert(cudaFree(d_chosenHapIdxs) == cudaSuccess);
-  assert(cudaFree(d_extraPropHaps) == cudaSuccess);
-  assert(cudaFree(d_hapIdxs) == cudaSuccess);
+//  assert(cudaFree(d_extraPropHaps) == cudaSuccess);
+//  assert(cudaFree(d_hapIdxs) == cudaSuccess);
 
 #ifdef DEBUG
   thrust::host_vector<float> h_likes(numCycles + 1);
@@ -625,11 +640,10 @@ __global__ void hmmWork(const uint32_t *__restrict__ d_packedGLs,
     curandStateXORWOW_t localState = globalState[idx];
 
     // setup the different haplotypes
-    const uint64_t *
-    f0 = &d_hapPanel[d_hapIdxs[idx] * numSamples],
-   *f1 = &d_hapPanel[d_hapIdxs[idx + numSamples] * numSamples],
-   *m0 = &d_hapPanel[d_hapIdxs[idx + numSamples * 2] * numSamples],
-   *m1 = &d_hapPanel[d_hapIdxs[idx + numSamples * 3] * numSamples];
+    const uint64_t *f0 = &d_hapPanel[d_hapIdxs[idx] * WN],
+                   *f1 = &d_hapPanel[d_hapIdxs[idx + numSamples] * WN],
+                   *m0 = &d_hapPanel[d_hapIdxs[idx + numSamples * 2] * WN],
+                   *m1 = &d_hapPanel[d_hapIdxs[idx + numSamples * 3] * WN];
 
     //	backward recursion
     float beta[NUMSITES * 4];
@@ -807,22 +821,20 @@ __global__ void sumHaps(const uint64_t *__restrict__ d_newHaps,
         tra += ha[site];
       }
     }
-    if (cis > tra)
-      for (unsigned site = 0; site < NUMSITES; ++site) {
-        ha[site] += test(oa, site);
-        hb[site] += test(ob, site);
-      }
-    else
-      for (unsigned site = 0; site < NUMSITES; ++site) {
-        ha[site] += test(ob, site);
-        hb[site] += test(oa, site);
-      }
+    for (unsigned site = 0; site < NUMSITES; ++site) {
+      uint64_t a = test(oa, site);
+      uint64_t b = test(ob, site);
+      ha[site] += cis > tra ? a : b;
+      hb[site] += cis > tra ? b : a;
+    }
   }
 }
 
 void SolveOnDevice(const vector<unsigned> &extraPropHaps, unsigned numSites,
                    unsigned numSamples, unsigned numCycles,
                    vector<unsigned> &hapIdxs, bool updateSum) {
+  cudaError_t err = cudaSuccess;
+
   assert(numSites == NUMSITES);
   assert(hapIdxs.size() == numSamples * 4);
   assert(extraPropHaps.size() == numSamples * numCycles);
@@ -838,9 +850,17 @@ void SolveOnDevice(const vector<unsigned> &extraPropHaps, unsigned numSites,
   thrust::device_vector<unsigned> d_hapIdxs(hapIdxs);
   const unsigned *d_hapIdxsPtr = thrust::raw_pointer_cast(d_hapIdxs.data());
 
-  // allocate chosen hap idxs on device
-  thrust::device_vector<unsigned> d_chosenHapIdxs(d_hapIdxs.size());
-  unsigned *d_chosenHapIdxsPtr = thrust::raw_pointer_cast(d_chosenHapIdxsPtr);
+  /*
+   allocate chosen hap idxs on device
+  */
+  unsigned *d_chosenHapIdxs;
+  const size_t hapIdxsSize = hapIdxs.size() * sizeof(unsigned);
+
+  err = cudaMalloc(&d_chosenHapIdxs, hapIdxsSize);
+  if (err != cudaSuccess) {
+    cerr << "Failed to allocate memory for result hap idxs on device\n";
+    exit(EXIT_FAILURE);
+  }
 
   // copy extra proposal haps to device memory
   thrust::device_vector<unsigned> d_extraPropHaps(extraPropHaps);
@@ -865,17 +885,17 @@ void SolveOnDevice(const vector<unsigned> &extraPropHaps, unsigned numSites,
   // determine thread and block size
   size_t threadsPerBlock = 128;
   size_t blocksPerRun = (numSamples + threadsPerBlock - 1) / threadsPerBlock;
+  cudaDeviceSynchronize();
   assert(gd_devStates);
   findHapSet << <blocksPerRun, threadsPerBlock>>>
       (d_packedGLPtr, d_hapPanelPtr, d_hapIdxsPtr, d_extraPropHapsPtr,
-       d_chosenHapIdxsPtr, numSamples, numCycles, gd_devStates, d_codeBookPtr);
-
+       d_chosenHapIdxs, numSamples, numCycles, gd_devStates, d_codeBookPtr);
   cudaDeviceSynchronize();
 
-  cudaError_t err = cudaSuccess;
   err = cudaGetLastError();
   if (err != cudaSuccess) {
-    cerr << "Failed to run HMM kernel: " << cudaGetErrorString(err) << "\n";
+    cerr << "Failed to run findHapset kernel: " << cudaGetErrorString(err)
+         << "\n";
     exit(EXIT_FAILURE);
   }
 
@@ -891,25 +911,42 @@ void SolveOnDevice(const vector<unsigned> &extraPropHaps, unsigned numSites,
   uint64_t *d_newHapPanelPtr = thrust::raw_pointer_cast(gd_newHapPanel->data());
 
   hmmWork << <blocksPerRun, threadsPerBlock>>>
-      (d_packedGLPtr, d_hapPanelPtr, d_chosenHapIdxsPtr, numSamples,
-       gd_devStates, d_codeBookPtr, d_newHapPanelPtr);
+      (d_packedGLPtr, d_hapPanelPtr, d_chosenHapIdxs, numSamples, gd_devStates,
+       d_codeBookPtr, d_newHapPanelPtr);
 
   cudaDeviceSynchronize();
+  err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    cerr << "Failed to run hmmWork kernel: " << cudaGetErrorString(err) << "\n";
+    exit(EXIT_FAILURE);
+  }
+
+  assert(cudaFree(d_chosenHapIdxs) == cudaSuccess);
 
   // exchange new and old hap panels
   swap(*gd_hapPanel, *gd_newHapPanel);
 
   //  update the haplotype sum if requested
+  if (updateSum) {
 
-  if (gd_hapSum == NULL) {
-    gd_hapSum = new thrust::device_vector<uint32_t>;
-    gd_hapSum->resize(numSites * numSamples * 2,
-                      0); // one uint for every site and sample
+    if (gd_hapSum == NULL) {
+      gd_hapSum = new thrust::device_vector<uint32_t>;
+      gd_hapSum->resize(numSites * numSamples * 2,
+                        0); // one uint for every site and sample
+    }
+
+    uint32_t *d_hapSumPtr = thrust::raw_pointer_cast(gd_hapSum->data());
+    sumHaps << <blocksPerRun, threadsPerBlock>>>
+        (d_newHapPanelPtr, d_hapSumPtr, numSamples);
+
+    cudaDeviceSynchronize();
+    err = cudaGetLastError();
+    if (err != cudaSuccess) {
+      cerr << "Failed to run sumHaps kernel: " << cudaGetErrorString(err)
+           << "\n";
+      exit(EXIT_FAILURE);
+    }
   }
-  uint32_t *d_hapSumPtr = thrust::raw_pointer_cast(gd_hapSum->data());
-  sumHaps << <blocksPerRun, threadsPerBlock>>>
-      (d_newHapPanelPtr, d_hapSumPtr, numSamples);
-
   // return nothing as the return data is stored in gd_newHapPanel
   return;
 }

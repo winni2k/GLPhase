@@ -38,7 +38,8 @@ test: $(OBJECT_FILES) $(HEADER_FILES)
 all: CXXFLAGS += -O3
 release: CXXFLAGS += -O3 -DNDEBUG
 static: CXXFLAGS += -O3 -DNDEBUG
-test: CXXFLAGS += -O0 -ggdb
+test: CXXFLAGS += -ggdb
+debug: CXXFLAGS += -ggdb
 
 # gcc
 CXX := g++-4.7+
@@ -56,6 +57,7 @@ NVCC := nvcc
 CUDALIBS := -lcudart
 LIBS += $(CUDALIBS)
 test: NVCCFLAGS += -g -G
+debug: NVCCFLAGS += -g -G
 endif
 
 # path variables

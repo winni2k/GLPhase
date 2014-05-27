@@ -1677,13 +1677,21 @@ void Insti::estimate() {
          << endl;
   }
 
-  // copy hapsum across
-  #ifndef NCUDA
+// copy hapsum across
+#ifndef NCUDA
   cudaHapSampler.FillHapSum(hsum);
-  #endif
+#endif
 
   cout << endl;
+  
+  for (auto h : hsum)
+    assert(h <= sn);
+
   result(); // call result
+  for (auto p : prob) {
+    assert(p >= 0);
+    assert(p <= 1);
+  }
 }
 
 /* estimate_EMC -- Evolutionary Monte Carlo
@@ -2105,8 +2113,10 @@ void Insti::save_vcf(const char *F, string commandLine) {
         else if (phred == 1)
           phred = 0;
         else if (phred > 1 || phred < 0) {
-          cerr << "error: probability " << phred << " is not between 0 and 1";
-          exit(1);
+          throw std::runtime_error(
+              "[insti::save_vcf] error: probability at site " + to_string(m) +
+              " in sample " + to_string(i) + " is " + to_string(phred) +
+              " and not between 0 and 1");
         } else
           phred = -10 * log10(phred);
       }
