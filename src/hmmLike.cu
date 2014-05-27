@@ -149,12 +149,7 @@ __global__ void findHapSet(const uint32_t *__restrict__ d_packedGLs,
                            const unsigned *__restrict__ d_extraPropHaps,
                            unsigned *d_chosenHapIdxs, unsigned numSamples,
                            unsigned numCycles, curandStateXORWOW_t *globalState,
-                           const float *__restrict__ d_codeBook
-#ifdef DEBUG
-                           ,
-                           float *d_likes
-#endif
-                           ) {
+                           const float *__restrict__ d_codeBook) {
 
   const float S = 1;
   int idx = blockDim.x * blockIdx.x + threadIdx.x;
@@ -450,14 +445,6 @@ void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
   assert(hapIdxs.size() == numSamples * 4);
   assert(extraPropHaps.size() == numSamples * numCycles);
 
-#ifdef DEBUG
-  // debug info
-  cout << "Hap Idxs before sampling: ";
-  for (int i = 0; i < hapIdxs.size(); ++i)
-    cout << hapIdxs[i] << " ";
-  cout << endl;
-#endif
-
   cudaError_t err = cudaSuccess;
 
   CopyHapPanelToDevice(hapPanel);
@@ -487,21 +474,9 @@ void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
     exit(EXIT_FAILURE);
   }
 
-#ifdef DEBUG
-  /*
-    allocate device memory for debugging floats
-  */
-  thrust::device_vector<float> d_likes(numCycles + 1);
-  float *d_likePtr = thrust::raw_pointer_cast(d_likes.data());
-#endif
-
   // determine thread and block size
   size_t threadsPerBlock = 128;
   size_t blocksPerRun = (numSamples + threadsPerBlock - 1) / threadsPerBlock;
-#ifdef DEBUG
-  cout << "[HMMLikeCUDA] Running with " << threadsPerBlock
-       << " threads per block in " << blocksPerRun << " thread blocks\n";
-#endif
 
   /*
     convert gd_packedGLs to raw ptr
@@ -516,12 +491,8 @@ void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
   assert(gd_devStates);
   findHapSet << <blocksPerRun, threadsPerBlock>>>
       (d_packedGLPtr, d_hapPanel, d_hapIdxsPtr, d_extraPropHapsPtr,
-       d_chosenHapIdxs, numSamples, numCycles, gd_devStates, d_codeBook
-#ifdef DEBUG
-       ,
-       d_likePtr
-#endif
-       );
+       d_chosenHapIdxs, numSamples, numCycles, gd_devStates, d_codeBook);
+  
   cudaDeviceSynchronize();
   err = cudaGetLastError();
   if (err != cudaSuccess) {
@@ -542,22 +513,6 @@ void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
   }
 
   assert(cudaFree(d_chosenHapIdxs) == cudaSuccess);
-
-#ifdef DEBUG
-  thrust::host_vector<float> h_likes(numCycles + 1);
-  h_likes = d_likes;
-
-  // debug info
-  cout << "Hap Idxs after sampling: ";
-  for (int i = 0; i < hapIdxs.size(); ++i)
-    cout << hapIdxs[i] << " ";
-  cout << endl;
-
-  cout << "cycle likelihoods: ";
-  for (int i = 0; i < numCycles + 1; ++i)
-    cout << h_likes[i] << " ";
-  cout << endl;
-#endif
 
   // return nothing as the return data is stored in hapIdxs
   return;
