@@ -4,7 +4,9 @@
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
 using namespace std;
+#ifndef NCUDA
 using namespace HMMLikeCUDA;
+#endif
 using namespace Bio;
 
 /*
@@ -1683,15 +1685,18 @@ void Insti::estimate() {
 #endif
 
   cout << endl;
-  
+
+#ifndef NDEBUG
   for (auto h : hsum)
     assert(h <= sn);
-
+#endif
   result(); // call result
+#ifndef NDEBUG
   for (auto p : prob) {
     assert(p >= 0);
     assert(p <= 1);
   }
+#endif
 }
 
 /* estimate_EMC -- Evolutionary Monte Carlo
