@@ -50,7 +50,10 @@ private:
     object = prevVal;
     if (m_inDR) {
       assert(m_firstObjPtr);
-      *m_firstObjPtr = m_firstObj;
+      if (m_firstObjPtr)
+        *m_firstObjPtr = m_firstObj;
+      else
+        exit(1); // logic error
     }
     clear();
     return false;
@@ -107,8 +110,10 @@ bool MHSampler<T>::SampleHap(T &object, T prevVal, double proposal) {
 
       // calculate complete acceptance probability
       double first2prop = std::exp((proposal - m_firstLike) * m_pen);
-      double accProbProp2sec = 1 - std::min(1.0, std::exp(m_secondLike - proposal));
-      double accProbFirst2sec = 1 - std::min(1.0, std::exp(m_secondLike - m_firstLike));
+      double accProbProp2sec =
+          1 - std::min(1.0, std::exp(m_secondLike - proposal));
+      double accProbFirst2sec =
+          1 - std::min(1.0, std::exp(m_secondLike - m_firstLike));
 
       assert(accProbProp2sec >= 0 && accProbProp2sec <= 1);
       assert(accProbFirst2sec >= 0 && accProbFirst2sec <= 1);
@@ -135,7 +140,7 @@ bool MHSampler<T>::SampleHap(T &object, T prevVal, double proposal) {
 
   // we never want to end up here!
   assert(false);
+  exit(1); // logic error
 }
-
 
 #endif /* _KNN_H */
