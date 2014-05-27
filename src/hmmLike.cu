@@ -170,12 +170,6 @@ __global__ void findHapSet(const uint32_t *__restrict__ d_packedGLs,
     float curr =
         hmmLike(idx, hapIdxs, d_packedGLs, numSamples, d_hapPanel, d_codeBook);
 
-#ifdef DEBUG
-    // debugging ...
-    if (idx == 0)
-      d_likes[0] = curr;
-#endif
-
     // pick a random haplotype to replace with another one from all
     // haplotypes.  calculate the new probability of the model given
     // those haplotypes.
@@ -198,11 +192,6 @@ __global__ void findHapSet(const uint32_t *__restrict__ d_packedGLs,
       // reject new set
       else
         hapIdxs[replaceHapNum] = origHap;
-
-#ifdef DEBUG
-      if (idx == 0)
-        d_likes[cycle + 1] = curr;
-#endif
 
     } // last of numCycles
     for (int i = 0; i < 4; ++i)
@@ -477,63 +466,15 @@ void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
   /*
     copy initial hap indices to device memory
   */
-  // copy initial hap indices to device memory
   thrust::device_vector<unsigned> d_hapIdxs(hapIdxs);
   const unsigned *d_hapIdxsPtr = thrust::raw_pointer_cast(d_hapIdxs.data());
 
   /*
-  #ifdef DEBUG
-    cout << "[HMMLikeCUDA] Copying hap indices to device\n";
-  #endif
-    size_t hapIdxsSize = hapIdxs.size() * sizeof(unsigned);
-
-
-    // allocate memory on device
-    unsigned *d_hapIdxs;
-    err = cudaMalloc(&d_hapIdxs, hapIdxsSize);
-    if (err != cudaSuccess) {
-      cerr << "Failed to allocate hap indices on device\n";
-      exit(EXIT_FAILURE);
-    }
-
-    // copy data across
-    err = cudaMemcpy(d_hapIdxs, hapIdxs.data(), hapIdxsSize,
-                     cudaMemcpyHostToDevice);
-    if (err != cudaSuccess) {
-      cerr << "Failed to copy hap indices to device\n";
-      exit(EXIT_FAILURE);
-    }
-  */
-  /*
     copy extra proposal haps to device memory
   */
-
-  // copy extra proposal haps to device memory
   thrust::device_vector<unsigned> d_extraPropHaps(extraPropHaps);
   const unsigned *d_extraPropHapsPtr =
       thrust::raw_pointer_cast(d_extraPropHaps.data());
-  /*
-  #ifdef DEBUG
-    cout << "[HMMLikeCUDA] Copying extra proposal haps to device\n";
-  #endif
-    size_t extraPropHapsSize = extraPropHaps.size() * sizeof(unsigned);
-
-    // allocate memory on device
-    unsigned *d_extraPropHaps;
-    err = cudaMalloc(&d_extraPropHaps, extraPropHapsSize);
-    if (err != cudaSuccess) {
-      cerr << "Failed to allocate extra prop haps on device\n";
-      exit(EXIT_FAILURE);
-    }
-
-    // copy data across
-    err = cudaMemcpy(d_extraPropHaps, extraPropHaps.data(), extraPropHapsSize,
-                     cudaMemcpyHostToDevice);
-    if (err != cudaSuccess) {
-      cerr << "Failed to copy extra prop haps to device\n";
-      exit(EXIT_FAILURE);
-    }
-  */
 
   /*
     allocate device memory for results
@@ -601,8 +542,6 @@ void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
   }
 
   assert(cudaFree(d_chosenHapIdxs) == cudaSuccess);
-//  assert(cudaFree(d_extraPropHaps) == cudaSuccess);
-//  assert(cudaFree(d_hapIdxs) == cudaSuccess);
 
 #ifdef DEBUG
   thrust::host_vector<float> h_likes(numCycles + 1);
