@@ -43,6 +43,10 @@ void GenerateExtraPropHaps(std::vector<unsigned> &extraPropHaps,
                            size_t numRunSamps, size_t firstSampIdx,
                            std::shared_ptr<Sampler> &sampler, size_t numCycles,
                            GLPack &glPack);
+
+void signal_handler(int sig);
+extern bool g_no_sigint;
+extern unsigned g_interrupts;
 }
 
 class HMMLike {

@@ -22,5 +22,7 @@
 // this always needs to be a power of 2!!!!
 #define BITSPERCODE 4
 
-#endif /* _GLOBALS_H */
+// MTGP32 RNG imposes hard limit on max number of threads per block = 256
+#define MTGP_THREADS_PER_BLOCK 128
 
+#endif /* _GLOBALS_H */

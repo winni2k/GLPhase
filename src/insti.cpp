@@ -1647,6 +1647,9 @@ void Insti::estimate() {
 // Phase each individual based on the rest of the individuals
 // but don't update haps between updates??? !!! !!! !!!
 #ifndef NCUDA
+    // check for a sigint here and exit out if so
+    if(!HMMLikeHelper::g_no_sigint)
+        raise(SIGINT);
     // update the sampler, because it might have changed
     cudaHapSampler.UpdateSampler(iterationSampler);
     cudaHapSampler.SolveOnDevice(updateHapSum);

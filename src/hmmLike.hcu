@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <iostream>
+#include <cuda.h>
 #include <curand_kernel.h>
 #include <cfloat>
 #include <algorithm>
@@ -14,6 +15,10 @@
 #include <thrust/device_vector.h>
 #include "hmmLike.h"
 #include <climits>
+/* include MTGP host helper functions */
+#include <curand_mtgp32_host.h>
+/* include MTGP pre-computed parameter sets */
+#include <curand_mtgp32dc_p_11213.h>
 
 #if CHAR_BIT != 8
 #error the number of bits in a char must be 8!
@@ -39,7 +44,7 @@ extern __device__ void UnpackGLsWithCodeBook(uint32_t GLcodes, float (&GLs)[3],
 
 extern thrust::device_vector<float> *gd_codeBook;
 extern thrust::device_vector<uint32_t> *gd_packedGLs;
-extern curandStateXORWOW_t *gd_devStates;
+extern curandStateMtgp32 *gd_devMTGPStates;
 extern thrust::device_vector<uint64_t> *gd_hapPanel;
 extern thrust::device_vector<uint64_t> *gd_newHapPanel;
 

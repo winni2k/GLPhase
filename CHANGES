@@ -1,6 +1,7 @@
-1.4.x
-        Move from XORWOW to MTGP RNG, as XORWOW has some poor
+1.4.9   Wed May 28 18:42:02 BST 2014
+        Moved from XORWOW to MTGP RNG, as XORWOW has some poor
         properties for MCMC.
+        Added signal handler for SIGINT 
 
 1.4.8   Wed May 28 14:39:18 BST 2014
         If sampler is uniform, then sampling is now done on device as well

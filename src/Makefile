@@ -126,7 +126,10 @@ kMedoids.hpp.gch: kMedoids.hpp haplotype.hpp.gch sampler.hpp.gch
 MHSampler.hpp.gch: MHSampler.hpp olivier/utils.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
-INSTIHEADERPRE :=insti.hpp impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch sampler.hpp.gch version.hpp.gch bio.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch kNN.hpp.gch kMedoids.hpp.gch glPack.hpp.gch tabixpp/tabix.hpp.gch 
+globals.h.gch: globals.h
+	$(CXX) $(CXXFLAGS) -x c++-header $<
+
+INSTIHEADERPRE :=insti.hpp impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch sampler.hpp.gch version.hpp.gch bio.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch kNN.hpp.gch kMedoids.hpp.gch glPack.hpp.gch tabixpp/tabix.hpp.gch globals.h.gch
 
 ifndef NCUDA
 INSTIHEADERPRE += hmmLike.hpp.gch

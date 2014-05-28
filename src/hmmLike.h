@@ -14,6 +14,9 @@
 #include <stdexcept>
 #include <sstream>
 #include <string>
+#include <csignal>
+#include <iostream>
+
 
 // this is the number of haplotypes we use in the HMM
 // That is, the HMM has NUMSITES * NUMHAPS states
@@ -41,6 +44,7 @@ extern void SolveOnDevice(const std::vector<unsigned> &extraPropHaps,
                           bool ignorePropHaps, bool updateSum = false);
 
 extern void Cleanup();
+
 }
 
 #endif /* _HMMLIKE_H */

@@ -3,6 +3,44 @@
 using namespace std;
 
 namespace HMMLikeHelper {
+
+// State variables for
+bool g_no_sigint = true;
+unsigned g_interrupts = 0;
+
+/* Catches signal interrupts from Ctrl+c.
+   If 1 signal is detected the simulation finishes the current frame and
+   exits in a clean state. If Ctrl+c is pressed again it terminates the
+   application without completing writes to files or calculations but
+   deallocates all memory anyway. */
+void signal_handler(int sig) {
+  if (sig == SIGINT) {
+    g_interrupts += 1;
+    std::cout << std::endl << "Aborting loop.. finishing frame." << std::endl;
+
+    g_no_sigint = false;
+
+    if (g_interrupts >= 2) {
+      std::cerr << std::endl << "Multiple Interrupts issued: "
+                << "Clearing memory and Forcing immediate shutdown!"
+                << std::endl;
+
+      // write a function to free dynamycally allocated memory
+      HMMLikeCUDA::Cleanup();
+
+      int devCount;
+      cudaGetDeviceCount(&devCount);
+
+      for (int i = 0; i < devCount; ++i) {
+        cudaSetDevice(i);
+        cudaDeviceReset();
+      }
+      exit(sig);
+    }
+  }
+  return;
+}
+
 vector<unsigned> TransposeHapIdxs(const std::vector<unsigned> &hapIdxs) {
   const unsigned hapsPerSamp = 4;
   assert(hapIdxs.size() % hapsPerSamp == 0);
@@ -72,6 +110,9 @@ HMMLike::HMMLike(const vector<uint64_t> &hapPanel, unsigned numHaps,
   assert(NUMSITES == m_glPack.GetNumSites());
   assert(m_glPack.GetCodeBook().size() == 1 << BITSPERCODE);
   assert(m_glPack.GetNumBitsPerGL() == BITSPERCODE);
+
+  // Register signal and signal handler
+  signal(SIGINT, HMMLikeHelper::signal_handler);
 
   // check if we can sample haplotypes on the device instead
   if (std::dynamic_pointer_cast<UnifSampler>(m_sampler))

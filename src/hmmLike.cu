@@ -149,15 +149,14 @@ __global__ void findHapSet(const uint32_t *__restrict__ d_packedGLs,
                            const unsigned *__restrict__ d_hapIdxs,
                            const unsigned *__restrict__ d_extraPropHaps,
                            unsigned *d_chosenHapIdxs, unsigned numSamples,
-                           unsigned numCycles, curandStateXORWOW_t *globalState,
-                           unsigned sampRandMax,
+                           unsigned numCycles, curandStateMtgp32 *globalState,
                            const float *__restrict__ d_codeBook) {
 
   const float S = 1;
   int idx = blockDim.x * blockIdx.x + threadIdx.x;
   if (idx < numSamples) {
 
-    curandStateXORWOW_t localState = globalState[idx];
+    curandStateMtgp32 localState = globalState[blockIdx.x];
 
     unsigned hapIdxs[4];
     for (int i = 0; i < 4; ++i)
@@ -182,15 +181,10 @@ __global__ void findHapSet(const uint32_t *__restrict__ d_packedGLs,
       if (!ignorePropHaps)
         hapIdxs[replaceHapNum] = d_extraPropHaps[idx + cycle * numSamples];
 
-      // this is potentially very bad as it introduces a bias towards low
-      // numbers in the range, but we're on a GPU here...
-      else {
-        unsigned randNum = curand(&localState);
-        while (randNum > sampRandMax) {
-          randNum = curand(&localState);
-        }
-        hapIdxs[replaceHapNum] = randNum % numSamples;
-      }
+      // I think this is the best way to sample integers in range
+      else
+        hapIdxs[replaceHapNum] =
+            ceilf(curand_uniform(&localState) * numSamples) - 1;
 
       float prop = hmmLike(idx, hapIdxs, d_packedGLs, numSamples, d_hapPanel,
                            d_codeBook);
@@ -207,21 +201,24 @@ __global__ void findHapSet(const uint32_t *__restrict__ d_packedGLs,
       d_chosenHapIdxs[idx + numSamples * i] = hapIdxs[i];
 
     // update global state
-    globalState[idx] = localState;
+    if (threadIdx.x == 0)
+      globalState[blockIdx.x] = localState;
 
     // return nothing.  d_chosenHapIdxs is the return data
     return;
   }
 }
 
-// initializes random number generator states
+/* XORWOW is a bad RNG - don't use for MCMC
+// initializes random number generator states for deprecated
 __global__ void setup_generators(curandStateXORWOW_t *state, size_t stateSize,
-                                 unsigned long seed) {
+                             unsigned long seed) {
 
-  int idx = blockDim.x * blockIdx.x + threadIdx.x;
-  if (idx < stateSize)
-    curand_init(seed, idx, 0, &state[idx]);
+int idx = blockDim.x * blockIdx.x + threadIdx.x;
+if (idx < stateSize)
+curand_init(seed, idx, 0, &state[idx]);
 }
+*/
 
 void CheckDevice() {
 
@@ -370,9 +367,9 @@ void Cleanup() {
     delete gd_codeBook;
     gd_codeBook = NULL;
   }
-  if (gd_devStates) {
-    assert(cudaFree(gd_devStates) == cudaSuccess);
-    gd_devStates = NULL;
+  if (gd_devMTGPStates) {
+    assert(cudaFree(gd_devMTGPStates) == cudaSuccess);
+    gd_devMTGPStates = NULL;
   }
   if (gd_hapPanel) {
     delete gd_hapPanel;
@@ -391,28 +388,49 @@ void Cleanup() {
 /*
 Set up numSamp random generator states
 */
-curandStateXORWOW_t *gd_devStates = NULL;
+curandStateMtgp32 *gd_devMTGPStates = NULL;
 void SetUpRNGs(size_t numSamples, unsigned long seed) {
 
+  assert(gd_devMTGPStates == NULL);
+  mtgp32_kernel_params *devKernelParams = NULL;
+
   cudaError_t err = cudaSuccess;
-  cudaMalloc(&gd_devStates, numSamples * sizeof(curandStateXORWOW_t));
 
-  // set up generators
-  unsigned threadsPerBlock = 128;
-  unsigned blocksPerRun = (numSamples + threadsPerBlock - 1) / threadsPerBlock;
+  // sort out number of blocks
+  assert(MTGP_THREADS_PER_BLOCK <= 256);
+  unsigned blocksPerRun =
+      (numSamples + MTGP_THREADS_PER_BLOCK - 1) / MTGP_THREADS_PER_BLOCK;
+  if (blocksPerRun > 200)
+    throw std::runtime_error("Number of threads per block * number of samples "
+                             "is too large. Try increasing "
+                             "MTGP_THREADS_PER_BLOCK and recompiling");
 
-  setup_generators << <blocksPerRun, threadsPerBlock>>>
-      (gd_devStates, numSamples, seed);
+  // allocate memory for MTGP32 device states
+  err = cudaMalloc((void **)&gd_devMTGPStates, MTGP_THREADS_PER_BLOCK *
+                                                   blocksPerRun *
+                                                   sizeof(curandStateMtgp32));
+  if (err != cudaSuccess)
+    throw std::runtime_error("Error at allocating space for MTGP32 RNG");
 
-  // check exit status
-  err = cudaGetLastError();
+  /* Setup MTGP prng states */
 
-  if (err != cudaSuccess) {
-    ostringstream errstr;
-    errstr << "Failed to set up random states kernel: "
-           << cudaGetErrorString(err);
-    throw std::runtime_error(errstr.str());
-  }
+  /* Allocate space for MTGP kernel parameters */
+  err = cudaMalloc((void **)&devKernelParams, sizeof(mtgp32_kernel_params));
+  if (err != cudaSuccess)
+    throw std::runtime_error("Error at allocating space for dev kernel Params");
+
+  /* Reformat from predefined parameter sets to kernel format, */
+  /* and copy kernel parameters to device memory               */
+  if (curandMakeMTGP32Constants(mtgp32dc_params_fast_11213, devKernelParams) !=
+      CURAND_STATUS_SUCCESS)
+    throw std::runtime_error(
+        "Error at allocating space for reformatted dev kernel Params");
+
+  /* Initialize one state per thread block */
+  if (curandMakeMTGP32KernelState(gd_devMTGPStates, mtgp32dc_params_fast_11213,
+                                  devKernelParams, blocksPerRun,
+                                  seed) != CURAND_STATUS_SUCCESS)
+    throw std::runtime_error("Error initializing MTGP32 states");
 }
 
 /*
@@ -495,7 +513,7 @@ void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
   }
 
   // determine thread and block size
-  size_t threadsPerBlock = 128;
+  size_t threadsPerBlock = MTGP_THREADS_PER_BLOCK;
   size_t blocksPerRun = (numSamples + threadsPerBlock - 1) / threadsPerBlock;
 
   /*
@@ -508,22 +526,15 @@ void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
   /*
     run kernel
   */
-  assert(gd_devStates);
-  uint32_t uint32_max = ~static_cast<uint32_t>(0);
-  assert(numSamples - 1 <= uint32_max);
-  unsigned sampRandMax = uint32_max;
-  if (numSamples - 1 < uint32_max)
-    sampRandMax = uint32_max - (uint32_max % numSamples) - 1;
+  assert(gd_devMTGPStates);
   if (ignorePropHaps)
     findHapSet<true> << <blocksPerRun, threadsPerBlock>>>
         (d_packedGLPtr, d_hapPanel, d_hapIdxsPtr, d_extraPropHapsPtr,
-         d_chosenHapIdxs, numSamples, numCycles, gd_devStates, sampRandMax,
-         d_codeBook);
+         d_chosenHapIdxs, numSamples, numCycles, gd_devMTGPStates, d_codeBook);
   else
     findHapSet<false> << <blocksPerRun, threadsPerBlock>>>
         (d_packedGLPtr, d_hapPanel, d_hapIdxsPtr, d_extraPropHapsPtr,
-         d_chosenHapIdxs, numSamples, numCycles, gd_devStates, sampRandMax,
-         d_codeBook);
+         d_chosenHapIdxs, numSamples, numCycles, gd_devMTGPStates, d_codeBook);
 
   cudaDeviceSynchronize();
   err = cudaGetLastError();
@@ -555,7 +566,7 @@ void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
 __global__ void hmmWork(const uint32_t *__restrict__ d_packedGLs,
                         const uint64_t *__restrict__ d_hapPanel,
                         const unsigned *__restrict__ d_hapIdxs,
-                        unsigned numSamples, curandStateXORWOW_t *globalState,
+                        unsigned numSamples, curandStateMtgp32 *globalState,
                         const float *__restrict__ d_codeBook,
                         uint64_t *d_newHapPanel) {
 
@@ -563,7 +574,7 @@ __global__ void hmmWork(const uint32_t *__restrict__ d_packedGLs,
   int idx = blockDim.x * blockIdx.x + threadIdx.x;
   if (idx < numSamples) {
 
-    curandStateXORWOW_t localState = globalState[idx];
+    curandStateMtgp32 localState = globalState[blockIdx.x];
 
     // setup the different haplotypes
     const uint64_t *f0 = &d_hapPanel[d_hapIdxs[idx] * WN],
@@ -716,7 +727,8 @@ __global__ void hmmWork(const uint32_t *__restrict__ d_packedGLs,
         }
       }
     }
-    globalState[idx] = localState;
+    if (threadIdx.x == 0)
+      globalState[blockIdx.x] = localState;
   }
 }
 
@@ -814,26 +826,21 @@ void SolveOnDevice(const vector<unsigned> &extraPropHaps, unsigned numSites,
     run kernel
   */
   // determine thread and block size
-  size_t threadsPerBlock = 128;
+  size_t threadsPerBlock = MTGP_THREADS_PER_BLOCK;
   size_t blocksPerRun = (numSamples + threadsPerBlock - 1) / threadsPerBlock;
   cudaDeviceSynchronize();
-  assert(gd_devStates);
+  assert(gd_devMTGPStates);
 
   // this is to make sure we are getting unbiased numbers
-  uint32_t uint32_max = ~static_cast<uint32_t>(0);
-  assert(numSamples - 1 <= uint32_max);
-  unsigned sampRandMax = uint32_max;
-  if (numSamples - 1 < uint32_max)
-    sampRandMax = uint32_max - (uint32_max % numSamples) - 1;
   if (ignorePropHaps)
     findHapSet<true> << <blocksPerRun, threadsPerBlock>>>
         (d_packedGLPtr, d_hapPanelPtr, d_hapIdxsPtr, d_extraPropHapsPtr,
-         d_chosenHapIdxs, numSamples, numCycles, gd_devStates, sampRandMax,
+         d_chosenHapIdxs, numSamples, numCycles, gd_devMTGPStates,
          d_codeBookPtr);
   else
     findHapSet<false> << <blocksPerRun, threadsPerBlock>>>
         (d_packedGLPtr, d_hapPanelPtr, d_hapIdxsPtr, d_extraPropHapsPtr,
-         d_chosenHapIdxs, numSamples, numCycles, gd_devStates, sampRandMax,
+         d_chosenHapIdxs, numSamples, numCycles, gd_devMTGPStates,
          d_codeBookPtr);
 
   cudaDeviceSynchronize();
@@ -857,8 +864,8 @@ void SolveOnDevice(const vector<unsigned> &extraPropHaps, unsigned numSites,
   uint64_t *d_newHapPanelPtr = thrust::raw_pointer_cast(gd_newHapPanel->data());
 
   hmmWork << <blocksPerRun, threadsPerBlock>>>
-      (d_packedGLPtr, d_hapPanelPtr, d_chosenHapIdxs, numSamples, gd_devStates,
-       d_codeBookPtr, d_newHapPanelPtr);
+      (d_packedGLPtr, d_hapPanelPtr, d_chosenHapIdxs, numSamples,
+       gd_devMTGPStates, d_codeBookPtr, d_newHapPanelPtr);
 
   cudaDeviceSynchronize();
   err = cudaGetLastError();
