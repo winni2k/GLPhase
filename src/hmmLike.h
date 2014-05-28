@@ -33,11 +33,12 @@ extern void SetUpRNGs(size_t numSamples, unsigned long seed);
 extern void RunHMMOnDevice(const std::vector<uint64_t> &hapPanel,
                            const std::vector<unsigned> &extraPropHaps,
                            unsigned numSites, unsigned numSamples,
-                           unsigned numCycles, std::vector<unsigned> &hapIdxs);
+                           unsigned numCycles, std::vector<unsigned> &hapIdxs,
+                           bool ignorePropHaps);
 extern void SolveOnDevice(const std::vector<unsigned> &extraPropHaps,
                           unsigned numSites, unsigned numSamples,
                           unsigned numCycles, std::vector<unsigned> &hapIdxs,
-                          bool updateSum = false);
+                          bool ignorePropHaps, bool updateSum = false);
 
 extern void Cleanup();
 }

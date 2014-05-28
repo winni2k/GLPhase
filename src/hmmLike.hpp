@@ -39,10 +39,10 @@ std::vector<unsigned> GenerateInitialHapIdxs(size_t numRunSamps,
                                              size_t firstSampIdx,
                                              std::shared_ptr<Sampler> &sampler);
 
-std::vector<unsigned> GenerateExtraPropHaps(size_t numRunSamps,
-                                            size_t firstSampIdx,
-                                            std::shared_ptr<Sampler> &sampler,
-                                            size_t numCycles, GLPack &glPack);
+void GenerateExtraPropHaps(std::vector<unsigned> &extraPropHaps,
+                           size_t numRunSamps, size_t firstSampIdx,
+                           std::shared_ptr<Sampler> &sampler, size_t numCycles,
+                           GLPack &glPack);
 }
 
 class HMMLike {
@@ -67,6 +67,7 @@ private:
   std::shared_ptr<Sampler> &m_sampler;
   unsigned m_nextSampIdx;
   gsl_rng &m_rng;
+  bool m_ignoreSampler = false;
 
 public:
   /*

@@ -36,16 +36,18 @@ vector<unsigned> GenerateInitialHapIdxs(size_t numRunSamps, size_t firstSampIdx,
 }
 
 // fill the proposal haps
-vector<unsigned> GenerateExtraPropHaps(size_t numRunSamps, size_t firstSampIdx,
-                                       std::shared_ptr<Sampler> &sampler,
-                                       size_t numCycles, GLPack &glPack) {
+void GenerateExtraPropHaps(vector<unsigned> &extraPropHaps, size_t numRunSamps,
+                           size_t firstSampIdx,
+                           std::shared_ptr<Sampler> &sampler, size_t numCycles,
+                           GLPack &glPack) {
   size_t sampIdx = firstSampIdx;
-  vector<unsigned> extraPropHaps(numCycles * glPack.GetSampleStride());
+  extraPropHaps.clear();
+  extraPropHaps.resize(numCycles * glPack.GetSampleStride());
   for (unsigned sampNum = 0; sampNum < numRunSamps; ++sampNum, ++sampIdx)
     for (unsigned cycleIdx = 0; cycleIdx < numCycles; ++cycleIdx)
       extraPropHaps[cycleIdx * glPack.GetSampleStride() + sampNum] =
           sampler->SampleHap(sampIdx);
-  return extraPropHaps;
+  return;
 }
 }
 /*
@@ -56,10 +58,10 @@ vector<unsigned> GenerateExtraPropHaps(size_t numRunSamps, size_t firstSampIdx,
   Stores everything else for copying later
  */
 
-HMMLike::HMMLike(const vector<uint64_t> &hapPanel, unsigned numHaps, GLPack &glPack,
-        unsigned numCycles, const vector<float> &tran,
-        const float (*mutationMat)[4][4], shared_ptr<Sampler> &sampler,
-        gsl_rng &rng)
+HMMLike::HMMLike(const vector<uint64_t> &hapPanel, unsigned numHaps,
+                 GLPack &glPack, unsigned numCycles, const vector<float> &tran,
+                 const float (*mutationMat)[4][4], shared_ptr<Sampler> &sampler,
+                 gsl_rng &rng)
     : m_inHapPanel(hapPanel), m_totalNumHaps(numHaps), m_glPack(glPack),
       m_totalNumSamps(m_glPack.GetNumSamps()), m_numCycles(numCycles),
       m_tran(tran), m_mutationMat(mutationMat), m_sampler(sampler), m_rng(rng) {
@@ -70,6 +72,10 @@ HMMLike::HMMLike(const vector<uint64_t> &hapPanel, unsigned numHaps, GLPack &glP
   assert(NUMSITES == m_glPack.GetNumSites());
   assert(m_glPack.GetCodeBook().size() == 1 << BITSPERCODE);
   assert(m_glPack.GetNumBitsPerGL() == BITSPERCODE);
+
+  // check if we can sample haplotypes on the device instead
+  if (std::dynamic_pointer_cast<UnifSampler>(m_sampler))
+    m_ignoreSampler = true;
 
   // make sure we have a K20 or better installed
   // also define some constants
@@ -99,7 +105,7 @@ HMMLike::HMMLike(const vector<uint64_t> &hapPanel, unsigned numHaps, GLPack &glP
 // returns range of samples sampled, and vector of four unsigned hap indices per
 // sample
 vector<unsigned> HMMLike::RunHMMOnSamples(unsigned &firstSampIdx,
-                                 unsigned &lastSampIdx) {
+                                          unsigned &lastSampIdx) {
 
   size_t numRunSamps = m_glPack.GetSampleStride();
 
@@ -120,13 +126,16 @@ vector<unsigned> HMMLike::RunHMMOnSamples(unsigned &firstSampIdx,
       numRunSamps, firstSampIdx, m_sampler);
 
   // generate list of numCycles haplotype nums for the kernel to choose from
-  vector<unsigned> extraPropHaps = HMMLikeHelper::GenerateExtraPropHaps(
-      numRunSamps, firstSampIdx, m_sampler, m_numCycles, m_glPack);
+  vector<unsigned> extraPropHaps;
+  if (!m_ignoreSampler)
+    HMMLikeHelper::GenerateExtraPropHaps(extraPropHaps, numRunSamps,
+                                         firstSampIdx, m_sampler, m_numCycles,
+                                         m_glPack);
 
   // run kernel
-  HMMLikeCUDA::RunHMMOnDevice(m_inHapPanel, extraPropHaps,
-                              m_glPack.GetNumSites(),
-                              m_glPack.GetSampleStride(), m_numCycles, hapIdxs);
+  HMMLikeCUDA::RunHMMOnDevice(
+      m_inHapPanel, extraPropHaps, m_glPack.GetNumSites(),
+      m_glPack.GetSampleStride(), m_numCycles, hapIdxs, m_ignoreSampler);
 
   // return
   return HMMLikeHelper::TransposeHapIdxs(hapIdxs);
@@ -144,12 +153,15 @@ void HMMLike::SolveOnDevice(bool updateHapSum) {
       numRunSamps, firstSampIdx, m_sampler);
 
   // generate list of numCycles haplotype nums for the kernel to choose from
-  vector<unsigned> extraPropHaps = HMMLikeHelper::GenerateExtraPropHaps(
-      numRunSamps, firstSampIdx, m_sampler, m_numCycles, m_glPack);
+  vector<unsigned> extraPropHaps;
+  if (!m_ignoreSampler)
+    HMMLikeHelper::GenerateExtraPropHaps(extraPropHaps, numRunSamps,
+                                         firstSampIdx, m_sampler, m_numCycles,
+                                         m_glPack);
 
   HMMLikeCUDA::SolveOnDevice(extraPropHaps, m_glPack.GetNumSites(),
                              m_glPack.GetSampleStride(), m_numCycles, hapIdxs,
-                             updateHapSum);
+                             m_ignoreSampler, updateHapSum);
 
   // don't forget to copy haps back after last run of solve on device
   return;
@@ -166,4 +178,3 @@ void HMMLike::FillHapSum(vector<unsigned> &hapSums) {
   for (size_t i = 0; i < hapSums.size(); ++i)
     hapSums[i] = h_hapSums[i];
 }
-

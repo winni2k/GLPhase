@@ -143,12 +143,14 @@ __device__ float hmmLike(unsigned idx, const unsigned (&hapIdxs)[4],
 };
 
 // definition of HMM kernel
+template <bool ignorePropHaps>
 __global__ void findHapSet(const uint32_t *__restrict__ d_packedGLs,
                            const uint64_t *__restrict__ d_hapPanel,
                            const unsigned *__restrict__ d_hapIdxs,
                            const unsigned *__restrict__ d_extraPropHaps,
                            unsigned *d_chosenHapIdxs, unsigned numSamples,
                            unsigned numCycles, curandStateXORWOW_t *globalState,
+                           unsigned sampRandMax,
                            const float *__restrict__ d_codeBook) {
 
   const float S = 1;
@@ -177,7 +179,19 @@ __global__ void findHapSet(const uint32_t *__restrict__ d_packedGLs,
       unsigned replaceHapNum = curand(&localState) & 3;
       unsigned origHap = hapIdxs[replaceHapNum];
 
-      hapIdxs[replaceHapNum] = d_extraPropHaps[idx + cycle * numSamples];
+      if (!ignorePropHaps)
+        hapIdxs[replaceHapNum] = d_extraPropHaps[idx + cycle * numSamples];
+
+      // this is potentially very bad as it introduces a bias towards low
+      // numbers in the range, but we're on a GPU here...
+      else {
+        unsigned randNum = curand(&localState);
+        while (randNum > sampRandMax) {
+          randNum = curand(&localState);
+        }
+        hapIdxs[replaceHapNum] = randNum % numSamples;
+      }
+
       float prop = hmmLike(idx, hapIdxs, d_packedGLs, numSamples, d_hapPanel,
                            d_codeBook);
 
@@ -428,7 +442,7 @@ void InitializeNewHapPanel(thrust::device_vector<uint64_t> *d_hapPanel) {
 void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
                     const vector<unsigned> &extraPropHaps, unsigned numSites,
                     unsigned numSamples, unsigned numCycles,
-                    vector<unsigned> &hapIdxs) {
+                    vector<unsigned> &hapIdxs, bool ignorePropHaps) {
   assert(numSites == NUMSITES);
   assert(gd_packedGLs); // make sure pointer points to something
   if (gd_packedGLs->size() !=
@@ -440,10 +454,13 @@ void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
   assert(gd_codeBook); // make sure pointer points to something
   assert(gd_codeBook->size() == 2 * (1 << BITSPERCODE));
 
-  assert(hapPanel.size() >=
-         WN * (*max_element(extraPropHaps.begin(), extraPropHaps.end()) + 1));
   assert(hapIdxs.size() == numSamples * 4);
-  assert(extraPropHaps.size() == numSamples * numCycles);
+
+  if (!ignorePropHaps) {
+    assert(hapPanel.size() >=
+           WN * (*max_element(extraPropHaps.begin(), extraPropHaps.end()) + 1));
+    assert(extraPropHaps.size() == numSamples * numCycles);
+  }
 
   cudaError_t err = cudaSuccess;
 
@@ -459,9 +476,12 @@ void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
   /*
     copy extra proposal haps to device memory
   */
-  thrust::device_vector<unsigned> d_extraPropHaps(extraPropHaps);
-  const unsigned *d_extraPropHapsPtr =
-      thrust::raw_pointer_cast(d_extraPropHaps.data());
+  const unsigned *d_extraPropHapsPtr = NULL;
+
+  if (!ignorePropHaps) {
+    thrust::device_vector<unsigned> d_extraPropHaps(extraPropHaps);
+    d_extraPropHapsPtr = thrust::raw_pointer_cast(d_extraPropHaps.data());
+  }
 
   /*
     allocate device memory for results
@@ -489,10 +509,22 @@ void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
     run kernel
   */
   assert(gd_devStates);
-  findHapSet << <blocksPerRun, threadsPerBlock>>>
-      (d_packedGLPtr, d_hapPanel, d_hapIdxsPtr, d_extraPropHapsPtr,
-       d_chosenHapIdxs, numSamples, numCycles, gd_devStates, d_codeBook);
-  
+  uint32_t uint32_max = ~static_cast<uint32_t>(0);
+  assert(numSamples - 1 <= uint32_max);
+  unsigned sampRandMax = uint32_max;
+  if (numSamples - 1 < uint32_max)
+    sampRandMax = uint32_max - (uint32_max % numSamples) - 1;
+  if (ignorePropHaps)
+    findHapSet<true> << <blocksPerRun, threadsPerBlock>>>
+        (d_packedGLPtr, d_hapPanel, d_hapIdxsPtr, d_extraPropHapsPtr,
+         d_chosenHapIdxs, numSamples, numCycles, gd_devStates, sampRandMax,
+         d_codeBook);
+  else
+    findHapSet<false> << <blocksPerRun, threadsPerBlock>>>
+        (d_packedGLPtr, d_hapPanel, d_hapIdxsPtr, d_extraPropHapsPtr,
+         d_chosenHapIdxs, numSamples, numCycles, gd_devStates, sampRandMax,
+         d_codeBook);
+
   cudaDeviceSynchronize();
   err = cudaGetLastError();
   if (err != cudaSuccess) {
@@ -726,17 +758,21 @@ __global__ void sumHaps(const uint64_t *__restrict__ d_newHaps,
 
 void SolveOnDevice(const vector<unsigned> &extraPropHaps, unsigned numSites,
                    unsigned numSamples, unsigned numCycles,
-                   vector<unsigned> &hapIdxs, bool updateSum) {
+                   vector<unsigned> &hapIdxs, bool ignorePropHaps,
+                   bool updateSum) {
   cudaError_t err = cudaSuccess;
 
   assert(numSites == NUMSITES);
   assert(hapIdxs.size() == numSamples * 4);
-  assert(extraPropHaps.size() == numSamples * numCycles);
 
   // hap panel must have been copied over previously
   assert(gd_hapPanel);
-  assert(gd_hapPanel->size() >=
-         WN * (*max_element(extraPropHaps.begin(), extraPropHaps.end()) + 1));
+
+  if (!ignorePropHaps) {
+    assert(extraPropHaps.size() == numSamples * numCycles);
+    assert(gd_hapPanel->size() >=
+           WN * (*max_element(extraPropHaps.begin(), extraPropHaps.end()) + 1));
+  }
   // get pointer to hap panel
   const uint64_t *d_hapPanelPtr = thrust::raw_pointer_cast(gd_hapPanel->data());
 
@@ -755,11 +791,12 @@ void SolveOnDevice(const vector<unsigned> &extraPropHaps, unsigned numSites,
     cerr << "Failed to allocate memory for result hap idxs on device\n";
     exit(EXIT_FAILURE);
   }
-
-  // copy extra proposal haps to device memory
-  thrust::device_vector<unsigned> d_extraPropHaps(extraPropHaps);
-  const unsigned *d_extraPropHapsPtr =
-      thrust::raw_pointer_cast(d_extraPropHaps.data());
+  const unsigned *d_extraPropHapsPtr = NULL;
+  if (!ignorePropHaps) {
+    // copy extra proposal haps to device memory
+    thrust::device_vector<unsigned> d_extraPropHaps(extraPropHaps);
+    d_extraPropHapsPtr = thrust::raw_pointer_cast(d_extraPropHaps.data());
+  }
 
   // get packed gl pointer
   assert(gd_packedGLs); // make sure pointer points to something
@@ -781,9 +818,24 @@ void SolveOnDevice(const vector<unsigned> &extraPropHaps, unsigned numSites,
   size_t blocksPerRun = (numSamples + threadsPerBlock - 1) / threadsPerBlock;
   cudaDeviceSynchronize();
   assert(gd_devStates);
-  findHapSet << <blocksPerRun, threadsPerBlock>>>
-      (d_packedGLPtr, d_hapPanelPtr, d_hapIdxsPtr, d_extraPropHapsPtr,
-       d_chosenHapIdxs, numSamples, numCycles, gd_devStates, d_codeBookPtr);
+
+  // this is to make sure we are getting unbiased numbers
+  uint32_t uint32_max = ~static_cast<uint32_t>(0);
+  assert(numSamples - 1 <= uint32_max);
+  unsigned sampRandMax = uint32_max;
+  if (numSamples - 1 < uint32_max)
+    sampRandMax = uint32_max - (uint32_max % numSamples) - 1;
+  if (ignorePropHaps)
+    findHapSet<true> << <blocksPerRun, threadsPerBlock>>>
+        (d_packedGLPtr, d_hapPanelPtr, d_hapIdxsPtr, d_extraPropHapsPtr,
+         d_chosenHapIdxs, numSamples, numCycles, gd_devStates, sampRandMax,
+         d_codeBookPtr);
+  else
+    findHapSet<false> << <blocksPerRun, threadsPerBlock>>>
+        (d_packedGLPtr, d_hapPanelPtr, d_hapIdxsPtr, d_extraPropHapsPtr,
+         d_chosenHapIdxs, numSamples, numCycles, gd_devStates, sampRandMax,
+         d_codeBookPtr);
+
   cudaDeviceSynchronize();
 
   err = cudaGetLastError();
