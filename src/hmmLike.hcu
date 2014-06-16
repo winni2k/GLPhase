@@ -15,10 +15,6 @@
 #include <thrust/device_vector.h>
 #include "hmmLike.h"
 #include <climits>
-/* include MTGP host helper functions */
-#include <curand_mtgp32_host.h>
-/* include MTGP pre-computed parameter sets */
-#include <curand_mtgp32dc_p_11213.h>
 
 #if CHAR_BIT != 8
 #error the number of bits in a char must be 8!
@@ -50,14 +46,14 @@ extern thrust::device_vector<uint64_t> *gd_newHapPanel;
 
 // *P is pointer to haplotype (in bits, i.e. each uint64_t contains 64 sites)
 // set1() sets the Ith bit in P to 1
-__device__ void set1(uint64_t *P, unsigned I) {
+__device__ inline void set1(uint64_t *P, unsigned I) {
   // I >> Uint64_TShift is moving along the array according to which uint64_t I
   // is in
   // e.g. I <= 63 is first uint64_t, and so forth in blocks of 64 bits
   P[I >> WORDSHIFT] |= static_cast<uint64_t>(1) << (I & WORDMOD);
 }
 
-__device__ void set0(uint64_t *P, unsigned I) {
+__device__ inline void set0(uint64_t *P, unsigned I) {
   P[I >> WORDSHIFT] &= ~(static_cast<uint64_t>(1) << (I & WORDMOD));
 }
 }

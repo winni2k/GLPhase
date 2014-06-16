@@ -123,13 +123,13 @@ int main(int ac, char **av) {
         Insti::s_uClusterType = atoi(optarg);
         break;
       case 'B':
-        Insti::s_uSABurninGen = atoi(optarg);
+        init.SABurninGen = atoi(optarg);
         break;
       case 'i':
-        Insti::s_uNonSABurninGen = atoi(optarg);
+        init.NonSABurninGen = atoi(optarg);
         break;
       case 'M':
-        Insti::s_uStartClusterGen = atoi(optarg);
+          init.startClusterGen = atoi(optarg);
         optMSet = true;
         break;
       case 'h':
@@ -161,9 +161,9 @@ int main(int ac, char **av) {
     cerr << "Call: " << commandLine.str() << endl;
 
     // need to specify burnin generations as sum of SA and non-SA gens
-    Impute::bn = Insti::s_uSABurninGen + Insti::s_uNonSABurninGen;
+    Impute::bn = init.SABurninGen + init.NonSABurninGen;
     if (optMSet == false)
-      Insti::s_uStartClusterGen = Insti::s_uSABurninGen;
+      init.startClusterGen = init.SABurninGen;
 
     // need to specify ref panel if kickstarting
     if (Insti::s_bKickStartFromRef) {

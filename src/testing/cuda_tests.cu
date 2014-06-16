@@ -1,8 +1,10 @@
 
+// cuda does not seem to like any of these in header files...
+
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
+
 #include "hmmLike.hcu"
-#include "hmmLike.h"
 
 using namespace std;
 

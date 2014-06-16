@@ -2,6 +2,7 @@
         Moved from XORWOW to MTGP RNG, as XORWOW has some poor
         properties for MCMC.
         Added signal handler for SIGINT 
+        Moved some options to InstiHelper::Init
 
 1.4.8   Wed May 28 14:39:18 BST 2014
         If sampler is uniform, then sampling is now done on device as well

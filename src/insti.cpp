@@ -60,19 +60,15 @@ string Insti::s_sRefHapFile = "";
 unsigned Insti::s_uNumClusters = 0;
 unsigned Insti::s_uClusterType = 0;
 kNNDistT Insti::s_clusterDistanceMetric = kNNDistT::hamming;
-unsigned Insti::s_uSABurninGen = 28;
-unsigned Insti::s_uNonSABurninGen = 28;
 MHType Insti::s_MHSamplerType = MHType::MH;
-
-// start clustering after simulated annealing burnin
-// need to reset this in main.cpp -- should really move to a better option
-// handling approach...
-unsigned Insti::s_uStartClusterGen = Insti::s_uNonSABurninGen;
 
 Insti::Insti(InstiHelper::Init &init)
     : m_scaffoldHapsFile(init.scaffoldHapsFile),
       m_scaffoldSampleFile(init.scaffoldSampleFile),
+      m_scaffoldFreqCutoff(init.scaffoldFreqCutoff),
       m_initPhaseFromScaffold(init.initPhaseFromScaffold),
+      m_SABurninGen(init.SABurninGen), m_NonSABurninGen(init.NonSABurninGen),
+      m_startClusterGen(init.startClusterGen),
       m_tag(boost::uuids::random_generator()()) {
 
   // bounds check estimator input
@@ -82,11 +78,9 @@ Insti::Insti(InstiHelper::Init &init)
     throw std::runtime_error("[insti] Estimator needs to be less than 4");
 
   // bounds check scaffold freq input
-  if (init.scaffoldFreqCutoff < 0 || init.scaffoldFreqCutoff > 1)
+  if (m_scaffoldFreqCutoff < 0 || m_scaffoldFreqCutoff > 1)
     throw std::runtime_error(
         "[insti] scaffold frequency cutoff needs to be in the range [0,1]");
-  else
-    m_scaffoldFreqCutoff = init.scaffoldFreqCutoff;
 }
 
 // return the probability of the model given the input haplotypes P and
@@ -1633,12 +1627,12 @@ void Insti::estimate() {
   // iterations.
   for (m_nIteration = 0; m_nIteration < bn + sn; ++m_nIteration) {
     fast sum = 0, iter = 0;
-    fast pen = min<fast>((m_nIteration + 1.0f) / Insti::s_uSABurninGen, 1);
+    fast pen = min<fast>((m_nIteration + 1.0f) / m_SABurninGen, 1);
     pen *= pen; // pen = 1 after bn/2 iterations
 
     // the uniform relationship "graph" will be used until
     // -M option says not to.
-    if (m_nIteration < Insti::s_uStartClusterGen)
+    if (m_nIteration < m_startClusterGen)
       iterationSampler = make_shared<UnifSampler>(rng, in, hn + m_uNumRefHaps);
     else
       iterationSampler = m_sampler;
@@ -1648,8 +1642,8 @@ void Insti::estimate() {
 // but don't update haps between updates??? !!! !!! !!!
 #ifndef NCUDA
     // check for a sigint here and exit out if so
-    if(!HMMLikeHelper::g_no_sigint)
-        raise(SIGINT);
+    if (!HMMLikeHelper::g_no_sigint)
+      raise(SIGINT);
     // update the sampler, because it might have changed
     cudaHapSampler.UpdateSampler(iterationSampler);
     cudaHapSampler.SolveOnDevice(updateHapSum);

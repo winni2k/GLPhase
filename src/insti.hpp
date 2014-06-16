@@ -55,6 +55,17 @@ struct Init {
   std::string scaffoldSampleFile;   // location of scaffold sample file
   double scaffoldFreqCutoff = 0.05; // cutoff MAF for what to fix in scaffold
   bool initPhaseFromScaffold = false;
+  unsigned SABurninGen = 28;
+  unsigned NonSABurninGen = 28;
+  // number of times to recluster during the sampling generations
+  unsigned numClusterRounds = 0;
+  // number of sampling generations before reclustering
+  unsigned clusterRoundSize = 0;
+
+  // start clustering after simulated annealing burnin
+  // need to reset this in main.cpp -- should really move to a better option
+  // handling approach...
+  unsigned startClusterGen = 28;
 };
 }
 // require c++11
@@ -94,8 +105,11 @@ private:
   // see InstiHelper::init for default values
   const std::string m_scaffoldHapsFile;   // location of scaffold haps file
   const std::string m_scaffoldSampleFile; // location of scaffold sample file
-  double m_scaffoldFreqCutoff; // cutoff MAF for what to fix in scaffold
-  bool m_initPhaseFromScaffold;
+  const double m_scaffoldFreqCutoff; // cutoff MAF for what to fix in scaffold
+  const bool m_initPhaseFromScaffold;
+  const unsigned m_SABurninGen;
+  const unsigned m_NonSABurninGen;
+  const unsigned m_startClusterGen;
 
   // holds chrom, start and end position, etc.
   Bio::Region m_runRegion;
@@ -222,7 +236,6 @@ public:
   static kNNDistT s_clusterDistanceMetric; // what type of clustering
 
   // number of simulated annealing burnin generations
-  static unsigned s_uSABurninGen;
   static unsigned s_uNonSABurninGen; // number of non-SA burning generations
 
   // 0-based generation number at which to start clustering

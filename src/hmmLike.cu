@@ -1,3 +1,10 @@
+
+// cuda does not seem to like any of these in header files...
+/* include MTGP host helper functions */
+#include <curand_mtgp32_host.h>
+/* include MTGP pre-computed parameter sets */
+#include <curand_mtgp32dc_p_11213.h>
+
 #include "hmmLike.hcu"
 
 using namespace std;
