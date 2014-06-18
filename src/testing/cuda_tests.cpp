@@ -8,6 +8,7 @@
 #include <memory>
 #include <limits>
 #include <utility>
+#include <thrust/host_vector.h>
 
 using namespace std;
 
@@ -21,6 +22,7 @@ extern float CallHMMLike(unsigned idx, const unsigned (*hapIdxs)[4],
                          const vector<uint64_t> &h_hapPanel);
 extern void UnpackGLsWithCodeBook(uint32_t GLcodes, vector<float> &GLs,
                                   unsigned char glIdx);
+extern void FillRNs(thrust::host_vector<unsigned> &h_rns, size_t numRNs);
 }
 
 TEST(FindDevice, FoundDevice) { HMMLikeCUDA::CheckDevice(); }
@@ -113,6 +115,105 @@ TEST(HMMLike, FillEmitFillsOK) {
   for (int i = 0; i < 4; ++i)
     EXPECT_FLOAT_EQ((GLs[0] + 2 * GLs[1] + GLs[2]), emit[i]);
 }
+
+TEST(HMMLike, rngTest) {
+
+  gsl_rng *rng = gsl_rng_alloc(gsl_rng_default);
+  gsl_rng_set(rng, 112);
+
+  const unsigned numSamps = 2;
+  const unsigned numHaps = 4;
+  const unsigned numSites = 1024;
+  const unsigned wordSize = 64;
+  const unsigned numWords = numSites / wordSize;
+  vector<uint64_t> hapPanel(numWords * numHaps);
+  const unsigned sampleStride = numSamps;
+  const unsigned numCycles = 100;
+
+  // initialize transition matrix
+  vector<float> tran(numSites * 3);
+  float rho = 2 * 10e-8;
+  for (unsigned m = numSites - 1; m; m--) {
+    float rhoTDist = rho * 100; // approximate distance between SNPs
+    float r = rhoTDist / (rhoTDist + numHaps);
+    tran[m * 3] = (1 - r) * (1 - r);
+    tran[m * 3 + 1] = r * (1 - r);
+    tran[m * 3 + 2] = r * r; // for each position, transition.  r= alternative,
+                             // 1-r= refrence? 4 state HMM with three
+                             // transitions at each position
+  }
+
+  // initialize mutation matrix
+  float mutMat[4][4];
+  for (int i = 0; i < 4; ++i)
+    for (int j = 0; j < 4; ++j)
+      mutMat[i][j] = gsl_rng_uniform(rng);
+
+  // initialize GLs
+  vector<float> GLs(3 * numSites * numSamps, 0);
+  for (auto &GL : GLs)
+    GL = gsl_rng_uniform(rng);
+  assert(GLs.size() == 1024 * 3 * 2);
+
+  GLPackHelper::Init init(GLs, *rng);
+  init.numSamps = numSamps;
+  init.sampleStride = sampleStride;
+  init.useVQ = true;
+  init.numBitsPerGL = BITSPERCODE;
+  GLPack glPack1(init);
+
+  vector<uint32_t> packedGLs = glPack1.GetPackedGLs();
+  ASSERT_EQ(numSites * BITSPERCODE / UINT32T_SIZE * numSamps, packedGLs.size());
+  ASSERT_EQ(1 << BITSPERCODE, glPack1.GetCodeBook().size());
+
+  shared_ptr<Sampler> sampler =
+      make_shared<UnifSampler>(rng, numSamps, numHaps);
+
+  for (unsigned i = 0; i < numHaps * 10; ++i) {
+    unsigned val = sampler->SampleHap(0);
+    ASSERT_LT(1, val);
+    ASSERT_GT(numHaps, val);
+  }
+  {
+    // now create hmmLike so we can test the RNG
+    HMMLike hmmLike(hapPanel, numHaps, glPack1, numCycles, tran, &mutMat,
+                    sampler, *rng);
+
+    // getting 32 random numbers
+    thrust::host_vector<unsigned> rns;
+    HMMLikeCUDATest::FillRNs(rns, 32);
+
+    cout << "32 random numbers from MTRNG:";
+    for (auto rn : rns)
+      cout << "\t" << rn;
+    cout << endl;
+
+    cout << "hex of those numbers:";
+    for (auto rn : rns)
+      cout << "\t" << std::hex << rn << std::dec;
+    cout << endl;
+  }
+  {
+    // and do it again...
+    HMMLike hmmLike(hapPanel, numHaps, glPack1, numCycles, tran, &mutMat,
+                    sampler, *rng);
+
+    // getting 32 random numbers
+    thrust::host_vector<unsigned> rns;
+    HMMLikeCUDATest::FillRNs(rns, 32);
+
+    cout << "32 random numbers from MTRNG:";
+    for (auto rn : rns)
+      cout << "\t" << rn;
+    cout << endl;
+
+    cout << "hex for those numbers:";
+    for (auto rn : rns)
+      cout << "\t" << std::hex << rn << std::dec;
+    cout << endl;
+  }
+}
+
 
 TEST(HMMLike, createsOK) {
   gsl_rng *rng = gsl_rng_alloc(gsl_rng_default);
@@ -306,7 +407,7 @@ TEST(HMMLike, createsOK) {
             *std::max_element(sampledHaps.begin(), sampledHaps.end()));
 
   {
-    gsl_rng_set(rng, 112);
+    gsl_rng_set(rng, 1);
     GLPackHelper::Init init(GLs, *rng);
     init.numSamps = numSamps;
     init.sampleStride = sampleStride;
@@ -432,6 +533,20 @@ TEST(HMMLike, createsOK) {
     HMMLike hmmLike3(hapPanel, bigNumHaps, glPack3, numCycles3, tran, &mutMat,
                      sampler2, *rng);
 
+    // getting 32 random numbers
+    thrust::host_vector<unsigned> rns;
+    HMMLikeCUDATest::FillRNs(rns, 32);
+
+    cout << "\n32 random numbers from MTRNG:";
+    for (auto rn : rns)
+      cout << "\t" << rn;
+    cout << endl;
+
+    cout << "hex for those numbers:";
+    for (auto rn : rns)
+      cout << "\t" << std::hex << rn << std::dec;
+    cout << endl << endl;
+
     // printing out codebook
     auto codeBook = glPack3.GetCodeBook();
     cout << "CodeBook:" << endl;
@@ -446,7 +561,7 @@ TEST(HMMLike, createsOK) {
     for (unsigned i = 0; i < pGLs.size(); ++i) {
       if (i % numWords == 0)
         cout << "Word: " << i / numWords << "\t\t";
-      cout << pGLs.at(i) << "\t";
+      cout << std::hex << pGLs.at(i) << std::dec << "\t";
       if (i % numWords == 4) {
         cout << "..." << endl;
         i += numWords - 5;
@@ -457,8 +572,10 @@ TEST(HMMLike, createsOK) {
     unsigned firstSampIdx = 0;
     unsigned lastSampIdx = 0;
 
-    gsl_rng_set(rng, 114);
-    HMMLikeCUDA::SetUpRNGs(glPack3.GetSampleStride(), gsl_rng_get(rng));
+    gsl_rng_set(rng, 111);
+
+    // this has been moved to hmmLike constructor
+    //    HMMLikeCUDA::SetUpRNGs(glPack3.GetSampleStride(), gsl_rng_get(rng));
 
     vector<unsigned> hapIdxs3 =
         hmmLike3.RunHMMOnSamples(firstSampIdx, lastSampIdx);
@@ -471,7 +588,7 @@ TEST(HMMLike, createsOK) {
     for (auto h : hapIdxs3)
       cout << h << " ";
     cout << endl << endl;
-    for (unsigned i = 0; i < 4; i += 2) {
+    for (unsigned i = 0; i != 4; i += 2) {
       unsigned hap1 = hapIdxs3[i];
       unsigned hap2 = hapIdxs3[i + 1];
       if (hap1 > hap2)
@@ -604,7 +721,7 @@ TEST(HMMLike, createsOK) {
       for (unsigned i = 0; i < pGLs.size(); ++i) {
         if (i % numWords == 0)
           cout << "Word: " << i / numWords << "\t\t";
-        cout << (pGLs.at(i) >> 28) << "\t";
+        cout << std::hex << (pGLs.at(i) >> 28) << std::dec << "\t";
         if (i % numWords == 4) {
           cout << "..." << endl;
           i += numWords - 5;
@@ -616,8 +733,11 @@ TEST(HMMLike, createsOK) {
       glPack3.GetPackedGLs();
     }
     {
-      gsl_rng_set(rng, 113);
-      HMMLikeCUDA::SetUpRNGs(glPack3.GetSampleStride(), gsl_rng_get(rng));
+      gsl_rng_set(rng, 114);
+
+      // this has been moved to hmmLike constructor
+      //      HMMLikeCUDA::SetUpRNGs(glPack3.GetSampleStride(),
+      // gsl_rng_get(rng));
       vector<unsigned> hapIdxs3 =
           hmmLike3.RunHMMOnSamples(firstSampIdx, lastSampIdx);
       ASSERT_EQ(2, firstSampIdx);

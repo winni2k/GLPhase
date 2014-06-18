@@ -41,6 +41,8 @@ void signal_handler(int sig) {
   return;
 }
 
+// this transposes a vector of strided haplotypes such that each sample's
+// haplotypes are next to each other, four at a time
 vector<unsigned> TransposeHapIdxs(const std::vector<unsigned> &hapIdxs) {
   const unsigned hapsPerSamp = 4;
   assert(hapIdxs.size() % hapsPerSamp == 0);
@@ -117,6 +119,10 @@ HMMLike::HMMLike(const vector<uint64_t> &hapPanel, unsigned numHaps,
   // check if we can sample haplotypes on the device instead
   if (std::dynamic_pointer_cast<UnifSampler>(m_sampler))
     m_ignoreSampler = true;
+
+  // reset the device to make sure we are working on a clean environment
+  // not sure that's a good idea with the thrust vectors
+  //  HMMLikeCUDA::ResetDevice();
 
   // make sure we have a K20 or better installed
   // also define some constants

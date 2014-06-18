@@ -17,13 +17,13 @@
 #include <csignal>
 #include <iostream>
 
-
 // this is the number of haplotypes we use in the HMM
 // That is, the HMM has NUMSITES * NUMHAPS states
 #define NUMHAPS 4
 
 // these functions are implemented in HMMLike.cu
 namespace HMMLikeCUDA {
+extern void ResetDevice();
 extern void CheckDevice();
 extern void CopyTranToDevice(const std::vector<float> &tran);
 extern void CopyMutationMatToDevice(const float (*mutMat)[4][4]);
@@ -32,7 +32,7 @@ extern void
 CopyCodeBookToDevice(const std::vector<std::pair<float, float> > &codeBook);
 extern void CopyHapPanelToDevice(const std::vector<uint64_t> &hapPanel);
 extern void CopyHapSumToHost(thrust::host_vector<uint32_t> &h_hapSums);
-extern void SetUpRNGs(size_t numSamples, unsigned long seed);
+extern void SetUpRNGs(size_t numSamples, uint32_t seed);
 extern void RunHMMOnDevice(const std::vector<uint64_t> &hapPanel,
                            const std::vector<unsigned> &extraPropHaps,
                            unsigned numSites, unsigned numSamples,
@@ -44,7 +44,6 @@ extern void SolveOnDevice(const std::vector<unsigned> &extraPropHaps,
                           bool ignorePropHaps, bool updateSum = false);
 
 extern void Cleanup();
-
 }
 
 #endif /* _HMMLIKE_H */

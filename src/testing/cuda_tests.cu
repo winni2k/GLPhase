@@ -156,7 +156,7 @@ void UnpackGLsWithCodeBook(uint32_t GLcodes, vector<float> &GLs,
   thrust::host_vector<float> h_GLs;
   h_GLs = d_GLs;
   for (int i = 0; i < 3; ++i)
-      GLs[i] = h_GLs[i];
+    GLs[i] = h_GLs[i];
 }
 
 cudaError_t CopyTranToHost(vector<float> &tran) {
@@ -172,5 +172,26 @@ cudaError_t CopyMutMatToHost(vector<float> &mutMat) {
   assert(mutMat.size() == 4 * 4);
   return cudaMemcpyFromSymbol(mutMat.data(), HMMLikeCUDA::mutationMat,
                               sizeof(float) * 4 * 4, 0, cudaMemcpyDeviceToHost);
+}
+
+__global__ void GetRNs(unsigned *d_fillRNs, curandStateMtgp32 *globalState,
+                       size_t numRNs) {
+
+    int idx = blockDim.x * blockIdx.x + threadIdx.x;
+  for (size_t i = 0; i != numRNs; ++i)
+    d_fillRNs[i+idx * numRNs] = curand(&globalState[blockIdx.x]);
+  return;
+}
+
+void FillRNs(thrust::host_vector<unsigned> &h_rns, size_t numRNs) {
+
+  thrust::device_vector<unsigned> d_rns;
+  d_rns.resize(numRNs, 0);
+  unsigned *d_rnsPtr = thrust::raw_pointer_cast(d_rns.data());
+  assert(HMMLikeCUDA::gd_devMTGPStates);
+  GetRNs << <1, 2>>> (d_rnsPtr, HMMLikeCUDA::gd_devMTGPStates, numRNs/2);
+
+  h_rns = d_rns;
+  return;
 }
 }

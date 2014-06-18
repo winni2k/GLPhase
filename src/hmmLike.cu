@@ -155,15 +155,17 @@ __global__ void findHapSet(const uint32_t *__restrict__ d_packedGLs,
                            const uint64_t *__restrict__ d_hapPanel,
                            const unsigned *__restrict__ d_hapIdxs,
                            const unsigned *__restrict__ d_extraPropHaps,
-                           unsigned *d_chosenHapIdxs, unsigned numSamples,
+                           unsigned *d_chosenHapIdxs, const unsigned numSamples,
                            unsigned numCycles, curandStateMtgp32 *globalState,
-                           const float *__restrict__ d_codeBook) {
+                           const float *__restrict__ d_codeBook,
+                           const size_t numPropHaps) {
+
+  assert(numSamples > 1);
+  assert(numPropHaps >= 2 * numSamples);
 
   const float S = 1;
   int idx = blockDim.x * blockIdx.x + threadIdx.x;
   if (idx < numSamples) {
-
-    curandStateMtgp32 localState = globalState[blockIdx.x];
 
     unsigned hapIdxs[4];
     for (int i = 0; i < 4; ++i)
@@ -182,22 +184,42 @@ __global__ void findHapSet(const uint32_t *__restrict__ d_packedGLs,
     for (int cycle = 0; cycle < numCycles; ++cycle) {
 
       // replace a sample
-      unsigned replaceHapNum = curand(&localState) & 3;
+      unsigned replaceHapNum = curand(&globalState[blockIdx.x]) & 3;
       unsigned origHap = hapIdxs[replaceHapNum];
 
       if (!ignorePropHaps)
         hapIdxs[replaceHapNum] = d_extraPropHaps[idx + cycle * numSamples];
 
-      // I think this is the best way to sample integers in range
-      else
+      // I think this is the best way to sample integers in range.
+      // need to sample one less than num samples because we don't want the
+      // current idx to be sampled.
+      else {
         hapIdxs[replaceHapNum] =
-            ceilf(curand_uniform(&localState) * numSamples) - 1;
+            ceilf(curand_uniform(&globalState[blockIdx.x]) *
+                  (numPropHaps - 2)) -
+            1;
+
+        // testing
+        unsigned testVals[64];
+        for (int i = 0; i != 64; ++i)
+          testVals[i] = curand(&globalState[blockIdx.x]);
+
+        // testing
+        hapIdxs[replaceHapNum] =
+            testVals[curand(&globalState[blockIdx.x]) & 63] % (numPropHaps - 2);
+
+        // this adjusts the sampled hap index upwards such that we never sample
+        // from sample idx
+        hapIdxs[replaceHapNum] = (hapIdxs[replaceHapNum] >= idx * 2)
+                                     ? hapIdxs[replaceHapNum] + 2
+                                     : hapIdxs[replaceHapNum];
+      }
 
       float prop = hmmLike(idx, hapIdxs, d_packedGLs, numSamples, d_hapPanel,
                            d_codeBook);
 
       // accept new set
-      if (curand_uniform(&localState) < __expf((prop - curr) * S))
+      if (curand_uniform(&globalState[blockIdx.x]) < __expf((prop - curr) * S))
         curr = prop;
       // reject new set
       else
@@ -206,10 +228,6 @@ __global__ void findHapSet(const uint32_t *__restrict__ d_packedGLs,
     } // last of numCycles
     for (int i = 0; i < 4; ++i)
       d_chosenHapIdxs[idx + numSamples * i] = hapIdxs[i];
-
-    // update global state
-    if (threadIdx.x == 0)
-      globalState[blockIdx.x] = localState;
 
     // return nothing.  d_chosenHapIdxs is the return data
     return;
@@ -226,6 +244,30 @@ if (idx < stateSize)
 curand_init(seed, idx, 0, &state[idx]);
 }
 */
+
+void ResetDevice() {
+
+  // make sure a device exists
+  int deviceCount = 0;
+  cudaError_t err = cudaGetDeviceCount(&deviceCount);
+  if (err != cudaSuccess) {
+    stringstream outerr("Error checking for device: ");
+    outerr << err;
+    throw std::runtime_error(outerr.str());
+  }
+
+  if (deviceCount < 1)
+    throw std::runtime_error("No device found");
+
+  /* this seems to be breaking things
+    err = cudaDeviceReset();
+    if (err != cudaSuccess) {
+      stringstream outerr("Resetting of device returned the following error: ");
+      outerr << err;
+      throw std::runtime_error(outerr.str());
+    }
+  */
+}
 
 void CheckDevice() {
 
@@ -285,10 +327,9 @@ void CheckDevice() {
   err = cudaMemcpyToSymbol(norm, &localNorm, sizeof(float), 0,
                            cudaMemcpyHostToDevice);
   if (err != cudaSuccess) {
-    cerr << "Error copying value to symbol: " << cudaGetErrorString(err)
-         << "\n";
-
-    exit(EXIT_FAILURE);
+    stringstream outerr("Error copying value to symbol: ");
+    outerr << cudaGetErrorString(err);
+    throw std::runtime_error(outerr.str());
   }
 
   return;
@@ -396,7 +437,7 @@ void Cleanup() {
 Set up numSamp random generator states
 */
 curandStateMtgp32 *gd_devMTGPStates = NULL;
-void SetUpRNGs(size_t numSamples, unsigned long seed) {
+void SetUpRNGs(size_t numSamples, uint32_t seed) {
 
   assert(gd_devMTGPStates == NULL);
   mtgp32_kernel_params *devKernelParams = NULL;
@@ -486,6 +527,8 @@ void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
            WN * (*max_element(extraPropHaps.begin(), extraPropHaps.end()) + 1));
     assert(extraPropHaps.size() == numSamples * numCycles);
   }
+  assert(hapPanel.size() % WN == 0);
+  size_t numPropHaps = hapPanel.size() / WN;
 
   cudaError_t err = cudaSuccess;
 
@@ -537,11 +580,13 @@ void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
   if (ignorePropHaps)
     findHapSet<true> << <blocksPerRun, threadsPerBlock>>>
         (d_packedGLPtr, d_hapPanel, d_hapIdxsPtr, d_extraPropHapsPtr,
-         d_chosenHapIdxs, numSamples, numCycles, gd_devMTGPStates, d_codeBook);
+         d_chosenHapIdxs, numSamples, numCycles, gd_devMTGPStates, d_codeBook,
+         numPropHaps);
   else
     findHapSet<false> << <blocksPerRun, threadsPerBlock>>>
         (d_packedGLPtr, d_hapPanel, d_hapIdxsPtr, d_extraPropHapsPtr,
-         d_chosenHapIdxs, numSamples, numCycles, gd_devMTGPStates, d_codeBook);
+         d_chosenHapIdxs, numSamples, numCycles, gd_devMTGPStates, d_codeBook,
+         numPropHaps);
 
   cudaDeviceSynchronize();
   err = cudaGetLastError();
@@ -557,9 +602,9 @@ void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
   err = cudaMemcpy(hapIdxs.data(), d_chosenHapIdxs, hapIdxsSize,
                    cudaMemcpyDeviceToHost);
   if (err != cudaSuccess) {
-    cerr << "Failed to copy chosen indices to host: " << cudaGetErrorString(err)
-         << "\nCode: " << err << "\n";
-    exit(EXIT_FAILURE);
+    stringstream outerr("Failed to copy chosen indices to host: ");
+    outerr << cudaGetErrorString(err) << "\nCode: " << err << "\n";
+    throw std::runtime_error(outerr.str());
   }
 
   assert(cudaFree(d_chosenHapIdxs) == cudaSuccess);
@@ -580,8 +625,6 @@ __global__ void hmmWork(const uint32_t *__restrict__ d_packedGLs,
   const float S = 1;
   int idx = blockDim.x * blockIdx.x + threadIdx.x;
   if (idx < numSamples) {
-
-    curandStateMtgp32 localState = globalState[blockIdx.x];
 
     // setup the different haplotypes
     const uint64_t *f0 = &d_hapPanel[d_hapIdxs[idx] * WN],
@@ -718,7 +761,8 @@ __global__ void hmmWork(const uint32_t *__restrict__ d_packedGLs,
 
       // randomly choose new haplotypes at this site weighted by c
       {
-        const float sum = curand_uniform(&localState) * (c00 + c01 + c10 + c11);
+        const float sum =
+            curand_uniform(&globalState[blockIdx.x]) * (c00 + c01 + c10 + c11);
         if (sum < c00) {
           set0(ha, site);
           set0(hb, site);
@@ -734,8 +778,6 @@ __global__ void hmmWork(const uint32_t *__restrict__ d_packedGLs,
         }
       }
     }
-    if (threadIdx.x == 0)
-      globalState[blockIdx.x] = localState;
   }
 }
 
@@ -792,6 +834,9 @@ void SolveOnDevice(const vector<unsigned> &extraPropHaps, unsigned numSites,
     assert(gd_hapPanel->size() >=
            WN * (*max_element(extraPropHaps.begin(), extraPropHaps.end()) + 1));
   }
+  assert(gd_hapPanel->size() % WN == 0);
+  size_t numPropHaps = gd_hapPanel->size() / WN;
+
   // get pointer to hap panel
   const uint64_t *d_hapPanelPtr = thrust::raw_pointer_cast(gd_hapPanel->data());
 
@@ -843,12 +888,12 @@ void SolveOnDevice(const vector<unsigned> &extraPropHaps, unsigned numSites,
     findHapSet<true> << <blocksPerRun, threadsPerBlock>>>
         (d_packedGLPtr, d_hapPanelPtr, d_hapIdxsPtr, d_extraPropHapsPtr,
          d_chosenHapIdxs, numSamples, numCycles, gd_devMTGPStates,
-         d_codeBookPtr);
+         d_codeBookPtr, numPropHaps);
   else
     findHapSet<false> << <blocksPerRun, threadsPerBlock>>>
         (d_packedGLPtr, d_hapPanelPtr, d_hapIdxsPtr, d_extraPropHapsPtr,
          d_chosenHapIdxs, numSamples, numCycles, gd_devMTGPStates,
-         d_codeBookPtr);
+         d_codeBookPtr, numPropHaps);
 
   cudaDeviceSynchronize();
 
