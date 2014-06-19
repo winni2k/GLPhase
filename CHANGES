@@ -1,4 +1,4 @@
-1.4.9   Wed May 28 18:42:02 BST 2014
+1.4.9   Thu Jun 19 11:00:20 BST 2014
         Explored moving from XORWOW to MTGP RNG, as XORWOW has some poor
         properties for MCMC. However, couldn't get MTGP to work, so
         changed all curand calls to curand_uniform calls.  That
