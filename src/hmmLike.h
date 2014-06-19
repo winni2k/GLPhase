@@ -32,6 +32,7 @@ extern void
 CopyCodeBookToDevice(const std::vector<std::pair<float, float> > &codeBook);
 extern void CopyHapPanelToDevice(const std::vector<uint64_t> &hapPanel);
 extern void CopyHapSumToHost(thrust::host_vector<uint32_t> &h_hapSums);
+extern void SetUpXORWOWStates(size_t numSamples, unsigned long seed);
 extern void SetUpRNGs(size_t numSamples, uint32_t seed);
 extern void RunHMMOnDevice(const std::vector<uint64_t> &hapPanel,
                            const std::vector<unsigned> &extraPropHaps,

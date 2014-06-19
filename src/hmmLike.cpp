@@ -138,7 +138,11 @@ HMMLike::HMMLike(const vector<uint64_t> &hapPanel, unsigned numHaps,
   HMMLikeCUDA::CopyCodeBookToDevice(glPack.GetCodeBook());
 
   // initialize random number generators
-  HMMLikeCUDA::SetUpRNGs(m_glPack.GetSampleStride(), gsl_rng_get(&m_rng));
+  // not using MTGP because I can't get it to work right ...
+  //  HMMLikeCUDA::SetUpRNGs(m_glPack.GetSampleStride(), gsl_rng_get(&m_rng));
+
+  HMMLikeCUDA::SetUpXORWOWStates(m_glPack.GetSampleStride(),
+                                 gsl_rng_get(&m_rng));
 
   // copy initial hap panel across
   HMMLikeCUDA::CopyHapPanelToDevice(m_inHapPanel);

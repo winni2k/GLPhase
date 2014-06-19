@@ -650,7 +650,7 @@ TEST(HMMLike, createsOK) {
   }
   */
   {
-    gsl_rng_set(rng, 112);
+    gsl_rng_set(rng, 113);
     const unsigned numCycles3 = 100;
     ASSERT_EQ(3 * numSites * numSamps2, GLs.size());
 
@@ -733,7 +733,7 @@ TEST(HMMLike, createsOK) {
       glPack3.GetPackedGLs();
     }
     {
-      gsl_rng_set(rng, 114);
+      gsl_rng_set(rng, 115);
 
       // this has been moved to hmmLike constructor
       //      HMMLikeCUDA::SetUpRNGs(glPack3.GetSampleStride(),

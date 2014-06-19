@@ -41,6 +41,7 @@ extern __device__ void UnpackGLsWithCodeBook(uint32_t GLcodes, float (&GLs)[3],
 extern thrust::device_vector<float> *gd_codeBook;
 extern thrust::device_vector<uint32_t> *gd_packedGLs;
 extern curandStateMtgp32 *gd_devMTGPStates;
+extern curandStateXORWOW_t *gd_XORWOWStates;
 extern thrust::device_vector<uint64_t> *gd_hapPanel;
 extern thrust::device_vector<uint64_t> *gd_newHapPanel;
 

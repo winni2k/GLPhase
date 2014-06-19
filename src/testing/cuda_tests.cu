@@ -174,12 +174,16 @@ cudaError_t CopyMutMatToHost(vector<float> &mutMat) {
                               sizeof(float) * 4 * 4, 0, cudaMemcpyDeviceToHost);
 }
 
-__global__ void GetRNs(unsigned *d_fillRNs, curandStateMtgp32 *globalState,
+__global__ void GetRNs(unsigned *d_fillRNs, curandStateXORWOW_t *globalState,
                        size_t numRNs) {
 
-    int idx = blockDim.x * blockIdx.x + threadIdx.x;
-  for (size_t i = 0; i != numRNs; ++i)
-    d_fillRNs[i+idx * numRNs] = curand(&globalState[blockIdx.x]);
+  int idx = blockDim.x * blockIdx.x + threadIdx.x;
+  if (idx < 2) {
+    curandStateXORWOW_t localState = globalState[idx];
+    for (size_t i = 0; i != numRNs; ++i)
+      d_fillRNs[i + idx * numRNs] = curand(&localState);
+    globalState[idx] = localState;
+  }
   return;
 }
 
@@ -188,8 +192,8 @@ void FillRNs(thrust::host_vector<unsigned> &h_rns, size_t numRNs) {
   thrust::device_vector<unsigned> d_rns;
   d_rns.resize(numRNs, 0);
   unsigned *d_rnsPtr = thrust::raw_pointer_cast(d_rns.data());
-  assert(HMMLikeCUDA::gd_devMTGPStates);
-  GetRNs << <1, 2>>> (d_rnsPtr, HMMLikeCUDA::gd_devMTGPStates, numRNs/2);
+  assert(HMMLikeCUDA::gd_XORWOWStates);
+  GetRNs << <1, 2>>> (d_rnsPtr, HMMLikeCUDA::gd_XORWOWStates, numRNs / 2);
 
   h_rns = d_rns;
   return;

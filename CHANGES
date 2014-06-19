@@ -1,6 +1,9 @@
 1.4.9   Wed May 28 18:42:02 BST 2014
-        Moved from XORWOW to MTGP RNG, as XORWOW has some poor
-        properties for MCMC.
+        Explored moving from XORWOW to MTGP RNG, as XORWOW has some poor
+        properties for MCMC. However, couldn't get MTGP to work, so
+        changed all curand calls to curand_uniform calls.  That
+        should be safe enough.
+
         Added signal handler for SIGINT 
         Moved some options to InstiHelper::Init
 
