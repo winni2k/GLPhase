@@ -10,7 +10,7 @@
 
 #define VERSION_MAJOR 1
 #define VERSION_MINOR 4
-#define VERSION_REVISION 5-a
+#define VERSION_REVISION 5-b
 
 #endif /* _VERSION_H */
 

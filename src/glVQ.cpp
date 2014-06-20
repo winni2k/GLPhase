@@ -52,7 +52,10 @@ void GLVQ::BuildCodeBook(unsigned codeBookSize, const vector<float> &inGLs) {
 
   // create random set of points to train on
   vector<tuple<float, float, unsigned char> > trainingSet;
-  const size_t trainingSetSize = min(codeBookSize * 5000, numGLs);
+
+  // training set size seems to make a difference
+  // let's try all gls
+  const size_t trainingSetSize = numGLs;  
   trainingSet.reserve(trainingSetSize);
   for (unsigned iter = 0; iter < trainingSetSize; ++iter) {
     unsigned glIdx = 0;
