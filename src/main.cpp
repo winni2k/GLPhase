@@ -19,7 +19,7 @@ namespace po = boost::program_options;
 int main(int ac, char **av) {
 
   cerr << "INSTI -- v" << VERSION_MAJOR << "." << VERSION_MINOR << "."
-       << VERSION_REVISION << endl;
+       << VERSION_XSTR(VERSION_REVISION) << endl;
   try {
     stringstream commandLine;
     commandLine << av[0];

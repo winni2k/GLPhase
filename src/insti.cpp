@@ -2053,7 +2053,7 @@ void Insti::save_vcf(const char *F, string commandLine) {
   vcfFD << std::setprecision(3);
   vcfFD << "##fileformat=VCFv4.0\n";
   vcfFD << "##source=WTCHG:INSTIv" << VERSION_MAJOR << "." << VERSION_MINOR
-        << "." << VERSION_REVISION << "\n";
+        << "." << VERSION_XSTR(VERSION_REVISION) << "\n";
 
   vcfFD << "##phaseAndImputeCall=" << commandLine << "\n";
   vcfFD << "##iteration=%u\n";
