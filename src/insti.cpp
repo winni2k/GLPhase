@@ -4,7 +4,9 @@
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
 using namespace std;
+#ifndef NCUDA
 using namespace HMMLikeCUDA;
+#endif
 using namespace Bio;
 
 /*
@@ -68,7 +70,8 @@ MHType Insti::s_MHSamplerType = MHType::MH;
 unsigned Insti::s_uStartClusterGen = Insti::s_uNonSABurninGen;
 
 Insti::Insti(InstiHelper::Init &init)
-    : m_scaffoldHapsFile(init.scaffoldHapsFile),
+    : m_reclusterEveryNGen(init.reclusterEveryNGen),
+      m_scaffoldHapsFile(init.scaffoldHapsFile),
       m_scaffoldSampleFile(init.scaffoldSampleFile),
       m_initPhaseFromScaffold(init.initPhaseFromScaffold),
       m_tag(boost::uuids::random_generator()()) {
@@ -1634,6 +1637,17 @@ void Insti::estimate() {
     fast pen = min<fast>((m_nIteration + 1.0f) / Insti::s_uSABurninGen, 1);
     pen *= pen; // pen = 1 after bn/2 iterations
 
+    // recluster if it's the right generation
+    // yes, don't recluster on iteration bn
+    if (m_reclusterEveryNGen > 0 && m_nIteration > bn)
+      if ((m_nIteration - bn) % m_reclusterEveryNGen == 0)
+        if (std::dynamic_pointer_cast<KNN>(iterationSampler)) {
+          cout << m_tag << ":\tReclustering haplotypes\n";
+          m_sampler = make_shared<KNN>(s_uNumClusters, haps, WN, NUMSITES,
+                                       m_scaffoldFreqCutoff, rng);
+          cout << m_tag << ":\tReclustering complete.\n";
+        }
+
     // the uniform relationship "graph" will be used until
     // -M option says not to.
     if (m_nIteration < Insti::s_uStartClusterGen)
@@ -2217,6 +2231,8 @@ void Insti::document() {
           "number of haplotypes to keep)";
   cerr << "\n\t-T              Use shared tract length as distance metric for "
           "clustering";
+  cerr << "\n\t-r <integer>    Recluster every -r generations. Only works when -t=2";
+  
 
   cerr << "\n\n    REFERENCE PANEL OPTIONS";
   cerr << "\n\t-H <file>       IMPUTE2 style HAP file";

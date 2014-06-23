@@ -55,6 +55,7 @@ struct Init {
   std::string scaffoldSampleFile;   // location of scaffold sample file
   double scaffoldFreqCutoff = 0.05; // cutoff MAF for what to fix in scaffold
   bool initPhaseFromScaffold = false;
+  size_t reclusterEveryNGen = 0; // 0 means don't recluster
 };
 }
 // require c++11
@@ -90,6 +91,7 @@ private:
 
   // scaffold haplotypes
   HapPanel m_scaffold;
+  size_t m_reclusterEveryNGen = 0;
 
   // see InstiHelper::init for default values
   const std::string m_scaffoldHapsFile;   // location of scaffold haps file

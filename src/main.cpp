@@ -47,8 +47,8 @@ int main(int ac, char **av) {
     int opt;
     bool optMSet = false;
     while ((opt = getopt(
-                ac, av, "Vd:l:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:fo:DT")) >=
-           0) {
+                ac, av,
+                "Vd:l:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:fo:DTr:")) >= 0) {
       switch (opt) {
       case 'd':
         Impute::density = atof(optarg);
@@ -152,6 +152,9 @@ int main(int ac, char **av) {
         break;
       case 'T':
         Insti::s_clusterDistanceMetric = kNNDistT::tracLen;
+        break;
+      case 'r':
+        init.reclusterEveryNGen = atoi(optarg);
         break;
       default:
         Insti::document();
