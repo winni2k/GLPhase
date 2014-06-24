@@ -8,12 +8,15 @@ static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 #include <cmath>
 #include <limits>
 #include "utils.hpp"
-#include <vector_types.h>
 #include "glVQ.hpp"
 #include <limits>
 #include <utility>
 #include <gsl/gsl_rng.h>
 #include "globals.h"
+
+#ifndef NCUDA
+#include <vector_types.h>
+#endif
 
 // we want our chars to be unsigned
 namespace GLPackHelper {
