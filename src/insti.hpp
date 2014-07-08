@@ -34,6 +34,7 @@
 #include "vcf_parser.hpp"
 #include "bio.hpp"
 #include "globals.h"
+#include <omp.h>
 
 #ifndef NCUDA
 #include "hmmLike.hpp"
@@ -56,6 +57,7 @@ struct Init {
   double scaffoldFreqCutoff = 0.05; // cutoff MAF for what to fix in scaffold
   bool initPhaseFromScaffold = false;
   size_t reclusterEveryNGen = 0; // 0 means don't recluster
+  size_t numThreads = 1;
 };
 }
 // require c++11

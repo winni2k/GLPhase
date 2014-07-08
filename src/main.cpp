@@ -39,7 +39,6 @@ int main(int ac, char **av) {
     Impute::is_x = false;
     Impute::is_y = false;
 
-    //    uint threads = 0;
     vector<string> file;
     string outBase;
 
@@ -48,7 +47,7 @@ int main(int ac, char **av) {
     bool optMSet = false;
     while ((opt = getopt(
                 ac, av,
-                "Vd:l:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:fo:DTr:")) >= 0) {
+                "Vd:l:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:fo:DTr:P:")) >= 0) {
       switch (opt) {
       case 'd':
         Impute::density = atof(optarg);
@@ -112,10 +111,9 @@ int main(int ac, char **av) {
       case 'k':
         Insti::s_bKickStartFromRef = true;
         break;
-      /*        case    't':
-                  threads = atoi(optarg);
-                  break;
-      */
+      case 'P':
+        init.numThreads = atoi(optarg);
+        break;
       case 'K':
         Insti::s_uNumClusters = atoi(optarg);
         break;
@@ -177,7 +175,6 @@ int main(int ac, char **av) {
       }
     }
 
-    //    if (threads) omp_set_num_threads(threads);
     // read in files
     for (int i = optind; i < ac; i++)
       file.push_back(av[i]);
@@ -209,7 +206,7 @@ int main(int ac, char **av) {
       auto tt = std::chrono::system_clock::to_time_t(
           std::chrono::system_clock::now());
       stringstream log;
-      log << ctime(&tt) << endl;
+      log << "##" << ctime(&tt) << endl;
       lp.WriteToLog(log.str());
 
       // load gls

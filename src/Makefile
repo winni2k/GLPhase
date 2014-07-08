@@ -38,6 +38,7 @@ test: $(OBJECT_FILES) $(HEADER_FILES)
 all: CXXFLAGS += -O3
 release: CXXFLAGS += -O3 -DNDEBUG
 static: CXXFLAGS += -O3 -DNDEBUG
+debug: CXXFLAGS += -O0 -ggdb
 test: CXXFLAGS += -O0 -ggdb
 
 # gcc

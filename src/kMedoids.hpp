@@ -65,7 +65,7 @@ public:
            unsigned uNumSites, gsl_rng *rng);
 
   // returns a haplotype sampled using the relationship graph
-  unsigned SampleHap(unsigned uInd);
+  unsigned SampleHap(unsigned uInd) override;
 
   // update the medoids
   void UpdateMedoids(const std::vector<uint64_t> &pvuHaplotypes);
@@ -73,10 +73,10 @@ public:
   // update proposal distribution based on the result of an MCMC proposal
   // (input)
   void UpdatePropDistProp(const std::vector<unsigned> &, unsigned, bool,
-                          float) {};
+                          float) override{};
 
   // update proposal distribution based on the input haplotype set
-  void UpdatePropDistHaps(const std::vector<uint64_t> &) {};
+  void UpdatePropDistHaps(const std::vector<uint64_t> &) override{};
 };
 
 #endif /* _KMEDOIDS_H */

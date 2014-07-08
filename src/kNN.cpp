@@ -2,6 +2,7 @@
 #include <utility>
 
 using namespace std;
+using namespace KNNhelper;
 
 // initialization for kNN clustering
 KNN::KNN(unsigned numClust, const std::vector<uint64_t> &haplotypes,
@@ -15,7 +16,25 @@ KNN::KNN(unsigned numClust, const std::vector<uint64_t> &haplotypes,
 
   assert(haplotypes.size() == m_numHaps * m_numWordsPerHap);
 
+  if (m_numClusters > m_numHaps - 2) {
+    m_numClusters = m_numHaps - 2;
+    cout << "[KNN]: Too few haplotypes. Reducing number of clusters to "
+         << to_string(m_numClusters) << "\n";
+  }
+
   cout << "[KNN]: Initialization start\n";
+  cout << "[KNN]: Distance metric = ";
+  switch (distMetric) {
+  case kNNDistT::hamming:
+    cout << "hamming\n";
+    break;
+  case kNNDistT::tracLen:
+    cout << "tract length\n";
+    break;
+  default:
+    throw std::runtime_error("Unexpected distance metric suplied");
+  }
+
   assert(m_numWordsPerHap > 0);
 
   // make sure uNumSites is a sensible number
@@ -60,18 +79,6 @@ vector<unsigned> KNN::Neighbors(unsigned uHapNum) {
   return returnHapNums;
 };
 
-// returns the neighbors of haplotype hapNum
-struct dist {
-  unsigned idx;
-  unsigned distance;
-};
-
-struct by_dist {
-  bool operator()(dist const &a, dist const &b) {
-    return a.distance < b.distance;
-  }
-};
-
 void KNN::ClusterHaps(const vector<uint64_t> &haplotypes) {
 
   if (!UsingScaffold()) {
@@ -80,6 +87,7 @@ void KNN::ClusterHaps(const vector<uint64_t> &haplotypes) {
   }
 
   m_neighbors.clear();
+  m_neighbors.reserve(m_numHaps / 2);
   unsigned numCommonSites = m_vuCommonSiteNums.size();
 
   // create vector of comparison haplotypes
@@ -95,7 +103,7 @@ void KNN::ClusterHaps(const vector<uint64_t> &haplotypes) {
   cout << "[KNN::ClusterHaps]: Finding " << m_numClusters
        << " nearest neighbors for " << m_numHaps << " haplotypes" << endl;
 
-  for (unsigned uSampNum = 0; uSampNum < m_numHaps / 2; uSampNum++) {
+  for (unsigned uSampNum = 0; uSampNum < m_numHaps / 2; ++uSampNum) {
 
     // assign only the common sites of each hap to new haps
     Haplotype hHapA(numCommonSites);
@@ -105,11 +113,12 @@ void KNN::ClusterHaps(const vector<uint64_t> &haplotypes) {
 
     // calculate neighbors of this sample
     // hap number then distance
-    vector<dist> distsHapA;
-    vector<dist> distsHapB;
+    vector<dist> distsHapA(m_numHaps - 2);
+    vector<dist> distsHapB(m_numHaps - 2);
 
+#pragma omp parallel for
     for (unsigned hapNum = 0; hapNum < m_numHaps; hapNum++) {
-      if (floor(hapNum / 2) == uSampNum)
+      if (hapNum >> 1 == uSampNum)
         continue;
 
       dist distHapA;
@@ -122,13 +131,22 @@ void KNN::ClusterHaps(const vector<uint64_t> &haplotypes) {
       if (m_distMetric == kNNDistT::hamming) {
         distHapA.distance = hHapA.HammingDist(commonSiteHaps[hapNum]);
         distHapB.distance = hHapB.HammingDist(commonSiteHaps[hapNum]);
-      } else if (m_distMetric == kNNDistT::tracLen) {
-        distHapA.distance = hHapA.MaxTractLen(commonSiteHaps[hapNum]);
-        distHapB.distance = hHapB.MaxTractLen(commonSiteHaps[hapNum]);
       }
 
-      distsHapA.push_back(distHapA);
-      distsHapB.push_back(distHapB);
+      // the distance is actually the total number of sites minus the max tract
+      // length
+      else if (m_distMetric == kNNDistT::tracLen) {
+        assert(hHapA.MaxTractLen(commonSiteHaps[hapNum]) <= numCommonSites);
+        assert(hHapB.MaxTractLen(commonSiteHaps[hapNum]) <= numCommonSites);
+        distHapA.distance =
+            numCommonSites - hHapA.MaxTractLen(commonSiteHaps[hapNum]);
+        distHapB.distance =
+            numCommonSites - hHapB.MaxTractLen(commonSiteHaps[hapNum]);
+      }
+
+      size_t outHapNum = (hapNum >> 1) > uSampNum ? hapNum - 2 : hapNum;
+      distsHapA[outHapNum] = distHapA;
+      distsHapB[outHapNum] = distHapB;
     }
 
     // sort the haplotypes by distance
@@ -152,7 +170,7 @@ void KNN::ClusterHaps(const vector<uint64_t> &haplotypes) {
       bool inserted = false;
       while (!inserted) {
         auto retVal = sampleList.emplace(distsHapB[hapIdx].idx, true);
-        hapIdx++;
+        ++hapIdx;
         if (retVal.second)
           inserted = true;
       }
@@ -163,6 +181,8 @@ void KNN::ClusterHaps(const vector<uint64_t> &haplotypes) {
 
     // put the closest k in m_neighbors
     m_neighbors.push_back(vuDists);
+    //    m_distsHapA.push_back(std::move(distsHapA));
+    //    m_distsHapB.push_back(std::move(distsHapB));
   }
 }
 
@@ -216,5 +236,64 @@ void KNN::CalculateVarAfs(const vector<uint64_t> &vuScaffoldHaps) {
           }
           cout << endl;
       }
+  */
+}
+
+void KNN::Save(const string &fileName, const vector<string> &sampNames) {
+
+  cerr << "[KNN]: Saving neighbors to prefix " << fileName << ".kNN.neighbors"
+       << endl;
+
+  if (sampNames.size() != m_neighbors.size())
+    throw std::runtime_error("number of sample names (" +
+                             to_string(sampNames.size()) +
+                             ") and number of samples with neighbors (" +
+                             to_string(m_neighbors.size()) + ") do not match");
+
+  ofile out(fileName + ".kNN.neighbors");
+  out << "#Sample\tneighbors\n";
+  for (size_t sampNum = 0; sampNum != sampNames.size(); ++sampNum) {
+    out << sampNames[sampNum];
+    for (size_t neighborNum = 0; neighborNum != m_neighbors[sampNum].size();
+         ++neighborNum) {
+      out << "\t" << sampNames[m_neighbors[sampNum][neighborNum] / 2];
+      if (m_neighbors[sampNum][neighborNum] & 1)
+        out << ".hapB";
+      else
+        out << ".hapA";
+    }
+    out << "\n";
+  }
+  out.close();
+  /*
+    this was for debugging
+    // also save distance between every pair of haps
+    ofile dists(fileName + ".kNN.dists.gz");
+    dists << "#Hap1\tHap2\tdist\n";
+    for (size_t sampNum = 0; sampNum != sampNames.size(); ++sampNum) {
+      for (size_t distNum = 0; distNum != m_distsHapA[sampNum].size();
+           ++distNum) {
+        {
+          const unsigned idx = m_distsHapA[sampNum][distNum].idx;
+          const unsigned d = m_distsHapA[sampNum][distNum].distance;
+          dists << sampNames[sampNum] << ".hapA\t" << sampNames[idx / 2];
+          if ((idx & 1) == 0)
+            dists << ".hapA\t";
+          else
+            dists << ".hapB\t";
+          dists << to_string(d) << "\n";
+        }
+        {
+          const unsigned idx = m_distsHapB[sampNum][distNum].idx;
+          const unsigned d = m_distsHapB[sampNum][distNum].distance;
+          dists << sampNames[sampNum] << ".hapB\t" << sampNames[idx / 2];
+          if ((idx & 1) == 0)
+            dists << ".hapA\t";
+          else
+            dists << ".hapB\t";
+          dists << to_string(d) << "\n";
+        }
+      }
+    }
   */
 }

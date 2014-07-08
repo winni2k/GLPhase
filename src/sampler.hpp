@@ -36,11 +36,11 @@ public:
   // update proposal distribution based on the input haplotype set
   virtual void UpdatePropDistHaps(const std::vector<uint64_t> &haplotypes) = 0;
 
-  virtual void Save(std::string outputFile,
-                    std::vector<std::string> &sampNames) {
+  virtual void Save(const std::string &outputFile,
+                    const std::vector<std::string> &sampNames) {
     throw std::runtime_error(
-        "Attempted to save sampler state of " + std::to_string(sampNames.size()) +
-        " samples to file: " + outputFile +
+        "Attempted to save sampler state of " +
+        std::to_string(sampNames.size()) + " samples to file: " + outputFile +
         "\nHowever, no state worth saving was encountered");
   };
 };
@@ -53,14 +53,14 @@ public:
       : Sampler(rng, numSamples, numHaps) {};
 
   // perform uniform sampling to get hap
-  unsigned SampleHap(unsigned excludeInd);
+  unsigned SampleHap(unsigned excludeInd) override;
 
   // don't do any updating of the proposal distribution
   void UpdatePropDistProp(const std::vector<unsigned> &, unsigned, bool,
-                          float) {};
+                          float) override{};
 
   // don't do any updating of the proposal distribution
-  void UpdatePropDistHaps(const std::vector<uint64_t> &) {};
+  void UpdatePropDistHaps(const std::vector<uint64_t> &) override{};
 };
 
 /*
@@ -109,7 +109,7 @@ public:
                GraphSampT graphType);
 
   // returns a haplotype sampled using the sampler
-  unsigned SampleHap(unsigned excludeInd);
+  unsigned SampleHap(unsigned excludeInd) override;
 
   /*
     update proposal distribution based on the result of an MCMC (input)
@@ -122,14 +122,15 @@ public:
 
   void UpdatePropDistProp(const std::vector<unsigned> &propHaps,
                           unsigned updateIndNum, bool accepted,
-                          float penRatio = 1);
+                          float penRatio = 1) override;
 
   // update proposal distribution based on the input haplotype set
-  void UpdatePropDistHaps(const std::vector<uint64_t> &) {
+  void UpdatePropDistHaps(const std::vector<uint64_t> &) override {
     return;
   };
 
-  void Save(std::string fileName, const std::vector<std::string> &sampNames);
+  void Save(const std::string &fileName,
+            const std::vector<std::string> &sampNames) override;
 };
 
 #endif

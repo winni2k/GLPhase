@@ -67,7 +67,7 @@ MHType Insti::s_MHSamplerType = MHType::MH;
 // start clustering after simulated annealing burnin
 // need to reset this in main.cpp -- should really move to a better option
 // handling approach...
-unsigned Insti::s_uStartClusterGen = Insti::s_uNonSABurninGen;
+unsigned Insti::s_uStartClusterGen = Insti::s_uSABurninGen;
 
 Insti::Insti(InstiHelper::Init &init)
     : m_reclusterEveryNGen(init.reclusterEveryNGen),
@@ -76,6 +76,7 @@ Insti::Insti(InstiHelper::Init &init)
       m_initPhaseFromScaffold(init.initPhaseFromScaffold),
       m_tag(boost::uuids::random_generator()()) {
 
+  omp_set_num_threads(init.numThreads);
   // bounds check estimator input
   if (init.estimator < 4)
     m_estimator = init.estimator;
@@ -1429,7 +1430,7 @@ fast Insti::cudaSolve(HMMLike &hapSampler, unsigned sampleStride, fast pen) {
 
 // do a final round of haplotype estimation
 // this could be parallelized using threads perhaps? or an openmp pragma
-#pragma omp for
+#pragma omp parallel for
   for (unsigned sampNum = firstSampIdx; sampNum <= lastSampIdx; ++sampNum)
     hmm_work(sampNum, &propHaps[sampNum * 4], pen);
 
@@ -1500,17 +1501,21 @@ fast Insti::solve(unsigned I, unsigned N, fast pen,
     // log all proposals and individuals proposed
     if (s_bIsLogging) {
       stringstream message;
-      message << m_nIteration << "\t" << I << "\t" << prop << "\t";
-      for (unsigned i = 0; i < 4; ++i)
-        message << propHaps[i];
+      message << m_nIteration << "\t" << I << "\t" << prop;
       WriteToLog(message.str());
     }
 
     // do a MH acceptance of proposal
     mhSampler.SampleHap(propHaps[rp], oh, prop);
 
-    if (s_bIsLogging)
-      WriteToLog("\t" + sutils::uint2str(mhSampler.accepted()) + "\n");
+    if (s_bIsLogging) {
+      stringstream message;
+      message << "\t" << mhSampler.accepted();
+      for (unsigned i = 0; i < 4; ++i)
+        message << "\t" << propHaps[i];
+      message << "\n";
+      WriteToLog(message.str());
+    }
 
     // Update relationship graph with proportion pen
     sampler->UpdatePropDistProp(propHaps, mhSampler.accepted(), I, pen);
@@ -1557,7 +1562,7 @@ void Insti::estimate() {
           m_sampler = make_shared<KNN>(
               s_uNumClusters, (*m_scaffold.Haplotypes()),
               m_scaffold.NumWordsPerHap(), m_scaffold.NumSites(),
-              m_scaffoldFreqCutoff, rng);
+              m_scaffoldFreqCutoff, rng, Insti::s_clusterDistanceMetric);
         else
           throw myException(
               "kNN sampler with no scaffold is not implemented yet");
@@ -1629,6 +1634,17 @@ void Insti::estimate() {
   cout << m_tag << ":\titer\tpress\tlike\tfold\trunTime\texpectedRunTime"
        << endl;
 
+  // log sampler state
+  if (s_bIsLogging) {
+    assert(!m_sLogFile.empty());
+    try {
+      m_sampler->Save(m_sLogFile, name);
+    }
+    catch (exception &e) {
+      cerr << e.what() << endl;
+    }
+  }
+
   // n is number of cycles = burnin + sampling cycles
   // increase penalty from 2/bn to 1 as we go through burnin
   // iterations.
@@ -1644,7 +1660,8 @@ void Insti::estimate() {
         if (std::dynamic_pointer_cast<KNN>(iterationSampler)) {
           cout << m_tag << ":\tReclustering haplotypes\n";
           m_sampler = make_shared<KNN>(s_uNumClusters, haps, WN, NUMSITES,
-                                       m_scaffoldFreqCutoff, rng);
+                                       m_scaffoldFreqCutoff, rng,
+                                       Insti::s_clusterDistanceMetric);
           cout << m_tag << ":\tReclustering complete.\n";
         }
 
@@ -2193,7 +2210,7 @@ void Insti::document() {
           "(2)";
   cerr << "\n\t-o <name>\tPrefix to use for output files";
 
-  //    cerr << "\n\t-t <thread>     number of threads (0=MAX)";
+  cerr << "\n\t-P <thread>     number of threads (0=MAX,default=1)";
   cerr << "\n\t-v <vcf>        integrate known genotype in VCF format";
   cerr << "\n\t-c <conf>       confidence of known genotype (0.9998)";
   cerr << "\n\t-x <gender>     impute x chromosome data";
@@ -2231,8 +2248,8 @@ void Insti::document() {
           "number of haplotypes to keep)";
   cerr << "\n\t-T              Use shared tract length as distance metric for "
           "clustering";
-  cerr << "\n\t-r <integer>    Recluster every -r generations. Only works when -t=2";
-  
+  cerr << "\n\t-r <integer>    Recluster every -r generations. Only works when "
+          "-t=2";
 
   cerr << "\n\n    REFERENCE PANEL OPTIONS";
   cerr << "\n\t-H <file>       IMPUTE2 style HAP file";

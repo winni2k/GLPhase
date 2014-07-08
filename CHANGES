@@ -1,3 +1,14 @@
+1.4.11  Tue Jul 08 21:17:06 BST 2014
+        glVQ: increased training set size to entire set
+        added more omp parallelization
+        fixed bug in logging
+        fixed bug with -T option where tract length was not used before
+        logging now also logs sampler state
+        added support for reclustering
+        introduced threads option
+        fixed bug in tract length distance metric
+        added support for alpha-numeric version "numbers"
+
 1.4.5   Sun May 25 20:26:47 BST 2014
         GLs are now compressed using vector quantization (Lloyd's
         algorithm on a subset of GLs)

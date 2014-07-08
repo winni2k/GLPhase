@@ -149,7 +149,8 @@ void GraphSampler::UpdatePropDistProp(const vector<unsigned> &propHaps,
 // name should be a list of sample names that includes reference panel sample
 // names
 // fileName should be the basename for output
-void GraphSampler::Save(string fileName, const vector<string> &sampNames) {
+void GraphSampler::Save(const string &fileName,
+                        const vector<string> &sampNames) {
 
   cerr << "Saving Relationship graph to prefix " << fileName << " ..." << endl;
 
