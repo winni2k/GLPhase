@@ -4,4 +4,4 @@
         ignore = dirty
 [submodule "src/vcfPhasedBreakMulti"]
 	path = src/vcfPhasedBreakMulti
-	url = git@github.com:wkretzsch/vcfPhasedBreakMulti.git
+	url = https://github.com/wkretzsch/vcfPhasedBreakMulti.git
