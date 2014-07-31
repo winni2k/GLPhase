@@ -53,11 +53,18 @@ namespace InstiHelper {
 struct Init {
   unsigned estimator = 0;
   std::string scaffoldHapsFile;
-  std::string scaffoldSampleFile;   // location of scaffold sample file
-  double scaffoldFreqCutoff = 0.05; // cutoff MAF for what to fix in scaffold
+  std::string scaffoldSampleFile; // location of scaffold sample file
+  double scaffoldFreqLB =
+      0.05; // cutoff variant AF for what to cluster on in scaffold
+  double scaffoldFreqUB =
+      0.95; // cutoff variant AF for what to cluster in scaffold
+  bool scaffoldUsingMAF = false;
   bool initPhaseFromScaffold = false;
   size_t reclusterEveryNGen = 0; // 0 means don't recluster
   size_t numThreads = 1;
+
+  // genetic map file name
+  std::string geneticMap;
 };
 }
 // require c++11
@@ -99,7 +106,8 @@ private:
   const std::string m_scaffoldHapsFile;   // location of scaffold haps file
   const std::string m_scaffoldSampleFile; // location of scaffold sample file
   double m_scaffoldFreqCutoff; // cutoff MAF for what to fix in scaffold
-  bool m_initPhaseFromScaffold;
+  const bool m_initPhaseFromScaffold;
+  const InstiHelper::Init m_init;
 
   // holds chrom, start and end position, etc.
   Bio::Region m_runRegion;

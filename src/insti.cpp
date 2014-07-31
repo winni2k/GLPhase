@@ -73,7 +73,7 @@ Insti::Insti(InstiHelper::Init &init)
     : m_reclusterEveryNGen(init.reclusterEveryNGen),
       m_scaffoldHapsFile(init.scaffoldHapsFile),
       m_scaffoldSampleFile(init.scaffoldSampleFile),
-      m_initPhaseFromScaffold(init.initPhaseFromScaffold),
+      m_initPhaseFromScaffold(init.initPhaseFromScaffold), m_init(init),
       m_tag(boost::uuids::random_generator()()) {
 
   omp_set_num_threads(init.numThreads);
@@ -82,13 +82,6 @@ Insti::Insti(InstiHelper::Init &init)
     m_estimator = init.estimator;
   else
     throw std::runtime_error("[insti] Estimator needs to be less than 4");
-
-  // bounds check scaffold freq input
-  if (init.scaffoldFreqCutoff < 0 || init.scaffoldFreqCutoff > 1)
-    throw std::runtime_error(
-        "[insti] scaffold frequency cutoff needs to be in the range [0,1]");
-  else
-    m_scaffoldFreqCutoff = init.scaffoldFreqCutoff;
 }
 
 // return the probability of the model given the input haplotypes P and
@@ -1562,7 +1555,8 @@ void Insti::estimate() {
           m_sampler = make_shared<KNN>(
               s_uNumClusters, (*m_scaffold.Haplotypes()),
               m_scaffold.NumWordsPerHap(), m_scaffold.NumSites(),
-              m_scaffoldFreqCutoff, rng, Insti::s_clusterDistanceMetric);
+              m_init.scaffoldFreqLB, m_init.scaffoldFreqUB,
+              m_init.scaffoldUsingMAF, rng, Insti::s_clusterDistanceMetric);
         else
           throw myException(
               "kNN sampler with no scaffold is not implemented yet");
@@ -1659,9 +1653,10 @@ void Insti::estimate() {
       if ((m_nIteration - bn) % m_reclusterEveryNGen == 0)
         if (std::dynamic_pointer_cast<KNN>(iterationSampler)) {
           cout << m_tag << ":\tReclustering haplotypes\n";
-          m_sampler = make_shared<KNN>(s_uNumClusters, haps, WN, NUMSITES,
-                                       m_scaffoldFreqCutoff, rng,
-                                       Insti::s_clusterDistanceMetric);
+          m_sampler = make_shared<KNN>(
+              s_uNumClusters, haps, WN, NUMSITES, m_init.scaffoldFreqLB,
+              m_init.scaffoldFreqUB, m_init.scaffoldUsingMAF, rng,
+              Insti::s_clusterDistanceMetric);
           cout << m_tag << ":\tReclustering complete.\n";
         }
 
@@ -2259,8 +2254,15 @@ void Insti::document() {
   cerr << "\n\n    SCAFFOLD OPTIONS";
   cerr << "\n\t-h <file>       WTCCC style HAPS file";
   cerr << "\n\t-s <file>       WTCCC style SAMPLE file";
-  cerr << "\n\t-q <float>      Minor allele frequency ([0-1], default 0.05) "
-          "above which sites are fixed (using -c) according to scaffold.";
+  cerr << "\n\t-q <float>      Lower bound of variant allele frequency ([0-1], "
+          "default 0.05) "
+          "above which sites are used for clustering from scaffold.";
+  cerr << "\n\t-Q <float>      Upper bound of variant allele frequency ([0-1], "
+          "default 0.05) "
+          "below which sites are used for clustering from scaffold.";
+  cerr << "\n\t-a              Use minor allele frequency instead of variant "
+          "allele frequency for clustering and applying -q and -Q."
+          "below which sites are used for clustering from scaffold.";
   cerr << "\n\t-f              Fix phase according to scaffold (default off).";
   cerr << "\n\n";
   exit(1);

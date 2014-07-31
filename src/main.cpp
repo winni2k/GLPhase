@@ -47,7 +47,8 @@ int main(int ac, char **av) {
     bool optMSet = false;
     while ((opt = getopt(
                 ac, av,
-                "Vd:l:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:fo:DTr:P:")) >= 0) {
+                "Vd:l:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:Q:fo:DTr:P:a")) >=
+           0) {
       switch (opt) {
       case 'd':
         Impute::density = atof(optarg);
@@ -137,7 +138,13 @@ int main(int ac, char **av) {
         init.scaffoldSampleFile = optarg;
         break;
       case 'q':
-        init.scaffoldFreqCutoff = std::stod(optarg);
+        init.scaffoldFreqLB = std::stod(optarg);
+        break;
+      case 'Q':
+        init.scaffoldFreqUB = std::stod(optarg);
+        break;
+      case 'a':
+        init.scaffoldUsingMAF = true;
         break;
       case 'f':
         init.initPhaseFromScaffold = true;

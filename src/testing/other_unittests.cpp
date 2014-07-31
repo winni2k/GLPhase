@@ -161,7 +161,7 @@ TEST(KNN, clustersOK) {
       cerr << endl;
       }*/
 
-  KNN kNN(numClusters, passHaps, 1, numSites, 0, rng);
+  KNN kNN(numClusters, passHaps, 1, numSites, 0, 1, false, rng);
 
   // check to make sure kNN has the haps stored correctly
   vector<unsigned> neighborHapNums = kNN.Neighbors(0);
@@ -231,7 +231,7 @@ TEST(KNN, clustersOK) {
   for (unsigned j = 0; j < shuffledIndexes.size(); j++)
     passHaps.push_back(haplotypes[shuffledIndexes[j]].GetWord(0));
 
-  KNN kNN2(numClusters, passHaps, 1, numSites, 0.4375, rng);
+  KNN kNN2(numClusters, passHaps, 1, numSites, 0.4375, 1, false, rng);
 
   // check to make sure variant allele freqs are calculated correctly
   vector<double> varAfs;
@@ -391,4 +391,3 @@ TEST(MHSampler, DRMHSamplesArrayOK) {
   EXPECT_EQ(10, hapNums[3]);
   EXPECT_EQ(4, hapNums[0]);
 }
-

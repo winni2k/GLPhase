@@ -46,28 +46,31 @@ private:
   kNNDistT m_distMetric;
 
   // scaffold data
-  double m_freqCutoff = -2;
-  std::vector<double> m_vdVarAfs;
+  const double m_freqLB; // lower bound
+  const double m_freqUB; // upper bound
+  const bool m_usingMAF;
+  std::vector<double> m_varAFs;
   std::vector<unsigned> m_vuCommonSiteNums;
+  const bool m_usingScaffold = false;
 
   // stores the list of haplotypes that are closest to each sample
   // sample then hap
   std::vector<std::vector<unsigned> > m_neighbors;
-//  std::vector<std::vector<KNNhelper::dist> > m_distsHapA;
-//  std::vector<std::vector<KNNhelper::dist> > m_distsHapB;
+  //  std::vector<std::vector<KNNhelper::dist> > m_distsHapA;
+  //  std::vector<std::vector<KNNhelper::dist> > m_distsHapB;
 
   void CalculateVarAfs(const std::vector<uint64_t> &vuScaffoldHaps);
   void CutDownHaps();
   void AssignHap(Haplotype &hHap, const uint64_t *oa);
-  bool UsingScaffold() { return (m_freqCutoff >= 0 && m_freqCutoff <= 1); }
+  bool UsingScaffold() { return m_usingScaffold; }
 
 public:
   KNN(unsigned numClust, const std::vector<uint64_t> &vuHaplotypes,
-      unsigned numWordsPerHap, unsigned numSites, double freqCutoff,
-      gsl_rng *rng, kNNDistT distMetric = kNNDistT::hamming);
+      unsigned numWordsPerHap, unsigned numSites, double freqLB, double freqUB,
+      bool usingMAF, gsl_rng *rng, kNNDistT distMetric = kNNDistT::hamming);
 
   // returns a haplotype sampled uniformly from k-nearest neighbors
-  unsigned SampleHap(unsigned uInd);
+  unsigned SampleHap(unsigned uInd) override;
 
   // update proposal distribution based on the result of an MCMC proposal
   // (input)
@@ -87,7 +90,7 @@ public:
   }
 
   // return the calculated variant allele frequencies
-  void VarAfs(std::vector<double> &returnVarAfs) { returnVarAfs = m_vdVarAfs; }
+  void VarAfs(std::vector<double> &returnVarAfs) { returnVarAfs = m_varAFs; }
 
   void ClusterHaps(const std::vector<uint64_t> &vuHaplotypes);
 

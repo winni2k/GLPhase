@@ -6,13 +6,29 @@ using namespace KNNhelper;
 
 // initialization for kNN clustering
 KNN::KNN(unsigned numClust, const std::vector<uint64_t> &haplotypes,
-         unsigned numWordsPerHap, unsigned numSites, double freqCutoff,
-         gsl_rng *rng, kNNDistT distMetric)
+         unsigned numWordsPerHap, unsigned numSites, double freqLB,
+         double freqUB, bool usingMAF, gsl_rng *rng, kNNDistT distMetric)
     : Sampler(rng, haplotypes.size() / numWordsPerHap / 2,
               haplotypes.size() / numWordsPerHap),
       m_numWordsPerHap(numWordsPerHap), m_numSites(numSites),
-      m_numClusters(numClust), m_distMetric(distMetric),
-      m_freqCutoff(freqCutoff) {
+      m_numClusters(numClust), m_distMetric(distMetric), m_freqLB(freqLB),
+      m_freqUB(freqUB), m_usingMAF(usingMAF), m_usingScaffold(true) {
+
+    // check bounds 
+  if (m_freqLB < 0)
+    throw std::range_error("[KNN] freq lower bound is less than 0: " +
+                           to_string(m_freqLB));
+  if (m_usingMAF)
+    if (m_freqUB > 0.5)
+      throw std::range_error("[KNN] freq upper bound is greater than 0.5: " +
+                             to_string(m_freqUB));
+    else if (freqUB > 1)
+      throw std::range_error("[KNN] freq upper bound is greater than 0.5: " +
+                             to_string(m_freqUB));
+  if (m_freqLB > m_freqUB)
+    throw std::range_error("[KNN] freq upper bound(" + to_string(m_freqUB) +
+                           ") less than lower bound(" + to_string(m_freqLB) +
+                           ")");
 
   assert(haplotypes.size() == m_numHaps * m_numWordsPerHap);
 
@@ -198,18 +214,21 @@ void KNN::AssignHap(Haplotype &hHap, const uint64_t *oa) {
 void KNN::CutDownHaps() {
 
   for (unsigned uPosNum = 0; uPosNum < m_numSites; uPosNum++) {
-    if (m_vdVarAfs[uPosNum] >= m_freqCutoff)
+    double AF = m_varAFs[uPosNum];
+    if (m_usingMAF)
+      AF = abs(abs(AF - 0.5) - 0.5);
+    if (AF >= m_freqLB && AF <= m_freqUB)
       m_vuCommonSiteNums.push_back(uPosNum);
   }
 }
 
 /*
   calculate the variant allele frequency from scaffold for each position and
-  store it in m_vdVarAfs
+  store it in m_varAFs
 */
 void KNN::CalculateVarAfs(const vector<uint64_t> &vuScaffoldHaps) {
 
-  m_vdVarAfs.resize(m_numSites);
+  m_varAFs.resize(m_numSites);
   Haplotype hTestHap(m_numSites);
 
   //    cout << "num words per hap: " << m_numWordsPerHap << endl;
@@ -225,7 +244,7 @@ void KNN::CalculateVarAfs(const vector<uint64_t> &vuScaffoldHaps) {
 
     //        cout << "alternate allele count: " << uAltAllNum << endl;
 
-    m_vdVarAfs[uPosNum] = static_cast<double>(uAltAllNum) / m_numHaps;
+    m_varAFs[uPosNum] = static_cast<double>(uAltAllNum) / m_numHaps;
   }
 
   /*    for(unsigned i = 0; i < m_numHaps; i++){
