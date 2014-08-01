@@ -1264,7 +1264,9 @@ void Insti::initialize() {
     // replaced ad-hoc genetic distance estimate by genetic map
     //    posi[m] = (posi[m] - posi[m - 1]) * rho;
     //    fast r = posi[m] / (posi[m] + hn);
-    const float r = m_geneticMap.GeneticDistance(posi[m - 1], posi[m]);
+    // genetic distance is in centiMorgans
+    float r = m_geneticMap.GeneticDistance(posi[m - 1], posi[m]) / 100;
+    r = r <= 1 ? r : 1;
 
     //  4 state HMM with three transitions at each position
     // for each position, transition.  r= recombination,
@@ -2206,7 +2208,8 @@ void Insti::document() {
   cerr << "\nhaplotype imputation by cFDSL distribution";
   cerr << "\nAuthor\tYi Wang @ Fuli Yu' Group @ BCM-HGSC";
   cerr << "\n\nusage\timpute [options] 1.bin 2.bin ...";
-//  cerr << "\n\t-d <density>    relative SNP density to Sanger sequencing (1)";
+  //  cerr << "\n\t-d <density>    relative SNP density to Sanger sequencing
+  // (1)";
 
   //    cerr << "\n\t-b <burn>       burn-in generations (56)";
   cerr << "\n\t-l <file>       list of input files";
@@ -2220,7 +2223,7 @@ void Insti::document() {
   cerr << "\n\t-x <gender>     impute x chromosome data";
   cerr << "\n\t-e <file>       write log to file";
   cerr << "\n\t-g <file>       genetic map (required)";
-  
+
   cerr << "\n\n    GENERATION OPTIONS";
   cerr << "\n\t-m <mcmc>       sampling generations (200)";
   cerr << "\n\t-C <integer>    number of cycles to estimate an individual's "
