@@ -85,6 +85,16 @@ Insti::Insti(InstiHelper::Init &init)
         "[insti] scaffold frequency cutoff needs to be in the range [0,1]");
   else
     m_scaffoldFreqCutoff = init.scaffoldFreqCutoff;
+
+  // load input GLs according to file type
+  std::regex vcfNames("^(bcf|bcfgz|vcf|vcfgz)$");
+  if (init.inputGLFileType == "bin")
+    load_bin(init.inputGLFile);
+  else if (std::regex_search(init.inputGLFileType, vcfNames));
+//    LoadBCF(init.inputGLFile);
+  else
+    throw std::runtime_error("Unknown GL file type specified: " +
+                             init.inputGLFileType);
 }
 
 // return the probability of the model given the input haplotypes P and
@@ -2173,7 +2183,6 @@ void Insti::document() {
   cerr << "\n\t-d <density>    relative SNP density to Sanger sequencing (1)";
 
   //    cerr << "\n\t-b <burn>       burn-in generations (56)";
-  cerr << "\n\t-l <file>       list of input files";
   cerr << "\n\t-n <fold>       sample size*fold of nested MH sampler "
           "iteration "
           "(2)";

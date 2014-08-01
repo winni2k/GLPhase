@@ -29,6 +29,7 @@
 #include <boost/uuid/uuid_generators.hpp> // generators
 #include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
 #include <boost/algorithm/string.hpp>
+#include <regex>
 #include <cfloat>
 #include "tabix.hpp"
 #include "vcf_parser.hpp"
@@ -55,6 +56,8 @@ struct Init {
   std::string scaffoldSampleFile;   // location of scaffold sample file
   double scaffoldFreqCutoff = 0.05; // cutoff MAF for what to fix in scaffold
   bool initPhaseFromScaffold = false;
+  std::string inputGLFile = ""; 
+  std::string inputGLFileType = "bin"; // default is snptools binary
 };
 }
 // require c++11

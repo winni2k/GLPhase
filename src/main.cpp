@@ -40,15 +40,14 @@ int main(int ac, char **av) {
     Impute::is_y = false;
 
     //    uint threads = 0;
-    vector<string> file;
     string outBase;
 
     string sLogFile;
     int opt;
     bool optMSet = false;
     while ((opt = getopt(
-                ac, av, "Vd:l:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:fo:DT")) >=
-           0) {
+                ac, av,
+                "Vd:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:fo:DTF:")) >= 0) {
       switch (opt) {
       case 'd':
         Impute::density = atof(optarg);
@@ -72,13 +71,6 @@ int main(int ac, char **av) {
         Impute::is_x = true;
         Impute::gender(optarg);
         break;
-      case 'l': {
-        char temp[256];
-        FILE *f = fopen(optarg, "rt");
-        while (fscanf(f, "%s", temp) != EOF)
-          file.push_back(temp);
-        fclose(f);
-      } break;
       case 'e':
         Insti::s_bIsLogging = true;
         sLogFile = optarg;
@@ -153,6 +145,9 @@ int main(int ac, char **av) {
       case 'T':
         Insti::s_clusterDistanceMetric = kNNDistT::tracLen;
         break;
+      case 'F':
+        init.inputGLFileType = optarg;
+        break;
       default:
         Insti::document();
       }
@@ -174,81 +169,58 @@ int main(int ac, char **av) {
       }
     }
 
-    //    if (threads) omp_set_num_threads(threads);
-    // read in files
-    for (int i = optind; i < ac; i++)
-      file.push_back(av[i]);
-    sort(file.begin(), file.end());
-    uint fn = unique(file.begin(), file.end()) - file.begin();
-    if (!fn)
-      cerr << "input files are not unique";
-
     // Die if more than one file was specified on command line
-    if (fn != 1) {
-      cerr << endl << "INSTI only accepts one input .bin file" << endl << endl;
+    if(ac - optind != 1){
+      cerr << endl << "INSTI only accepts one input GL file" << endl << endl;
       Insti::document();
     }
+    init.inputGLFile = av[optind];
+    
+    // keep track of time - these things are important!
+    timeval sta, end;
+    gettimeofday(&sta, NULL);
 
-    //#pragma omp parallel for
-    for (uint i = 0; i < fn; i++) {
+    // create an Insti instance!
+    Insti lp(init);
 
-      // keep track of time - these things are important!
-      timeval sta, end;
-      gettimeofday(&sta, NULL);
+    if (Insti::s_bIsLogging)
+      lp.SetLog(sLogFile);
 
-      // create an Insti instance!
-      Insti lp(init);
+    // print date to start of log
+    auto tt =
+        std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    stringstream log;
+    log << ctime(&tt) << endl;
+    lp.WriteToLog(log.str());
 
-      if (Insti::s_bIsLogging)
-        lp.SetLog(sLogFile);
+    for (uint j = 0; j < Impute::vcf_file.size(); j++)
+      cerr << Impute::vcf_file[j] << '\t'
+           << lp.load_vcf(Impute::vcf_file[j].c_str()) << endl;
+    cerr << lp.m_tag << ": initializing..\n";
 
-      // print date to start of log
-      auto tt = std::chrono::system_clock::to_time_t(
-          std::chrono::system_clock::now());
-      stringstream log;
-      log << ctime(&tt) << endl;
-      lp.WriteToLog(log.str());
+    lp.initialize();
+    cerr << lp.m_tag << ": estimating..\n";
 
-      // load gls
-      // add a reserve of space
-      try {
-        lp.load_bin(file[i]);
-      }
-      catch (std::exception &e) {
-        cerr << "[main] While loading .bin file: " << file[i] << endl
-             << e.what() << endl;
-        exit(1);
-      }
+    // choose which estimation method to use
+    lp.estimate();
 
-      for (uint j = 0; j < Impute::vcf_file.size(); j++)
-        cerr << Impute::vcf_file[j] << '\t'
-             << lp.load_vcf(Impute::vcf_file[j].c_str()) << endl;
-      cerr << lp.m_tag << ": initializing..\n";
+    // save results of estimation
+    if (outBase.empty())
+      outBase = init.inputGLFile;
 
-      lp.initialize();
-      cerr << lp.m_tag << ": estimating..\n";
-
-      // choose which estimation method to use
-      lp.estimate();
-
-      // save results of estimation
-      if (outBase.empty())
-        outBase = file[i];
-
-      lp.save_vcf(outBase.c_str(), commandLine.str());
-      try {
-        lp.save_relationship_graph(outBase);
-      }
-      catch (exception &e) {
-        cerr << e.what() << endl;
-      }
-
-      // printing out run time
-      gettimeofday(&end, NULL);
-      cerr << lp.m_tag << ": time\t"
-           << end.tv_sec - sta.tv_sec + 1e-6 * (end.tv_usec - sta.tv_usec)
-           << endl << endl;
+    lp.save_vcf(outBase.c_str(), commandLine.str());
+    try {
+      lp.save_relationship_graph(outBase);
     }
+    catch (exception &e) {
+      cerr << e.what() << endl;
+    }
+
+    // printing out run time
+    gettimeofday(&end, NULL);
+    cerr << lp.m_tag << ": time\t"
+         << end.tv_sec - sta.tv_sec + 1e-6 * (end.tv_usec - sta.tv_usec) << endl
+         << endl;
   }
   catch (exception &e) {
     cerr << e.what() << endl;
