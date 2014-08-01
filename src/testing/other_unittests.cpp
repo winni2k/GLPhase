@@ -3,6 +3,7 @@
 #include "haplotype.hpp"
 #include "kNN.hpp"
 #include "MHSampler.hpp"
+#include "geneticMap.hpp"
 #include <algorithm>
 #include <gsl/gsl_rng.h>
 #include <utility>
@@ -47,6 +48,8 @@ string brokenHapsSampSample =
 string unsortedRefHaps =
     sampleDir +
     "/20_0_62000000.011976121_012173018.paste.onlyThree.unsorted.haps";
+string geneticMap =
+    sampleDir + "/geneticMap/genetic_map_chr20_combined_b37.txt";
 
 gsl_rng *rng = gsl_rng_alloc(gsl_rng_default);
 
@@ -390,4 +393,40 @@ TEST(MHSampler, DRMHSamplesArrayOK) {
   EXPECT_FALSE(mhSampler.SampleHap(hapNums[0], 4, 1.99 * curr));
   EXPECT_EQ(10, hapNums[3]);
   EXPECT_EQ(4, hapNums[0]);
+}
+
+TEST(GeneticMap, errorOK) {
+
+  GeneticMap gmap(geneticMap);
+  ASSERT_ANY_THROW(gmap.GeneticDistance(1140749, 1140727));  // order ok
+  ASSERT_ANY_THROW(gmap.GeneticDistance(0, 1140727));        // out of bounds
+  ASSERT_ANY_THROW(gmap.GeneticDistance(1140727, 70000000)); // out of bounds
+}
+
+TEST(GeneticMap, locationOK) {
+
+  GeneticMap gmap(geneticMap);
+  EXPECT_DOUBLE_EQ(5.49294973985857, gmap.GeneticLocation(1140749));
+  EXPECT_DOUBLE_EQ(5.49294697413266, gmap.GeneticLocation(1140727));
+  EXPECT_DOUBLE_EQ(5.49294697413266 +
+                       (5.49294973985857 - 5.49294697413266) * 3 / 22,
+                   gmap.GeneticLocation(1140730));
+}
+
+TEST(GeneticMap, distanceOK) {
+
+  GeneticMap gmap(geneticMap);
+  // no interpolation
+  EXPECT_DOUBLE_EQ(5.49294973985857 - 5.49294697413266,
+                   gmap.GeneticDistance(1140727, 1140749));
+  EXPECT_DOUBLE_EQ(5.49294697413266, gmap.GeneticDistance(61795, 1140727));
+  EXPECT_DOUBLE_EQ(110.205396293913, gmap.GeneticDistance(61795, 62949445));
+  EXPECT_DOUBLE_EQ(104.71244931978034, gmap.GeneticDistance(1140727, 62949445));
+
+  // interpolation of one site
+  EXPECT_NEAR((5.49294973985857 - 5.49294697413266) / 22 * 5,
+              gmap.GeneticDistance(1140727, 1140732), 1e-9);
+  EXPECT_NEAR((5.49294697413266 - 5.49291291069285) / 270 * 220 +
+                  (5.49294973985857 - 5.49294697413266) / 22 * 5,
+              gmap.GeneticDistance(1140507, 1140732), 1e-8);
 }

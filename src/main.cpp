@@ -34,7 +34,7 @@ int main(int ac, char **av) {
 
     Impute::sn = 200;
     Impute::nn = 2;
-    Impute::density = 1.0;
+    Impute::density = 1.0; // this is not used anymore
     Impute::conf = 0.9998;
     Impute::is_x = false;
     Impute::is_y = false;
@@ -47,20 +47,21 @@ int main(int ac, char **av) {
     bool optMSet = false;
     while ((opt = getopt(
                 ac, av,
-                "Vd:l:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:Q:fo:DTr:P:a")) >=
+                "Vl:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:Q:fo:DTr:P:ag:")) >=
            0) {
       switch (opt) {
-      case 'd':
-        Impute::density = atof(optarg);
-        break;
-      /*        case 'b':
-                  Impute::bn = atoi(optarg);
-                  break; */
+
+      /*      case 'd':
+              Impute::density = atof(optarg);
+              break;
+                    case 'b':
+                        Impute::bn = stoul(optarg);
+                        break; */
       case 'm':
-        Impute::sn = atoi(optarg);
+        Impute::sn = stoul(optarg);
         break;
       case 'n':
-        Impute::nn = atoi(optarg);
+        Impute::nn = stoul(optarg);
         break;
       case 'v':
         Impute::vcf_file.push_back(optarg);
@@ -84,24 +85,25 @@ int main(int ac, char **av) {
         sLogFile = optarg;
         break;
       case 'E':
-        init.estimator = atoi(optarg);
+        init.estimator = stoul(optarg);
         if (init.estimator > 3) {
           cerr << "-E needs to be between 0 and 3" << endl;
           Insti::document();
         }
         break;
+
       case 'D':
         Insti::s_MHSamplerType = MHType::DRMH;
         break;
       case 'p': {
-        uint uP = atoi(optarg);
+        uint uP = stoul(optarg);
         if (uP < 2)
           Insti::document();
         Insti::s_uParallelChains = uP;
         break;
       }
       case 'C':
-        Insti::s_uCycles = atoi(optarg);
+        Insti::s_uCycles = stoul(optarg);
         break;
       case 'L':
         Insti::s_sRefLegendFile = optarg;
@@ -113,22 +115,22 @@ int main(int ac, char **av) {
         Insti::s_bKickStartFromRef = true;
         break;
       case 'P':
-        init.numThreads = atoi(optarg);
+        init.numThreads = stoul(optarg);
         break;
       case 'K':
-        Insti::s_uNumClusters = atoi(optarg);
+        Insti::s_uNumClusters = stoul(optarg);
         break;
       case 't':
-        Insti::s_uClusterType = atoi(optarg);
+        Insti::s_uClusterType = stoul(optarg);
         break;
       case 'B':
-        Insti::s_uSABurninGen = atoi(optarg);
+        Insti::s_uSABurninGen = stoul(optarg);
         break;
       case 'i':
-        Insti::s_uNonSABurninGen = atoi(optarg);
+        Insti::s_uNonSABurninGen = stoul(optarg);
         break;
       case 'M':
-        Insti::s_uStartClusterGen = atoi(optarg);
+        Insti::s_uStartClusterGen = stoul(optarg);
         optMSet = true;
         break;
       case 'h':
@@ -159,7 +161,10 @@ int main(int ac, char **av) {
         Insti::s_clusterDistanceMetric = kNNDistT::tracLen;
         break;
       case 'r':
-        init.reclusterEveryNGen = atoi(optarg);
+        init.reclusterEveryNGen = stoul(optarg);
+        break;
+      case 'g':
+        init.geneticMap = optarg;
         break;
       default:
         Insti::document();

@@ -73,7 +73,8 @@ Insti::Insti(InstiHelper::Init &init)
     : m_reclusterEveryNGen(init.reclusterEveryNGen),
       m_scaffoldHapsFile(init.scaffoldHapsFile),
       m_scaffoldSampleFile(init.scaffoldSampleFile),
-      m_initPhaseFromScaffold(init.initPhaseFromScaffold), m_init(init),
+      m_initPhaseFromScaffold(init.initPhaseFromScaffold),
+      m_geneticMap(init.geneticMap), m_init(init),
       m_tag(boost::uuids::random_generator()()) {
 
   omp_set_num_threads(init.numThreads);
@@ -1240,13 +1241,17 @@ void Insti::initialize() {
   // If S is a harmonic series of length hn (number of haplotypes),
   // then mu = 1/S ( hn + 1/S)
   // initialize recombination rate rho based on SNP density
-  fast mu = 0, rho;
+  fast mu = 0; //, rho;
 
   for (unsigned i = 1; i < hn; i++)
     mu += 1.0 / i;
 
+  // mu * (mn-1) looks like the Watterson estimator of the population mutation
+  // rate theta
+  // 0.5 / (posi[mn - 1] - posi[0]) / density looks like a correction for finite
+  // sites
   mu = 1 / mu;
-  rho = 0.5 * mu * (mn - 1) / (posi[mn - 1] - posi[0]) / density;
+  //  rho = 0.5 * mu * (mn - 1) / (posi[mn - 1] - posi[0]) / density;
   mu = mu / (hn + mu); // rho is recombination rate?  mu is mutation rate
 
   // initialzie the site transition matrix tran
@@ -1255,13 +1260,18 @@ void Insti::initialize() {
   // tran is a site's recombination probability matrix
   // r therefore must be a recombination rate estimate
   for (unsigned m = mn - 1; m; m--) {
-    posi[m] = (posi[m] - posi[m - 1]) * rho;
-    fast r = posi[m] / (posi[m] + hn);
+
+    // replaced ad-hoc genetic distance estimate by genetic map
+    //    posi[m] = (posi[m] - posi[m - 1]) * rho;
+    //    fast r = posi[m] / (posi[m] + hn);
+    const float r = m_geneticMap.GeneticDistance(posi[m - 1], posi[m]);
+
+    //  4 state HMM with three transitions at each position
+    // for each position, transition.  r= recombination,
+    // 1-r= no recombination
     tran[m * 3] = (1 - r) * (1 - r);
     tran[m * 3 + 1] = r * (1 - r);
-    tran[m * 3 + 2] = r * r; // for each position, transition.  r= alternative,
-                             // 1-r= refrence? 4 state HMM with three
-                             // transitions at each position
+    tran[m * 3 + 2] = r * r;
   }
 
   // initialize site mutation probability matrix
@@ -2196,7 +2206,7 @@ void Insti::document() {
   cerr << "\nhaplotype imputation by cFDSL distribution";
   cerr << "\nAuthor\tYi Wang @ Fuli Yu' Group @ BCM-HGSC";
   cerr << "\n\nusage\timpute [options] 1.bin 2.bin ...";
-  cerr << "\n\t-d <density>    relative SNP density to Sanger sequencing (1)";
+//  cerr << "\n\t-d <density>    relative SNP density to Sanger sequencing (1)";
 
   //    cerr << "\n\t-b <burn>       burn-in generations (56)";
   cerr << "\n\t-l <file>       list of input files";
@@ -2204,12 +2214,13 @@ void Insti::document() {
           "iteration "
           "(2)";
   cerr << "\n\t-o <name>\tPrefix to use for output files";
-
   cerr << "\n\t-P <thread>     number of threads (0=MAX,default=1)";
   cerr << "\n\t-v <vcf>        integrate known genotype in VCF format";
   cerr << "\n\t-c <conf>       confidence of known genotype (0.9998)";
   cerr << "\n\t-x <gender>     impute x chromosome data";
   cerr << "\n\t-e <file>       write log to file";
+  cerr << "\n\t-g <file>       genetic map (required)";
+  
   cerr << "\n\n    GENERATION OPTIONS";
   cerr << "\n\t-m <mcmc>       sampling generations (200)";
   cerr << "\n\t-C <integer>    number of cycles to estimate an individual's "

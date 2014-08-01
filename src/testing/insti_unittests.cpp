@@ -37,7 +37,8 @@ string scaffoldHap =
 string scaffoldHaps =
     sampleDir + "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted.haps";
 string scaffoldTabHaps =
-    sampleDir + "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted.tabhaps.gz";
+    sampleDir +
+    "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted.tabhaps.gz";
 string scaffoldVCFGZ =
     sampleDir +
     "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted.vcf.gz";
@@ -55,11 +56,15 @@ string unsortedRefHaps =
     sampleDir +
     "/20_0_62000000.011976121_012173018.paste.onlyThree.unsorted.haps";
 
+string geneticMap =
+    sampleDir + "/geneticMap/genetic_map_chr20_combined_b37.txt";
+
 gsl_rng *rng = gsl_rng_alloc(gsl_rng_default);
 
 TEST(Insti, loadBin) {
 
   InstiHelper::Init init;
+  init.geneticMap = geneticMap;
   Insti lp(init);
   lp.load_bin(sampleBin);
 
@@ -144,6 +149,7 @@ TEST(Insti, loadBin) {
 TEST(Insti, loadHapsSamp) {
 
   InstiHelper::Init init;
+  init.geneticMap = geneticMap;
   Insti lp(init);
   lp.load_bin(sampleBin);
   lp.initialize();
@@ -234,7 +240,7 @@ TEST(Insti, loadHapsSamp) {
               "Number of haplotypes in haps file is 0.  Haps file empty?");
 
   // test the scaffold loading using tabhaps
-    // unordered haps test
+  // unordered haps test
   Insti lp4(init);
   lp4.load_bin(sampleBin);
   lp4.initialize();
@@ -263,12 +269,12 @@ TEST(Insti, loadHapsSamp) {
     EXPECT_EQ(1, lp4.TestScaffoldSite(2, i));
     EXPECT_EQ(0, lp4.TestScaffoldSite(3, i));
   }
-
 }
 
 TEST(Insti, loadHapLegSampErrors) {
 
   InstiHelper::Init init;
+  init.geneticMap = geneticMap;
   Insti lp(init);
   lp.load_bin(sampleBin);
   lp.initialize();
@@ -294,6 +300,7 @@ TEST(Insti, loadHapLegSampErrors) {
 
 TEST(Insti, initializingHapsFromScaffold) {
   InstiHelper::Init init;
+  init.geneticMap = geneticMap;
   init.scaffoldHapsFile = scaffoldHaps;
   init.initPhaseFromScaffold = true;
   init.scaffoldSampleFile = scaffHapsSampSample;
@@ -330,6 +337,7 @@ TEST(Insti, LoadVCFGZ) {
   string region = "20:43281-61958963";
 
   InstiHelper::Init init;
+  init.geneticMap = geneticMap;
   Insti lp(init);
   lp.load_bin(sampleBin);
   lp.initialize();

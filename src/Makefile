@@ -7,12 +7,12 @@ BDIR := ../bin
 VERSION := $(shell grep VERSION_MAJOR version.hpp | cut -f3 -d' ').$(shell grep VERSION_MINOR version.hpp | cut -f3 -d' ').$(shell grep VERSION_REVISION version.hpp | cut -f3 -d' ')
 
 # object and header files are defined here
-OBJECT_FILES := main.o impute.o insti.o emcchain.o olivier/utils.o haplotype.o kMedoids.o kNN.o hapPanel.o sampler.o glPack.o tabixpp/tabix.o glVQ.o
+OBJECT_FILES := main.o impute.o insti.o emcchain.o olivier/utils.o haplotype.o kMedoids.o kNN.o hapPanel.o sampler.o glPack.o tabixpp/tabix.o glVQ.o geneticMap.o
 ifndef NCUDA
 OBJECT_FILES += hmmLike.cu.o allCuda.link.o hmmLike.o
 endif
 
-HEADER_FILES := insti.hpp.gch impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch version.hpp.gch bio.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch sampler.hpp.gch tabixpp/tabix.hpp.gch globals.h glVQ.hpp
+HEADER_FILES := insti.hpp.gch impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch version.hpp.gch bio.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch sampler.hpp.gch tabixpp/tabix.hpp.gch globals.h glVQ.hpp geneticMap.hpp.gch
 ifndef NCUDA
 HEADER_FILES += hmmLike.hpp.gch
 endif
@@ -125,7 +125,10 @@ kMedoids.hpp.gch: kMedoids.hpp haplotype.hpp.gch sampler.hpp.gch
 MHSampler.hpp.gch: MHSampler.hpp olivier/utils.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
-INSTIHEADERPRE :=insti.hpp impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch sampler.hpp.gch version.hpp.gch bio.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch kNN.hpp.gch kMedoids.hpp.gch glPack.hpp.gch tabixpp/tabix.hpp.gch 
+geneticMap.hpp.gch: geneticMap.hpp olivier/utils.hpp.gch
+	$(CXX) $(CXXFLAGS) -x c++-header $<
+
+INSTIHEADERPRE :=insti.hpp impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch sampler.hpp.gch version.hpp.gch bio.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch kNN.hpp.gch kMedoids.hpp.gch glPack.hpp.gch tabixpp/tabix.hpp.gch geneticMap.hpp.gch
 
 ifndef NCUDA
 INSTIHEADERPRE += hmmLike.hpp.gch

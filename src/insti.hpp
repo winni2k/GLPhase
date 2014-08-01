@@ -35,6 +35,7 @@
 #include "bio.hpp"
 #include "globals.h"
 #include <omp.h>
+#include "geneticMap.hpp"
 
 #ifndef NCUDA
 #include "hmmLike.hpp"
@@ -107,6 +108,7 @@ private:
   const std::string m_scaffoldSampleFile; // location of scaffold sample file
   double m_scaffoldFreqCutoff; // cutoff MAF for what to fix in scaffold
   const bool m_initPhaseFromScaffold;
+  GeneticMap m_geneticMap;
   const InstiHelper::Init m_init;
 
   // holds chrom, start and end position, etc.

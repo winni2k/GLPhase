@@ -14,17 +14,18 @@ KNN::KNN(unsigned numClust, const std::vector<uint64_t> &haplotypes,
       m_numClusters(numClust), m_distMetric(distMetric), m_freqLB(freqLB),
       m_freqUB(freqUB), m_usingMAF(usingMAF), m_usingScaffold(true) {
 
-    // check bounds 
+  // check bounds
   if (m_freqLB < 0)
     throw std::range_error("[KNN] freq lower bound is less than 0: " +
                            to_string(m_freqLB));
-  if (m_usingMAF)
+  if (m_usingMAF) {
     if (m_freqUB > 0.5)
       throw std::range_error("[KNN] freq upper bound is greater than 0.5: " +
                              to_string(m_freqUB));
     else if (freqUB > 1)
       throw std::range_error("[KNN] freq upper bound is greater than 0.5: " +
                              to_string(m_freqUB));
+  }
   if (m_freqLB > m_freqUB)
     throw std::range_error("[KNN] freq upper bound(" + to_string(m_freqUB) +
                            ") less than lower bound(" + to_string(m_freqLB) +
