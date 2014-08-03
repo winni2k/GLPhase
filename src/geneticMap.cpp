@@ -49,8 +49,7 @@ double GeneticMap::GeneticLocation(unsigned genomLoc) {
   assert(!m_sortedMap.empty());
   if (genomLoc < m_sortedMap.front().first ||
       genomLoc > m_sortedMap.back().first)
-    throw std::runtime_error("Genomic location " + to_string(genomLoc) +
-                             " is not on genetic map");
+    throw GeneticMapHelper::GenomPosOutsideMap(genomLoc);
 
   // find position in map that is greater or equal to genomLoc
   auto high = std::lower_bound(

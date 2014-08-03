@@ -1241,7 +1241,7 @@ void Insti::initialize() {
   // If S is a harmonic series of length hn (number of haplotypes),
   // then mu = 1/S ( hn + 1/S)
   // initialize recombination rate rho based on SNP density
-  fast mu = 0; //, rho;
+  fast mu = 0, rho;
 
   for (unsigned i = 1; i < hn; i++)
     mu += 1.0 / i;
@@ -1251,7 +1251,7 @@ void Insti::initialize() {
   // 0.5 / (posi[mn - 1] - posi[0]) / density looks like a correction for finite
   // sites
   mu = 1 / mu;
-  //  rho = 0.5 * mu * (mn - 1) / (posi[mn - 1] - posi[0]) / density;
+  rho = 0.5 * mu * (mn - 1) / (posi[mn - 1] - posi[0]) / density;
   mu = mu / (hn + mu); // rho is recombination rate?  mu is mutation rate
 
   // initialzie the site transition matrix tran
@@ -1262,10 +1262,21 @@ void Insti::initialize() {
   for (unsigned m = mn - 1; m; m--) {
 
     // replaced ad-hoc genetic distance estimate by genetic map
-    //    posi[m] = (posi[m] - posi[m - 1]) * rho;
-    //    fast r = posi[m] / (posi[m] + hn);
+    unsigned genomDist = (posi[m] - posi[m - 1]) * rho;
     // genetic distance is in centiMorgans
-    float r = m_geneticMap.GeneticDistance(posi[m - 1], posi[m]) / 100;
+    float r = 0;
+    try {
+      r = m_geneticMap.GeneticDistance(posi[m - 1], posi[m]) / 100;
+    }
+    // use old estimate of recombination rate if map does not exist
+    catch (GeneticMapHelper::GenomPosOutsideMap &e) {
+      cerr << "[GeneticMap] " << e.what() << endl;
+      r = genomDist / (genomDist + hn);
+    }
+    catch (...) {
+      throw;
+    }
+
     r = r <= 1 ? r : 1;
 
     //  4 state HMM with three transitions at each position
