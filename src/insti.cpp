@@ -1261,8 +1261,6 @@ void Insti::initialize() {
   // r therefore must be a recombination rate estimate
   for (unsigned m = mn - 1; m; m--) {
 
-    // replaced ad-hoc genetic distance estimate by genetic map
-    unsigned genomDist = (posi[m] - posi[m - 1]) * rho;
     // genetic distance is in centiMorgans
     float r = 0;
     try {
@@ -1271,6 +1269,8 @@ void Insti::initialize() {
     // use old estimate of recombination rate if map does not exist
     catch (GeneticMapHelper::GenomPosOutsideMap &e) {
       cerr << "[GeneticMap] " << e.what() << endl;
+      // replaced ad-hoc genetic distance estimate by genetic map
+      unsigned genomDist = (posi[m] - posi[m - 1]) * rho;
       r = genomDist / (genomDist + hn);
     }
     catch (...) {

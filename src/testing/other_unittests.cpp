@@ -398,9 +398,11 @@ TEST(MHSampler, DRMHSamplesArrayOK) {
 TEST(GeneticMap, errorOK) {
 
   GeneticMap gmap(geneticMap);
-  ASSERT_ANY_THROW(gmap.GeneticDistance(1140749, 1140727));  // order ok
-  ASSERT_ANY_THROW(gmap.GeneticDistance(0, 1140727));        // out of bounds
-  ASSERT_ANY_THROW(gmap.GeneticDistance(1140727, 70000000)); // out of bounds
+  ASSERT_ANY_THROW(gmap.GeneticDistance(1140749, 1140727)); // order ok
+  ASSERT_THROW(gmap.GeneticDistance(0, 1140727),
+               GeneticMapHelper::GenomPosOutsideMap); // out of bounds
+  ASSERT_THROW(gmap.GeneticDistance(1140727, 70000000),
+               GeneticMapHelper::GenomPosOutsideMap); // out of bounds
 }
 
 TEST(GeneticMap, locationOK) {
