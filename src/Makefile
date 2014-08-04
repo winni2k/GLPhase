@@ -42,10 +42,11 @@ debug: CXXFLAGS += -O0 -ggdb
 test: CXXFLAGS += -O0 -ggdb
 
 # gcc
-CXX := g++-4.7+
+CXX := g++-4.7+ # alternatively: /opt/well/llvm/llvm-3.3/bin/clang
 CXXFLAGS += -Wall -Wextra -std=c++11 -mpopcnt -fopenmp
 BOOSTLIB := -lboost_iostreams-mt #alternatively: /opt/boost/boost-1.54.0-intel/lib/libboost_iostreams.a
-LIBS += -lgsl -lgslcblas -ltabix -lbz2 $(BOOSTLIB) -lm -lstdc++ -lz
+STDCPPLIB := -lstdc++
+LIBS += -lgsl -lgslcblas -ltabix -lbz2 $(BOOSTLIB) $(STDCPPLIB) -lm -lz 
 
 # nvcc
 ifndef NCUDA

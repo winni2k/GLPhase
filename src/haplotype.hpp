@@ -15,9 +15,14 @@
 // require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
+namespace HaplotypeHelper {
+
+constexpr int pow(int v, int e) { return (e == 0) ? 1 : v * pow(v, e - 1); }
+}
+
 class Haplotype {
 public:
-  static constexpr unsigned s_wordSize = std::pow(2, WORDSHIFT);
+  static constexpr unsigned s_wordSize = HaplotypeHelper::pow(2.0, WORDSHIFT);
 
 private:
   std::vector<std::bitset<s_wordSize> > m_hap;

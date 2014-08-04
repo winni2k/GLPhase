@@ -262,9 +262,13 @@ int main(int ac, char **av) {
            << endl << endl;
     }
   }
-  catch (exception &e) {
+  catch (const exception &e) {
     cerr << e.what() << endl;
     exit(1);
+  }
+  catch (...) {
+    cerr << "Caught exception of unknown type" << endl;
+    exit(2);
   }
 
 #ifndef NCUDA

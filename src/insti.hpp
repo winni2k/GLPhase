@@ -15,6 +15,7 @@
 #include <stdint.h>
 #include <utility>
 #include <unordered_map>
+#include <iostream>
 #include "impute.hpp"
 #include "emcchain.hpp"
 #include "utils.hpp"
@@ -36,6 +37,9 @@
 #include "globals.h"
 #include <omp.h>
 #include "geneticMap.hpp"
+
+#include <exception>
+#include <stdexcept>
 
 #ifndef NCUDA
 #include "hmmLike.hpp"
