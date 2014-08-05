@@ -67,6 +67,7 @@ struct Init {
   bool initPhaseFromScaffold = false;
   size_t reclusterEveryNGen = 0; // 0 means don't recluster
   size_t numThreads = 1;
+  unsigned scaffoldExtraRegionSize = 0; // size in genomic coordinates of overang region for clustering
 
   // genetic map file name
   std::string geneticMap;
@@ -153,7 +154,7 @@ private:
                 std::vector<Bio::snp> &sites);
   void OpenTabHaps(const std::string &hapFile,
                    std::vector<std::vector<char> > &loadHaps,
-                   std::vector<Bio::snp> &sites);
+                   std::vector<Bio::snp> &sites, const Bio::Region & subsetRegion);
   void OpenSample(const std::string &sampleFile,
                   std::vector<std::string> &fillSampleIDs);
   void MatchSamples(const std::vector<std::string> &IDs, unsigned numHaps);

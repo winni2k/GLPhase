@@ -271,7 +271,7 @@ void Insti::OpenSample(const string &sampleFile,
 }
 
 void Insti::OpenTabHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
-                        vector<snp> &loadSites) {
+                        vector<snp> &loadSites,   const Bio::Region & subsetRegion) {
   cout << m_tag << ": [insti] Loading tabixed haps file: " << hapsFile << endl;
 
   // clear all the containers that are going to be filled up
@@ -284,7 +284,7 @@ void Insti::OpenTabHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
 
   string file(hapsFile);
   Tabix tabix(file);
-  string region(m_runRegion.AsString());
+  string region(subsetRegion.AsString());
   tabix.setRegion(region);
 
   // start parsing haplotype lines
@@ -670,7 +670,7 @@ void Insti::LoadVCFGZ(const string &vcf, InstiPanelType panel_t,
 };
 
 void Insti::LoadHapsSamp(const string &hapsFile, const string &sampleFile,
-                         InstiPanelType panelType) {
+                         InstiPanelType panelType, const Bio::Region & loadRegion) {
 
   // make sure both files are defined
   if (sampleFile.empty() && panelType == InstiPanelType::SCAFFOLD)
@@ -689,9 +689,9 @@ void Insti::LoadHapsSamp(const string &hapsFile, const string &sampleFile,
   // read the haps and sites from a haps file
   if (hapsFile.size() > 11 &&
       hapsFile.compare(hapsFile.size() - 11, 11, ".tabhaps.gz") == 0)
-    OpenTabHaps(hapsFile, loadHaps, loadSites);
+    OpenTabHaps(hapsFile, loadHaps, loadSites, loadRegion);
   else
-    OpenHaps(hapsFile, loadHaps, loadSites);
+    OpenHaps(hapsFile, loadHaps, loadSites, loadRegion);
   if (loadHaps.empty())
     throw myException("Haplotypes file is empty: " + hapsFile);
 
@@ -979,16 +979,10 @@ void Insti::LoadHaps(vector<vector<char> > &inHaps, vector<snp> &inSites,
     m_scaffold.Init(inHaps, inSites, inSampleIDs);
     cout << "Scaffold haplotypes\t" << m_scaffold.NumHaps() << endl;
 
-    try {
-      if (m_scaffold.NumHaps() != hn)
-        throw myException(
-            "Error while reading scaffold: Scaffold needs to have two "
-            "haplotypes for every input sample");
-    }
-    catch (exception &e) {
-      cout << e.what() << endl;
-      exit(1);
-    };
+    if (m_scaffold.NumHaps() != hn)
+      throw myException(
+			"Error while reading scaffold: Scaffold needs to have two "
+			"haplotypes for every input sample");
 
     return;
   }
@@ -1405,16 +1399,26 @@ void Insti::initialize() {
 
   // load the scaffold
   if (!m_scaffoldHapsFile.empty()) {
+    Bio::Region scaffoldRegion = m_runRegion;
+    if(m_init.scaffoldExtraRegionSize > 0){
+      unsigned overhang = m_init.scaffoldExtraRegionSize;
+      unsigned start = site[0].pos;
+      start = start < overhang ? 0 : start - overhang;
+      unsigned end =  site.back().pos + overhang;
+      scaffoldRegion = Bio::Region(site[0].chr, start, end);
+    }
+      
+
     if (!m_scaffoldSampleFile.empty())
       LoadHapsSamp(m_scaffoldHapsFile, m_scaffoldSampleFile,
-                   InstiPanelType::SCAFFOLD);
+                   InstiPanelType::SCAFFOLD, scaffoldRegion);
 
     // then this might be a VCF instead!
     else if (m_scaffoldHapsFile.size() >= 7 &&
              m_scaffoldHapsFile.compare(m_scaffoldHapsFile.size() - 7, 7,
                                         ".vcf.gz") == 0)
       LoadVCFGZ(m_scaffoldHapsFile, InstiPanelType::SCAFFOLD,
-                m_runRegion.AsString());
+                scaffoldRegion);
     else {
       throw std::runtime_error(
           "[insti] Error while loading scaffold haps/sample "
