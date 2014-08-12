@@ -1,7 +1,3 @@
-[submodule "src/tabixpp"]
-	path = src/tabixpp
-	url = https://github.com/ekg/tabixpp.git
-        ignore = dirty
 [submodule "src/vcfPhasedBreakMulti"]
 	path = src/vcfPhasedBreakMulti
 	url = git@github.com:wkretzsch/vcfPhasedBreakMulti.git
