@@ -240,8 +240,26 @@ void Insti::LoadGLBCF() {
   in = name.size();
 
   m_glSites = bcf.GetSites();
-  posi.reserve(m_glSites.size());
   mn = m_glSites.size(); // mn = number of sites
+
+  // cutting away up to 5% of markers if region contains too many sites
+  if (mn > NUMSITES) {
+    if (mn > ceil(NUMSITES * 1.05))
+      throw std::runtime_error(
+          "Region " + m_init.inputGLRegion + " of the GL file (" +
+          m_init.inputGLFile +
+          ") contains more sites than the maximum chunk size " +
+          to_string(NUMSITES) + ". If the extra sites were dropped, then more "
+                                "than 5% of the chunk size would be dropped.");
+    else {
+      clog << "[Insti] Chunk contains too many sites.  Dropping the last " +
+                  to_string(mn - NUMSITES) + " sites.\n";
+      m_glSites.erase(m_glSites.begin() + NUMSITES, m_glSites.end());
+      mn = NUMSITES;
+    }
+  }
+
+  posi.reserve(mn);
 
   // extract GLs of interest
   prob.reserve(mn * in * 2);
