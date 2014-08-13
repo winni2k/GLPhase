@@ -4,18 +4,25 @@
 #ifndef _INSTI_H
 #define _INSTI_H 1
 
-/*
-  #include <string>
-  #include <fstream>
-  #include <iostream>
-*/
+#include "globals.h"
+
+#include <string>
 #include <memory>
 #include <limits>
 #include <cassert>
-#include <stdint.h>
 #include <utility>
 #include <unordered_map>
 #include <iostream>
+#include <exception>
+#include <stdexcept>
+#include <cfloat>
+#include <omp.h>
+
+#include <boost/uuid/uuid.hpp>            // uuid class
+#include <boost/uuid/uuid_generators.hpp> // generators
+#include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
+#include <boost/algorithm/string.hpp>
+
 #include "impute.hpp"
 #include "emcchain.hpp"
 #include "utils.hpp"
@@ -26,33 +33,16 @@
 #include "kMedoids.hpp"
 #include "kNN.hpp"
 #include "glPack.hpp"
-#include <boost/uuid/uuid.hpp>            // uuid class
-#include <boost/uuid/uuid_generators.hpp> // generators
-#include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
-#include <boost/algorithm/string.hpp>
-#include <cfloat>
 #include "tabix.hpp"
 #include "vcf_parser.hpp"
 #include "bio.hpp"
-#include "globals.h"
-#include <omp.h>
 #include "geneticMap.hpp"
 
-#include <exception>
-#include <stdexcept>
+#include "bcfReader.hpp"
 
 #ifndef NCUDA
 #include "hmmLike.hpp"
 #endif
-
-#include <boost/spirit/include/qi.hpp>
-#include <boost/spirit/include/phoenix_core.hpp>
-#include <boost/spirit/include/phoenix_operator.hpp>
-//#include <boost/spirit/include/phoenix_stl.hpp>
-
-namespace qi = boost::spirit::qi;
-namespace ascii = boost::spirit::ascii;
-namespace phoenix = boost::phoenix;
 
 namespace InstiHelper {
 struct Init {
@@ -70,6 +60,10 @@ struct Init {
 
   // genetic map file name
   std::string geneticMap;
+
+  // input GL file
+  std::string inputGLFile = "";
+  std::string inputGLFileType = "bin"; // default is snptools binary
 };
 }
 // require c++11
@@ -110,7 +104,6 @@ private:
   // see InstiHelper::init for default values
   const std::string m_scaffoldHapsFile;   // location of scaffold haps file
   const std::string m_scaffoldSampleFile; // location of scaffold sample file
-  double m_scaffoldFreqCutoff; // cutoff MAF for what to fix in scaffold
   const bool m_initPhaseFromScaffold;
   GeneticMap m_geneticMap;
   const InstiHelper::Init m_init;
@@ -166,6 +159,10 @@ private:
 
   // expects scaffold to have been initialized
   void SetHapsAccordingToScaffold();
+
+  void LoadGLs(const std::string &glFile, const std::string &glFileType);
+  void LoadGLBin(const std::string &binFile);
+  void LoadGLBCF(const std::string &bcfFile);
 
 public:
   // uuid
@@ -280,8 +277,6 @@ public:
 
   void WriteToLog(const std::string &tInput);
   void WriteToLog(const EMCChain &rcChain, const bool bMutate);
-
-  void load_bin(const std::string &binFile);
 
   void initialize();
 
