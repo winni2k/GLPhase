@@ -1,6 +1,7 @@
 1.4.15  Wed Aug 13 12:51:43 BST 2014
         Added htslib dependency
         GLs can now be loaded from BCF/VCF files
+        GLs can be subset by region from BCF/VCF files
 
 1.4.14
         Fixed some bugs with genetic map

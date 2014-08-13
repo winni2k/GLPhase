@@ -85,7 +85,7 @@ Insti::Insti(InstiHelper::Init &init)
     throw std::runtime_error("[insti] Estimator needs to be less than 4");
 
   // load input GLs according to file type
-  LoadGLs(init.inputGLFile, init.inputGLFileType);
+  LoadGLs();
 
   // setting range object based on load bin
   if (m_glSites.empty())
@@ -205,24 +205,27 @@ int Insti::RWSelection(const vector<EMCChain> &rvcChains) {
   return iChainIndex;
 }
 
-void Insti::LoadGLs(const string &glFile, const string &glFileType) {
+void Insti::LoadGLs() {
 
-  if (glFileType == "bin")
-    LoadGLBin(glFile);
-  else if (glFileType == "bcf")
-    LoadGLBCF(glFile);
+  if (m_init.inputGLFileType == "bin")
+    LoadGLBin();
+  else if (m_init.inputGLFileType == "bcf")
+    LoadGLBCF();
   else
-    throw std::runtime_error("Unknown GL file type specified: " + glFileType);
+    throw std::runtime_error("Unknown GL file type specified: " +
+                             m_init.inputGLFileType);
 }
 
-void Insti::LoadGLBin(const string &binFile) {
-  bool bRetVal = Impute::load_bin(binFile.c_str());
+void Insti::LoadGLBin() {
+  bool bRetVal = Impute::load_bin(m_init.inputGLFile.c_str());
   if (bRetVal == false)
     throw std::runtime_error("[insti] Unable to load input .bin file: " +
-                             string(binFile));
+                             m_init.inputGLFile);
 }
 
-void Insti::LoadGLBCF(const string &bcfFile) {
+void Insti::LoadGLBCF() {
+
+  string bcfFile = m_init.inputGLFile;
 
   clog << "Reading " + bcfFile << endl;
 
@@ -232,7 +235,7 @@ void Insti::LoadGLBCF(const string &bcfFile) {
   prob.clear();
   posi.clear();
 
-  BCFReader bcf(bcfFile, BCFReaderHelper::extract_t::GL);
+  BCFReader bcf(bcfFile, BCFReaderHelper::extract_t::GL, m_init.inputGLRegion);
   name = bcf.GetSampNames();
   in = name.size();
 
@@ -269,7 +272,8 @@ void Insti::OpenSample(const string &sampleFile,
   ifile sampleFD(sampleFile);
 
   if (!sampleFD.isGood())
-      throw std::runtime_error("[Insti::OpenSample] Could not open file: " + sampleFile);
+    throw std::runtime_error("[Insti::OpenSample] Could not open file: " +
+                             sampleFile);
 
   string buffer;
 
@@ -434,7 +438,8 @@ void Insti::OpenHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
   ifile hapsFD(hapsFile);
 
   if (!hapsFD.isGood())
-      throw std::runtime_error("[Insti::OpenHaps] Could not open file: " + hapsFile);
+    throw std::runtime_error("[Insti::OpenHaps] Could not open file: " +
+                             hapsFile);
 
   string buffer;
   unsigned lineNum = 0;
@@ -1069,7 +1074,8 @@ vector<snp> Insti::OpenLegend(string legendFile) {
   ifile legendFD(legendFile);
 
   if (!legendFD.isGood())
-      throw std::runtime_error("[Insti::OpenLegend] Could not open file: " + legendFile);
+    throw std::runtime_error("[Insti::OpenLegend] Could not open file: " +
+                             legendFile);
 
   string buffer;
   vector<snp> loadLeg;
@@ -1118,7 +1124,8 @@ vector<vector<char> > Insti::OpenHap(string hapFile) {
   ifile hapFD(hapFile);
 
   if (!hapFD.isGood())
-      throw std::runtime_error("[Insti::OpenHap] Could not open file: " + hapFile);
+    throw std::runtime_error("[Insti::OpenHap] Could not open file: " +
+                             hapFile);
 
   string buffer;
   int lineNum = -1;
@@ -1317,7 +1324,7 @@ void Insti::initialize() {
     }
     // use old estimate of recombination rate if map does not exist
     catch (GeneticMapHelper::GenomPosOutsideMap &e) {
-      cerr << "[GeneticMap] " << e.what() << endl;
+      clog << "[GeneticMap] " << e.what() << endl;
       // replaced ad-hoc genetic distance estimate by genetic map
       unsigned genomDist = (posi[m] - posi[m - 1]) * rho;
       r = genomDist / (genomDist + hn);
@@ -1705,7 +1712,7 @@ void Insti::estimate() {
       m_sampler->Save(m_sLogFile, name);
     }
     catch (exception &e) {
-      cerr << e.what() << endl;
+      clog << e.what() << endl;
     }
   }
 

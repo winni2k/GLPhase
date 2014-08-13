@@ -13,6 +13,7 @@ static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 #include <stdexcept>
 #include <htslib/hts.h>
 #include <htslib/vcf.h>
+#include <htslib/synced_bcf_reader.h>
 #include <cfloat>
 #include <cmath>
 #include "bio.hpp"
@@ -27,7 +28,6 @@ double phred2Prob(double phred);
 
 class BCFReader {
 private:
-  bcf_hdr_t *m_hdr = nullptr;
   std::string m_extractString;
   std::vector<std::string> m_sampNames;
   std::vector<std::vector<double> > m_GLs;
@@ -36,14 +36,18 @@ private:
   const BCFReaderHelper::extract_t m_extractType =
       BCFReaderHelper::extract_t::GL;
 
-  std::vector<double> ExtractRecGLs(bcf1_t *rec,
+  std::vector<char> ExtractRecAlleles(bcf1_t *rec, bcf_hdr_t *hdr);
+  std::vector<double> ExtractRecGLs(bcf1_t *rec, bcf_hdr_t *hdr,
                                     const std::string &extractString);
-  std::vector<char> ExtractRecAlleles(bcf1_t *rec);
 
 public:
   explicit BCFReader(std::string fileName,
-                     BCFReaderHelper::extract_t extractType);
-  ~BCFReader() { bcf_hdr_destroy(m_hdr); }
+                     BCFReaderHelper::extract_t extractType) {
+    BCFReader(fileName, extractType, "");
+  }
+  explicit BCFReader(std::string fileName,
+                     BCFReaderHelper::extract_t extractType,
+                     std::string region);
 
   std::vector<std::string> GetSampNames() const { return m_sampNames; }
   std::vector<Bio::snp> GetSites() const { return m_sites; }

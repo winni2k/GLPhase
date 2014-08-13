@@ -64,6 +64,7 @@ struct Init {
   // input GL file
   std::string inputGLFile = "";
   std::string inputGLFileType = "bin"; // default is snptools binary
+  std::string inputGLRegion = "";      // e.g. 20:1-50000
 };
 }
 // require c++11
@@ -160,9 +161,9 @@ private:
   // expects scaffold to have been initialized
   void SetHapsAccordingToScaffold();
 
-  void LoadGLs(const std::string &glFile, const std::string &glFileType);
-  void LoadGLBin(const std::string &binFile);
-  void LoadGLBCF(const std::string &bcfFile);
+  void LoadGLs();
+  void LoadGLBin();
+  void LoadGLBCF();
 
 public:
   // uuid

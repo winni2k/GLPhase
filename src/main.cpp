@@ -44,10 +44,11 @@ int main(int ac, char **av) {
     string sLogFile;
     int opt;
     bool optMSet = false;
-    while ((opt = getopt(
-                ac, av,
-                "V:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:Q:fo:DTr:P:ag:F:")) >=
-           0) {
+    while (
+        (opt = getopt(
+             ac, av,
+             "V:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:Q:fo:DTr:P:ag:F:R:")) >=
+        0) {
       switch (opt) {
 
       /*      case 'd':
@@ -157,8 +158,12 @@ int main(int ac, char **av) {
         break;
       case 'g':
         init.geneticMap = optarg;
+        break;
       case 'F':
         init.inputGLFileType = optarg;
+        break;
+      case 'R':
+        init.inputGLRegion = optarg;
         break;
       default:
         Insti::document();
