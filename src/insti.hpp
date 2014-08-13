@@ -12,7 +12,6 @@
 #include <memory>
 #include <limits>
 #include <cassert>
-#include <stdint.h>
 #include <utility>
 #include <unordered_map>
 #include "impute.hpp"
@@ -29,25 +28,17 @@
 #include <boost/uuid/uuid_generators.hpp> // generators
 #include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
 #include <boost/algorithm/string.hpp>
-#include <regex>
+#include <boost/regex.hpp>
 #include <cfloat>
 #include "tabix.hpp"
 #include "vcf_parser.hpp"
 #include "bio.hpp"
 #include "globals.h"
+#include "bcfReader.hpp"
 
 #ifndef NCUDA
 #include "hmmLike.hpp"
 #endif
-
-#include <boost/spirit/include/qi.hpp>
-#include <boost/spirit/include/phoenix_core.hpp>
-#include <boost/spirit/include/phoenix_operator.hpp>
-//#include <boost/spirit/include/phoenix_stl.hpp>
-
-namespace qi = boost::spirit::qi;
-namespace ascii = boost::spirit::ascii;
-namespace phoenix = boost::phoenix;
 
 namespace InstiHelper {
 struct Init {
@@ -56,7 +47,7 @@ struct Init {
   std::string scaffoldSampleFile;   // location of scaffold sample file
   double scaffoldFreqCutoff = 0.05; // cutoff MAF for what to fix in scaffold
   bool initPhaseFromScaffold = false;
-  std::string inputGLFile = ""; 
+  std::string inputGLFile = "";
   std::string inputGLFileType = "bin"; // default is snptools binary
 };
 }
@@ -151,6 +142,10 @@ private:
 
   // expects scaffold to have been initialized
   void SetHapsAccordingToScaffold();
+
+  void LoadGLs(const std::string &glFile, const std::string &glFileType);
+  void LoadGLBin(const std::string &binFile);
+  void LoadGLBCF(const std::string &bcfFile);
 
 public:
   // uuid
@@ -265,8 +260,6 @@ public:
 
   void WriteToLog(const std::string &tInput);
   void WriteToLog(const EMCChain &rcChain, const bool bMutate);
-
-  void load_bin(const std::string &binFile);
 
   void initialize();
 

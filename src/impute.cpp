@@ -41,7 +41,7 @@ bool Impute::load_bin(const char *F) {
 
   // first clear all the data that will be filled
   name.clear();
-  site.clear();
+  m_glSites.clear();
   prob.clear();
   posi.clear();
 
@@ -65,13 +65,15 @@ bool Impute::load_bin(const char *F) {
   // save positions in posi vector
   // save site information in site vector
   // save GLs in prob vector of het and homo alt
-  Site temp;
+  unsigned pos;
   fast rawp;
   while (gzgets(f, buffer, 1024 * 1024) != NULL) {
     istringstream si(buffer);
-    si >> temp.chr >> temp.pos >> temp.all;
-    site.push_back(temp);
-    posi.push_back(temp.pos); // add to end of vector
+    string all, chr;
+    si >> chr >> pos >> all;
+    posi.push_back(pos); // add to end of vector
+    m_glSites.push_back(
+        Bio::snp(chr, pos, string(all, 0, 1), string(all, 1, 1)));
     for (unsigned i = 0; i < 2 * in; i++) {
       si >> rawp;
       prob.push_back(rawp);
@@ -79,15 +81,17 @@ bool Impute::load_bin(const char *F) {
   }
 
   // clean up
-  mn = site.size(); // mn = number of sites
+  mn = m_glSites.size(); // mn = number of sites
   delete[] buffer;
   gzclose(f);
   cerr << F << endl;
-  cerr << "sites\t" << mn << endl;
+  cerr << "GL sites\t" << mn << endl;
   cerr << "sample\t" << in << endl; // which sample
   return true;
 }
 
+/*
+  this code needs to be made to work with htslib
 unsigned Impute::load_vcf(const char *F) { // this section loads known genotypes
   unsigned known = 0;
   if (!vcf_file.size())
@@ -136,17 +140,18 @@ unsigned Impute::load_vcf(const char *F) { // this section loads known genotypes
   // find the site, sample, and allele that matches the genotype given in VCF
   // file
   // once found, update the prob vector
-  iter = ti_query(t, site[0].chr.c_str(), site[0].pos, site[mn - 1].pos);
+  iter = ti_query(t, m_glSites[0].chr.c_str(), m_glSites[0].pos,
+                  m_glSites[mn - 1].pos);
   while ((s = ti_read(t, iter, &len)) != 0) {
     istringstream si(s);
-    string st, chr, all;
+    string st, chr, ref, alt;
     unsigned pos;
-    si >> chr >> pos >> st >> all >> st;
-    all += st;
+    si >> chr >> pos >> st >> ref >> alt;
     si >> st >> st >> st >> st;
     for (unsigned m = 0; m < mn; m++)
-      if (site[m].chr == chr && site[m].pos == pos &&
-          site[m].all == all) { // for each element in site vector
+      if (m_glSites[m].chr == chr && m_glSites[m].pos == pos &&
+              m_glSites[m].ref == ref &&
+              m_glSites[m].alt == alt) { // for each element in site vector
         for (unsigned i = 0; i < vin; i++) {
           si >> st;
           if (vid[i] == 0xffff)
@@ -179,6 +184,7 @@ unsigned Impute::load_vcf(const char *F) { // this section loads known genotypes
   ti_close(t);
   return known;
 }
+*/
 
 void Impute::initialize(void) {
 
@@ -192,7 +198,7 @@ void Impute::initialize(void) {
   // we define a minimum block size of 64.
   wn = (mn & WORDMOD) ? (mn >> WORDSHIFT) + 1 : (mn >> WORDSHIFT);
 
-  hn = in * 2; // number of haps
+  hn = in * 2;          // number of haps
   haps.resize(hn * wn); // space to store all haplotypes
   hnew.resize(hn * wn); // number of haplotypes = 2 * number of samples  ...
                         // haps mn is # of sites,
@@ -263,13 +269,13 @@ void Impute::initialize(void) {
   // all other entries are chance of just one mutation
   pc[0][0] = pc[1][1] = pc[2][2] = pc[3][3] =
       (1 - mu) * (1 - mu); //	  probability of mutating no positions for each
-                           //parents haplotype
+  // parents haplotype
   pc[0][1] = pc[0][2] = pc[1][0] = pc[1][3] = pc[2][0] = pc[2][3] = pc[3][1] =
       pc[3][2] = mu * (1 - mu); //	  probability of mutating one position
-                                //for each parental haplotype
+  // for each parental haplotype
   pc[0][3] = pc[1][2] = pc[2][1] = pc[3][0] =
       mu * mu; //	  probability of mutating both positions for each
-               //parental haplotype
+  // parental haplotype
 
   // initialize individual haplotypes
   for (unsigned i = 0; i < in; i++) {
@@ -629,8 +635,9 @@ void Impute::save_vcf(const char *F) {
   for (unsigned i = 0; i < in; i++)
     gzprintf(f, "\t%s", name[i].c_str());
   for (unsigned m = 0; m < mn; m++) {
-    gzprintf(f, "\n%s\t%u\t.\t%c\t%c\t100\tPASS\t.\tGT:AP", site[m].chr.c_str(),
-             site[m].pos, site[m].all[0], site[m].all[1]);
+    gzprintf(f, "\n%s\t%u\t.\t%c\t%c\t100\tPASS\t.\tGT:AP",
+             m_glSites[m].chr.c_str(), m_glSites[m].pos, m_glSites[m].ref.c_str(),
+             m_glSites[m].alt.c_str());
     fast *p = &prob[m * hn];
     for (unsigned i = 0; i < in; i++, p += 2) {
       fast prr = (1 - p[0]) * (1 - p[1]),
@@ -678,7 +685,8 @@ void Impute::document(void) {
   cerr << "\n	-b <burn>	burn-in generations (56)";
   cerr << "\n	-l <file>	list of input files";
   cerr << "\n	-m <mcmc>	sampling generations (200)";
-  cerr << "\n	-n <fold>	sample size*fold of nested MH sampler iteration "
+  cerr << "\n	-n <fold>	sample size*fold of nested MH sampler "
+          "iteration "
           "(2)";
   cerr << "\n	-t <thread>	number of threads (0=MAX)";
   cerr << "\n	-v <vcf>	integrate known genotype in VCF format";

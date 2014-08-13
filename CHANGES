@@ -1,3 +1,6 @@
+1.4.-   Wed Aug 13 11:42:13 BST 2014
+        GLs can now be loaded from BCF/VCF files
+
 1.4.5   Sun May 25 20:26:47 BST 2014
         GLs are now compressed using vector quantization (Lloyd's
         algorithm on a subset of GLs)

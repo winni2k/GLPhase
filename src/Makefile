@@ -7,12 +7,15 @@ BDIR := ../bin
 VERSION := $(shell grep VERSION_MAJOR version.hpp | cut -f3 -d' ').$(shell grep VERSION_MINOR version.hpp | cut -f3 -d' ').$(shell grep VERSION_REVISION version.hpp | cut -f3 -d' ')
 
 # object and header files are defined here
-OBJECT_FILES := main.o impute.o insti.o emcchain.o olivier/utils.o haplotype.o kMedoids.o kNN.o hapPanel.o sampler.o glPack.o tabixpp/tabix.o glVQ.o
+OBJECT_FILES := $(shell find . -maxdepth 1 -name "*.cpp" | sed 's|^./||' | sed 's|.cpp$$|.o|' | grep -v 'hmmLike.o' )
+OBJECT_FILES += olivier/utils.o
+
+# main.o impute.o insti.o emcchain.o olivier/utils.o haplotype.o kMedoids.o kNN.o hapPanel.o sampler.o glPack.o tabixpp/tabix.o glVQ.o
 ifndef NCUDA
 OBJECT_FILES += hmmLike.cu.o allCuda.link.o hmmLike.o
 endif
 
-HEADER_FILES := insti.hpp.gch impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch version.hpp.gch bio.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch sampler.hpp.gch tabixpp/tabix.hpp.gch globals.h glVQ.hpp
+HEADER_FILES := insti.hpp.gch impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch version.hpp.gch bio.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch sampler.hpp.gch tabix.hpp.gch globals.h glVQ.hpp.gch bcfReader.hpp.gch
 ifndef NCUDA
 HEADER_FILES += hmmLike.hpp.gch
 endif
@@ -43,8 +46,8 @@ test: CXXFLAGS += -O0 -ggdb
 # gcc
 CXX := g++-4.7+
 CXXFLAGS += -Wall -Wextra -std=c++11 -mpopcnt -fopenmp
-BOOSTLIB := -lboost_iostreams-mt #alternatively: /opt/boost/boost-1.54.0-intel/lib/libboost_iostreams.a
-LIBS += -lgsl -lgslcblas -ltabix -lbz2 $(BOOSTLIB) -lm -lstdc++ -lz
+BOOSTLIB :=  -lboost_regex-mt -lboost_iostreams-mt #alternatively: /opt/boost/boost-1.54.0-intel/lib/libboost_iostreams.a
+LIBS += -lgsl -lgslcblas -lhts -lbz2 $(BOOSTLIB) -lm -lstdc++ -lz
 
 # nvcc
 ifndef NCUDA
@@ -59,8 +62,8 @@ test: NVCCFLAGS += -g -G
 endif
 
 # path variables
-CPLUS_INCLUDE_PATH += :olivier:tabixpp:vcfPhasedBreakMulti/src
-LIBRARY_PATH += ::tabixpp
+CPLUS_INCLUDE_PATH += :olivier:vcfPhasedBreakMulti/src
+LIBRARY_PATH += ""
 LD_LIBRARY_PATH += $(LIBRARY_PATH)
 
 
@@ -112,9 +115,6 @@ hapPanel.hpp.gch: hapPanel.hpp bio.hpp.gch
 olivier/utils.hpp.gch: olivier/utils.hpp
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
-tabixpp/tabix.hpp.gch: tabixpp/tabix.hpp
-	$(CXX) $(CXXFLAGS) -x c++-header $<
-
 kNN.hpp.gch: kNN.hpp haplotype.hpp.gch sampler.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
@@ -124,7 +124,7 @@ kMedoids.hpp.gch: kMedoids.hpp haplotype.hpp.gch sampler.hpp.gch
 MHSampler.hpp.gch: MHSampler.hpp olivier/utils.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
-INSTIHEADERPRE :=insti.hpp impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch sampler.hpp.gch version.hpp.gch bio.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch kNN.hpp.gch kMedoids.hpp.gch glPack.hpp.gch tabixpp/tabix.hpp.gch 
+INSTIHEADERPRE :=insti.hpp impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch sampler.hpp.gch version.hpp.gch bio.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch kNN.hpp.gch kMedoids.hpp.gch glPack.hpp.gch tabix.hpp.gch bcfReader.hpp.gch
 
 ifndef NCUDA
 INSTIHEADERPRE += hmmLike.hpp.gch
@@ -139,9 +139,6 @@ insti.hpp.gch: $(INSTIHEADERPRE)
 
 olivier/utils.o: olivier/utils.cpp olivier/utils.hpp.gch
 	$(CXX) $(CXXFLAGS) -Wno-sign-compare -c $< -o $@ $(LIBS)
-
-tabixpp/tabix.o: 
-	$(MAKE) -C tabixpp
 
 hmmLike.o: hmmLike.cpp hmmLike.hpp.gch hmmLike.h
 	$(CXX) $(CXXFLAGS) -c $< $(LIBS)

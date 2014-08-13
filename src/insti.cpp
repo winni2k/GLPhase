@@ -4,8 +4,11 @@
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
 using namespace std;
-using namespace HMMLikeCUDA;
 using namespace Bio;
+
+#ifndef NCUDA
+using namespace HMMLikeCUDA;
+#endif
 
 /*
   #define DEBUG
@@ -87,14 +90,23 @@ Insti::Insti(InstiHelper::Init &init)
     m_scaffoldFreqCutoff = init.scaffoldFreqCutoff;
 
   // load input GLs according to file type
-  std::regex vcfNames("^(bcf|bcfgz|vcf|vcfgz)$");
-  if (init.inputGLFileType == "bin")
-    load_bin(init.inputGLFile);
-  else if (std::regex_search(init.inputGLFileType, vcfNames));
-//    LoadBCF(init.inputGLFile);
-  else
-    throw std::runtime_error("Unknown GL file type specified: " +
-                             init.inputGLFileType);
+  LoadGLs(init.inputGLFile, init.inputGLFileType);
+
+  // setting range object based on load bin
+  if (m_glSites.empty())
+    throw std::runtime_error(
+        "[insti] Loaded data seems to contain no sites in file: " +
+        string(init.inputGLFile));
+  m_runRegion =
+      Region(m_glSites[0].chr, m_glSites[0].pos, m_glSites.back().pos);
+
+  // setting number of cycles to use
+  // here is best place to do it because in is defined in load_bin()
+  if (s_uCycles > 0)
+    m_uCycles = s_uCycles;
+  else {
+    m_uCycles = nn * in; // this was how snptools does it
+  }
 }
 
 // return the probability of the model given the input haplotypes P and
@@ -198,27 +210,58 @@ int Insti::RWSelection(const vector<EMCChain> &rvcChains) {
   return iChainIndex;
 }
 
-void Insti::load_bin(const string &binFile) {
-  bool bRetVal = Impute::load_bin(binFile.c_str());
+void Insti::LoadGLs(const string &glFile, const string &glFileType) {
 
+  if (glFileType == "bin")
+    LoadGLBin(glFile);
+  else if (glFileType == "bcf")
+    LoadGLBCF(glFile);
+  else
+    throw std::runtime_error("Unknown GL file type specified: " + glFileType);
+}
+
+void Insti::LoadGLBin(const string &binFile) {
+  bool bRetVal = Impute::load_bin(binFile.c_str());
   if (bRetVal == false)
     throw std::runtime_error("[insti] Unable to load input .bin file: " +
                              string(binFile));
+}
 
-  // setting range object based on load bin
-  if (site.empty())
-    throw std::runtime_error(
-        "[insti] Loaded data seems to contain no sites in file: " +
-        string(binFile));
-  m_runRegion = Region(site[0].chr, site[0].pos, site.back().pos);
+void Insti::LoadGLBCF(const string &bcfFile) {
 
-  // setting number of cycles to use
-  // here is best place to do it because in is defined in load_bin()
-  if (s_uCycles > 0)
-    m_uCycles = s_uCycles;
-  else {
-    m_uCycles = nn * in; // this was how snptools does it
+  clog << "Reading " + bcfFile << endl;
+
+  // first clear all the data that will be filled
+  name.clear();
+  m_glSites.clear();
+  prob.clear();
+  posi.clear();
+
+  BCFReader bcf(bcfFile, BCFReaderHelper::extract_t::GL);
+  name = bcf.GetSampNames();
+  in = name.size();
+
+  m_glSites = bcf.GetSites();
+  posi.reserve(m_glSites.size());
+  mn = m_glSites.size(); // mn = number of sites
+
+  // extract GLs of interest
+  prob.reserve(mn * in * 2);
+  for (size_t siteNum = 0; siteNum < mn; ++siteNum) {
+    posi.push_back(m_glSites[siteNum].pos);
+    for (size_t sampNum = 0; sampNum < in; ++sampNum) {
+
+      // save the het GL
+      prob.push_back(bcf.GetSiteGL(siteNum, 3 * sampNum + 1));
+      // save the hom alt GL
+      prob.push_back(bcf.GetSiteGL(siteNum, 3 * sampNum + 2));
+    }
   }
+
+  // clean up
+
+  clog << "sites\t" << mn << endl;
+  clog << "sample\t" << in << endl; // which sample
 }
 
 // HAPS/SAMPLE sample file
@@ -289,10 +332,10 @@ void Insti::OpenTabHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
   // clear all the containers that are going to be filled up
   vector<snp> fillSites;
   vector<vector<char> > fillHaps;
-  fillSites.reserve(site.size());
-  fillHaps.reserve(site.size());
+  fillSites.reserve(m_glSites.size());
+  fillHaps.reserve(m_glSites.size());
 
-  assert(m_sitesUnordered.size() == site.size());
+  assert(m_sitesUnordered.size() == m_glSites.size());
 
   string file(hapsFile);
   Tabix tabix(file);
@@ -306,15 +349,15 @@ void Insti::OpenTabHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
   unsigned matchSites = 0;
   unsigned glSiteIdx =
       0; // used for checking sites against already loaded glSites
-  while (tabix.getNextLine(buffer) && glSiteIdx != site.size()) {
+  while (tabix.getNextLine(buffer) && glSiteIdx != m_glSites.size()) {
 
     // split on tab
     vector<string> tokens;
     boost::split(tokens, buffer, boost::is_any_of("\t"));
-    if (tokens[0] != site[glSiteIdx].chr)
+    if (tokens[0] != m_glSites[glSiteIdx].chr)
       throw std::runtime_error("[insti] Found site on chromosome '" +
-                               tokens[0] + "' when chromosome '" + site[0].chr +
-                               "' was expected");
+                               tokens[0] + "' when chromosome '" +
+                               m_glSites[0].chr + "' was expected");
     if (tokens.size() < 6)
       throw std::runtime_error("[insti] Site has no haplotypes at site: " +
                                buffer.substr(0, 50));
@@ -404,7 +447,7 @@ void Insti::OpenHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
   unsigned numHaps = 0;
   sites.clear();
   loadHaps.clear();
-  assert(m_sitesUnordered.size() == site.size());
+  assert(m_sitesUnordered.size() == m_glSites.size());
 
   // for making sure input file is sorted by position
   unsigned previousPos = 0;
@@ -434,9 +477,10 @@ void Insti::OpenHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
 
     // load chrom and check input haps is correct chrom
     string chr = buffer.substr(0, spaceIdxs[0]);
-    if (chr != site[0].chr)
+    if (chr != m_glSites[0].chr)
       throw myException("Found site on chromosome '" + chr +
-                        "' when chromosome '" + site[0].chr + "' was expected");
+                        "' when chromosome '" + m_glSites[0].chr +
+                        "' was expected");
 
     // move ahead and extract position from third field
     size_t endReadIdx = 0;
@@ -460,12 +504,12 @@ void Insti::OpenHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
     previousPos = pos;
 
     // start loading only once we hit the first site
-    if (pos < site[0].pos)
+    if (pos < m_glSites[0].pos)
       continue;
 
     // stop loading sites if the current site is past the last site position in
     // the GLs
-    if (pos > site.back().pos)
+    if (pos > m_glSites.back().pos)
       break;
 
     // only keep sites that we know of
@@ -541,12 +585,10 @@ void Insti::OpenVCFGZ(const string &vcf, const string &region,
   string inVCF = vcf;
   string inRegion = region;
   Tabix tbx(inVCF);
-  if (tbx.setRegion(inRegion) != true)
-    throw std::runtime_error("Malformed region string: " + region);
+  tbx.setRegion(inRegion);
 
   // get the header
-  string header;
-  tbx.getHeader(header);
+  string header = tbx.getHeader();
 
   using qi::phrase_parse;
   using qi::char_;
@@ -854,8 +896,8 @@ void Insti::FilterSites(vector<vector<char> > &loadHaps, vector<snp> &loadSites,
   if (panelType == InstiPanelType::REFERENCE) {
 
     // the reference panel may not have less sites than the GLs
-    assert(site.size() <= loadSites.size());
-    filtHaps.reserve(site.size());
+    assert(m_glSites.size() <= loadSites.size());
+    filtHaps.reserve(m_glSites.size());
   } else if (panelType == InstiPanelType::SCAFFOLD) {
 
     // the scaffold may have less or more sites than the GLs
@@ -907,7 +949,7 @@ void Insti::FilterSites(vector<vector<char> > &loadHaps, vector<snp> &loadSites,
        << endl;
   cout << "[insti] Number of haplotypes left after filtering: "
        << filtHaps[0].size() << endl;
-  cout << "[insti] Number of candidate sites: " << site.size() << endl;
+  cout << "[insti] Number of candidate sites: " << m_glSites.size() << endl;
   cout << "[insti] Number of sites kept: " << filtSites.size() << endl;
 
   if (filtHaps[0].size() != numHaplotypesLoaded)
@@ -916,13 +958,13 @@ void Insti::FilterSites(vector<vector<char> > &loadHaps, vector<snp> &loadSites,
         "input file sorted?");
 
   // we always want to find at most as many matches as are in GL sites
-  if (matchSites > site.size())
+  if (matchSites > m_glSites.size())
     throw std::runtime_error("[insti] too many matching sites found");
 
   assert(matchSites > 0);
 
   if (panelType == InstiPanelType::REFERENCE)
-    if (site.size() != matchSites)
+    if (m_glSites.size() != matchSites)
       throw std::runtime_error(
           "[insti] Could not find all GL sites in loaded haplotype panel");
 }
@@ -1362,12 +1404,10 @@ void Insti::initialize() {
   // create an unordered map version of site
   assert(m_sitesUnordered.size() == 0);
 
-  for (auto oneSite : site)
-    m_sitesUnordered.insert(std::make_pair(
-        oneSite.pos, snp(oneSite.chr, oneSite.pos, oneSite.all.substr(0, 1),
-                         oneSite.all.substr(1, 1))));
+  for (auto oneSite : m_glSites)
+    m_sitesUnordered.insert(std::make_pair(oneSite.pos, oneSite));
 
-  assert(m_sitesUnordered.size() == site.size());
+  assert(m_sitesUnordered.size() == m_glSites.size());
 
   // create unordered map version of names
   assert(m_namesUnordered.size() == 0);
@@ -2078,8 +2118,8 @@ void Insti::save_vcf(const char *F, string commandLine) {
     vcfFD << "\t" << name[i];
 
   for (unsigned m = 0; m < mn; m++) {
-    vcfFD << "\n" << site[m].chr << "\t" << site[m].pos << "\t.\t"
-          << site[m].all[0] << "\t" << site[m].all[1]
+    vcfFD << "\n" << m_glSites[m].chr << "\t" << m_glSites[m].pos << "\t.\t"
+          << m_glSites[m].ref << "\t" << m_glSites[m].alt
           << "\t100\tPASS\t.\tGT:GP:APP";
 
     fast *p = &prob[m * hn];
@@ -2153,14 +2193,14 @@ void Insti::SetHapsAccordingToScaffold() {
          scaffoldPositionIdx < m_scaffold.NumSites(); scaffoldPositionIdx++) {
 
       // find the site in site that matches the scaffold position
-      for (; siteIdx < site.size(); siteIdx++) {
-        if (site[siteIdx].pos == m_scaffold.Position(scaffoldPositionIdx))
+      for (; siteIdx < m_glSites.size(); siteIdx++) {
+        if (m_glSites[siteIdx].pos == m_scaffold.Position(scaffoldPositionIdx))
           break;
       }
 
       // if this is not true, then the scaffold position could not be found in
       // site
-      assert(siteIdx < site.size());
+      assert(siteIdx < m_glSites.size());
 
       // set the site to what is in the scaffold
       if (test(scaffHap, scaffoldSiteIdx))
@@ -2179,7 +2219,7 @@ void Insti::document() {
   cerr << "\n\nThis code is based on SNPTools impute:";
   cerr << "\nhaplotype imputation by cFDSL distribution";
   cerr << "\nAuthor\tYi Wang @ Fuli Yu' Group @ BCM-HGSC";
-  cerr << "\n\nusage\timpute [options] 1.bin 2.bin ...";
+  cerr << "\n\nusage\timpute [options] GLFile";
   cerr << "\n\t-d <density>    relative SNP density to Sanger sequencing (1)";
 
   //    cerr << "\n\t-b <burn>       burn-in generations (56)";
@@ -2189,10 +2229,12 @@ void Insti::document() {
   cerr << "\n\t-o <name>\tPrefix to use for output files";
 
   //    cerr << "\n\t-t <thread>     number of threads (0=MAX)";
-  cerr << "\n\t-v <vcf>        integrate known genotype in VCF format";
   cerr << "\n\t-c <conf>       confidence of known genotype (0.9998)";
   cerr << "\n\t-x <gender>     impute x chromosome data";
   cerr << "\n\t-e <file>       write log to file";
+  cerr << "\n\t-F <string>     Input GL file type (bin). Valid values are "
+          "\"bin\" or \"bcf\"";
+
   cerr << "\n\n    GENERATION OPTIONS";
   cerr << "\n\t-m <mcmc>       sampling generations (200)";
   cerr << "\n\t-C <integer>    number of cycles to estimate an individual's "
@@ -2203,6 +2245,7 @@ void Insti::document() {
   cerr << "\n\t-M <integer>    generation number at which to start "
           "clustering, "
           "0-based (28)";
+
   cerr << "\n\n    HAPLOTYPE ESTIMATION OPTIONS";
   cerr << "\n\t-E <integer>    choice of estimation algorithm (0)";
   cerr << "\n\t                0 - Metropolis Hastings with simulated "

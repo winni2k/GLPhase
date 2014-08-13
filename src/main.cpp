@@ -61,9 +61,9 @@ int main(int ac, char **av) {
       case 'n':
         Impute::nn = atoi(optarg);
         break;
-      case 'v':
-        Impute::vcf_file.push_back(optarg);
-        break;
+//      case 'v':
+//        Impute::vcf_file.push_back(optarg);
+//        break;
       case 'c':
         Impute::conf = atof(optarg);
         break;
@@ -193,9 +193,12 @@ int main(int ac, char **av) {
     log << ctime(&tt) << endl;
     lp.WriteToLog(log.str());
 
+    /*
+      impute::load_vcf needs to be reimplemented
     for (uint j = 0; j < Impute::vcf_file.size(); j++)
       cerr << Impute::vcf_file[j] << '\t'
            << lp.load_vcf(Impute::vcf_file[j].c_str()) << endl;
+    */
     cerr << lp.m_tag << ": initializing..\n";
 
     lp.initialize();
