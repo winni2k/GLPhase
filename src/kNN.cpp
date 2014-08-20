@@ -118,7 +118,7 @@ void KNN::ClusterHaps(const vector<uint64_t> &haplotypes) {
 
   // let user know where we stand
   cout << "[KNN::ClusterHaps]: Finding " << m_numClusters
-       << " nearest neighbors for " << m_numHaps << " haplotypes" << endl;
+       << " nearest neighbors for " << m_numHaps << " haplotypes at " << m_numSites << " sites" << endl;
 
   for (unsigned uSampNum = 0; uSampNum < m_numHaps / 2; ++uSampNum) {
 
