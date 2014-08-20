@@ -6,7 +6,7 @@ GeneticMap::GeneticMap(string &fileName) {
   // populate genetic map vector
   ifile gmFD(fileName);
   if (!gmFD.isGood())
-    throw std::runtime_error("Could not open file: " + fileName);
+    throw std::runtime_error("[GeneticMap] Could not open file: " + fileName);
 
   // read header
   string buffer;

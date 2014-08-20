@@ -1,3 +1,18 @@
+1.4.15  Wed Aug 13 12:51:43 BST 2014
+        Added htslib dependency
+        GLs can now be loaded from BCF/VCF files
+        GLs can be subset by region from BCF/VCF files
+
+1.4.14
+        Fixed some bugs with genetic map
+
+1.4.13
+        genetic map replaces ad-hoc estimation of mutation rate from
+        genomic position 
+
+1.4.12
+        Added more allele frequency filtering options for clustering.
+
 1.4.11  Tue Jul 08 21:17:06 BST 2014
         glVQ: increased training set size to entire set
         added more omp parallelization

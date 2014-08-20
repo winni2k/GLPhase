@@ -39,16 +39,16 @@ int main(int ac, char **av) {
     Impute::is_x = false;
     Impute::is_y = false;
 
-    vector<string> file;
     string outBase;
 
     string sLogFile;
     int opt;
     bool optMSet = false;
-    while ((opt = getopt(
-                ac, av,
-                "Vl:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:Q:fo:DTr:P:ag:")) >=
-           0) {
+    while (
+        (opt = getopt(
+             ac, av,
+             "V:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:Q:fo:DTr:P:ag:F:R:")) >=
+        0) {
       switch (opt) {
 
       /*      case 'd':
@@ -63,9 +63,9 @@ int main(int ac, char **av) {
       case 'n':
         Impute::nn = stoul(optarg);
         break;
-      case 'v':
-        Impute::vcf_file.push_back(optarg);
-        break;
+      //      case 'v':
+      //        Impute::vcf_file.push_back(optarg);
+      //        break;
       case 'c':
         Impute::conf = atof(optarg);
         break;
@@ -73,13 +73,6 @@ int main(int ac, char **av) {
         Impute::is_x = true;
         Impute::gender(optarg);
         break;
-      case 'l': {
-        char temp[256];
-        FILE *f = fopen(optarg, "rt");
-        while (fscanf(f, "%s", temp) != EOF)
-          file.push_back(temp);
-        fclose(f);
-      } break;
       case 'e':
         Insti::s_bIsLogging = true;
         sLogFile = optarg;
@@ -166,6 +159,12 @@ int main(int ac, char **av) {
       case 'g':
         init.geneticMap = optarg;
         break;
+      case 'F':
+        init.inputGLFileType = optarg;
+        break;
+      case 'R':
+        init.inputGLRegion = optarg;
+        break;
       default:
         Insti::document();
       }
@@ -187,80 +186,62 @@ int main(int ac, char **av) {
       }
     }
 
-    // read in files
-    for (int i = optind; i < ac; i++)
-      file.push_back(av[i]);
-    sort(file.begin(), file.end());
-    uint fn = unique(file.begin(), file.end()) - file.begin();
-    if (!fn)
-      cerr << "input files are not unique";
-
     // Die if more than one file was specified on command line
-    if (fn != 1) {
-      cerr << endl << "INSTI only accepts one input .bin file" << endl << endl;
+    if (ac - optind != 1) {
+      cerr << endl << "INSTI only accepts one input GL file" << endl << endl;
       Insti::document();
     }
 
-    //#pragma omp parallel for
-    for (uint i = 0; i < fn; i++) {
+    init.inputGLFile = av[optind];
 
-      // keep track of time - these things are important!
-      timeval sta, end;
-      gettimeofday(&sta, NULL);
+    // keep track of time - these things are important!
+    timeval sta, end;
+    gettimeofday(&sta, NULL);
 
-      // create an Insti instance!
-      Insti lp(init);
+    // create an Insti instance!
+    Insti lp(init);
 
-      if (Insti::s_bIsLogging)
-        lp.SetLog(sLogFile);
+    if (Insti::s_bIsLogging)
+      lp.SetLog(sLogFile);
 
-      // print date to start of log
-      auto tt = std::chrono::system_clock::to_time_t(
-          std::chrono::system_clock::now());
-      stringstream log;
-      log << "##" << ctime(&tt) << endl;
-      lp.WriteToLog(log.str());
+    // print date to start of log
+    auto tt =
+        std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    stringstream log;
+    log << "##" << ctime(&tt) << endl;
+    lp.WriteToLog(log.str());
 
-      // load gls
-      // add a reserve of space
-      try {
-        lp.load_bin(file[i]);
-      }
-      catch (std::exception &e) {
-        cerr << "[main] While loading .bin file: " << file[i] << endl
-             << e.what() << endl;
-        exit(1);
-      }
+    /*
+    impute::load_vcf needs to be reimplemented
+  for (uint j = 0; j < Impute::vcf_file.size(); j++)
+    cerr << Impute::vcf_file[j] << '\t'
+         << lp.load_vcf(Impute::vcf_file[j].c_str()) << endl;
+  */
+    cerr << lp.m_tag << ": initializing..\n";
 
-      for (uint j = 0; j < Impute::vcf_file.size(); j++)
-        cerr << Impute::vcf_file[j] << '\t'
-             << lp.load_vcf(Impute::vcf_file[j].c_str()) << endl;
-      cerr << lp.m_tag << ": initializing..\n";
+    lp.initialize();
+    cerr << lp.m_tag << ": estimating..\n";
 
-      lp.initialize();
-      cerr << lp.m_tag << ": estimating..\n";
+    // choose which estimation method to use
+    lp.estimate();
 
-      // choose which estimation method to use
-      lp.estimate();
+    // save results of estimation
+    if (outBase.empty())
+      outBase = init.inputGLFile;
 
-      // save results of estimation
-      if (outBase.empty())
-        outBase = file[i];
-
-      lp.save_vcf(outBase.c_str(), commandLine.str());
-      try {
-        lp.save_relationship_graph(outBase);
-      }
-      catch (exception &e) {
-        cerr << e.what() << endl;
-      }
-
-      // printing out run time
-      gettimeofday(&end, NULL);
-      cerr << lp.m_tag << ": time\t"
-           << end.tv_sec - sta.tv_sec + 1e-6 * (end.tv_usec - sta.tv_usec)
-           << endl << endl;
+    lp.save_vcf(outBase.c_str(), commandLine.str());
+    try {
+      lp.save_relationship_graph(outBase);
     }
+    catch (exception &e) {
+      cerr << e.what() << endl;
+    }
+
+    // printing out run time
+    gettimeofday(&end, NULL);
+    cerr << lp.m_tag << ": time\t"
+         << end.tv_sec - sta.tv_sec + 1e-6 * (end.tv_usec - sta.tv_usec) << endl
+         << endl;
   }
   catch (const exception &e) {
     cerr << e.what() << endl;

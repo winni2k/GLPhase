@@ -4,6 +4,9 @@
 #ifndef _GLOBALS_H
 #define _GLOBALS_H 1
 
+// need this to work around bugi in gcc 4.7.2 when using stdint.h
+#define __STDC_LIMIT_MACROS 1
+
 // this is the number of sites that the HMM will run on
 #define NUMSITES 1024
 #define WN 16 // word num = NUMSITES / 64
