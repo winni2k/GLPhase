@@ -15,7 +15,7 @@ ifndef NCUDA
 OBJECT_FILES += hmmLike.cu.o allCuda.link.o hmmLike.o
 endif
 
-HEADER_FILES := $(shell find . -maxdepth 1 -name "*.hpp" | sed 's|^./||' | sed 's|.hpp$$|.hpp.gch|' )
+HEADER_FILES := $(shell find . -maxdepth 1 -name "*.hpp" | sed 's|^./||' | sed 's|.hpp$$|.hpp.gch|' | grep -v 'hmmLike.hpp.gch' )
 
 #HEADER_FILES := insti.hpp.gch impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch version.hpp.gch bio.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch sampler.hpp.gch tabix.hpp.gch globals.h glVQ.hpp.gch bcfReader.hpp.gch geneticMap.hpp.gch
 
