@@ -343,7 +343,8 @@ void Insti::OpenSample(const string &sampleFile,
 }
 
 void Insti::OpenTabHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
-                        vector<snp> &loadSites,   const Bio::Region & subsetRegion) {
+                        vector<snp> &loadSites,
+                        const Bio::Region &subsetRegion) {
   cout << m_tag << ": [insti] Loading tabixed haps file: " << hapsFile << endl;
 
   // clear all the containers that are going to be filled up
@@ -450,7 +451,7 @@ void Insti::OpenTabHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
 // read in the haps file
 // store haps and sites
 void Insti::OpenHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
-                     vector<snp> &sites) {
+                     vector<snp> &sites, const Bio::Region &subsetRegion) {
 
   cout << m_tag << ": [insti] Loading haps file: " << hapsFile << endl;
   ifile hapsFD(hapsFile);
@@ -465,14 +466,21 @@ void Insti::OpenHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
   unsigned numHaps = 0;
   sites.clear();
   loadHaps.clear();
-  assert(m_sitesUnordered.size() == m_glSites.size());
+  //  assert(m_sitesUnordered.size() == m_glSites.size());
+
+  cout << m_tag << ": [insti] keeping sites in region "
+       << subsetRegion.AsString() << endl;
+  string chrom = subsetRegion.GetChrom();
+  unsigned startBP = subsetRegion.GetStartBP();
+  unsigned endBP = subsetRegion.GetEndBP();
 
   // for making sure input file is sorted by position
   unsigned previousPos = 0;
   // create a map of site positions
   while (getline(hapsFD, buffer, '\n')) {
-    if (keptSites == m_sitesUnordered.size())
-      break;
+
+    //    if (keptSites == m_sitesUnordered.size())
+    //      break;
 
     //    if (lineNum % 1000 == 0)
     //      cout << "Sites kept:\t" << keptSites << " / " << lineNum << "\n";
@@ -495,10 +503,9 @@ void Insti::OpenHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
 
     // load chrom and check input haps is correct chrom
     string chr = buffer.substr(0, spaceIdxs[0]);
-    if (chr != m_glSites[0].chr)
+    if (chr != chrom)
       throw myException("Found site on chromosome '" + chr +
-                        "' when chromosome '" + m_glSites[0].chr +
-                        "' was expected");
+                        "' when chromosome '" + chrom + "' was expected");
 
     // move ahead and extract position from third field
     size_t endReadIdx = 0;
@@ -522,19 +529,21 @@ void Insti::OpenHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
     previousPos = pos;
 
     // start loading only once we hit the first site
-    if (pos < m_glSites[0].pos)
+    if (pos < startBP)
       continue;
 
     // stop loading sites if the current site is past the last site position in
     // the GLs
-    if (pos > m_glSites.back().pos)
+    if (pos > endBP)
       break;
 
-    // only keep sites that we know of
+    /* only keep sites that we know of;
+       not sure this is what we should be doing here!
     auto foundSite = m_sitesUnordered.find(pos);
 
     if (foundSite == m_sitesUnordered.end())
       continue;
+    */
 
     // split entire line for processing
     vector<string> tokens;
@@ -592,7 +601,7 @@ void Insti::OpenHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
   assert(loadHaps[0].size() == numHaps);
 }
 
-void Insti::OpenVCFGZ(const string &vcf, const string &region,
+void Insti::OpenVCFGZ(const string &vcf, const Bio::Region &region,
                       vector<vector<char> > &loadHaps, vector<snp> &loadSites,
                       vector<string> &ids) {
   loadHaps.clear();
@@ -601,21 +610,22 @@ void Insti::OpenVCFGZ(const string &vcf, const string &region,
 
   // open vcf using tabixpp
   string inVCF = vcf;
-  string inRegion = region;
   Tabix tbx(inVCF);
-  tbx.setRegion(inRegion);
+  tbx.setRegion(region.AsString());
 
   // get the header
   string header = tbx.getHeader();
 
+  using qi::lit;
+  using qi::omit;
+  /*
   using qi::phrase_parse;
   using qi::char_;
-  using qi::omit;
-  using qi::lit;
   //  using qi::int_;
   //  using qi::_1;
   using qi::as_string;
   using phoenix::push_back;
+  */
 
   // parse header for sample names
   auto first = header.begin();
@@ -702,7 +712,7 @@ void Insti::OpenVCFGZ(const string &vcf, const string &region,
 }
 
 void Insti::LoadVCFGZ(const string &vcf, InstiPanelType panel_t,
-                      const string &region) {
+                      const Bio::Region &region) {
 
   cout << "[insti] Loading haplotypes from VCF: " << vcf << endl;
   if (vcf.size() < 7 || vcf.compare(vcf.size() - 7, 7, ".vcf.gz") != 0)
@@ -742,7 +752,8 @@ void Insti::LoadVCFGZ(const string &vcf, InstiPanelType panel_t,
 };
 
 void Insti::LoadHapsSamp(const string &hapsFile, const string &sampleFile,
-                         InstiPanelType panelType, const Bio::Region & loadRegion) {
+                         InstiPanelType panelType,
+                         const Bio::Region &loadRegion) {
 
   // make sure both files are defined
   if (sampleFile.empty() && panelType == InstiPanelType::SCAFFOLD)
@@ -1053,8 +1064,8 @@ void Insti::LoadHaps(vector<vector<char> > &inHaps, vector<snp> &inSites,
 
     if (m_scaffold.NumHaps() != hn)
       throw myException(
-			"Error while reading scaffold: Scaffold needs to have two "
-			"haplotypes for every input sample");
+          "Error while reading scaffold: Scaffold needs to have two "
+          "haplotypes for every input sample");
 
     return;
   }
@@ -1472,14 +1483,13 @@ void Insti::initialize() {
   // load the scaffold
   if (!m_scaffoldHapsFile.empty()) {
     Bio::Region scaffoldRegion = m_runRegion;
-    if(m_init.scaffoldExtraRegionSize > 0){
+    if (m_init.scaffoldExtraRegionSize > 0) {
       unsigned overhang = m_init.scaffoldExtraRegionSize;
-      unsigned start = site[0].pos;
+      unsigned start = m_glSites[0].pos;
       start = start < overhang ? 0 : start - overhang;
-      unsigned end =  site.back().pos + overhang;
-      scaffoldRegion = Bio::Region(site[0].chr, start, end);
+      unsigned end = m_glSites.back().pos + overhang;
+      scaffoldRegion = Bio::Region(m_glSites[0].chr, start, end);
     }
-      
 
     if (!m_scaffoldSampleFile.empty())
       LoadHapsSamp(m_scaffoldHapsFile, m_scaffoldSampleFile,
@@ -1489,8 +1499,7 @@ void Insti::initialize() {
     else if (m_scaffoldHapsFile.size() >= 7 &&
              m_scaffoldHapsFile.compare(m_scaffoldHapsFile.size() - 7, 7,
                                         ".vcf.gz") == 0)
-      LoadVCFGZ(m_scaffoldHapsFile, InstiPanelType::SCAFFOLD,
-                scaffoldRegion);
+      LoadVCFGZ(m_scaffoldHapsFile, InstiPanelType::SCAFFOLD, scaffoldRegion);
     else {
       throw std::runtime_error(
           "[insti] Error while loading scaffold haps/sample "
@@ -2269,7 +2278,10 @@ void Insti::SetHapsAccordingToScaffold() {
 
       // find the site in site that matches the scaffold position
       for (; siteIdx < m_glSites.size(); siteIdx++) {
-        if (m_glSites[siteIdx].pos == m_scaffold.Position(scaffoldPositionIdx))
+        if (m_glSites[siteIdx].pos ==
+                m_scaffold.Position(scaffoldPositionIdx) &&
+            m_glSites[siteIdx].ref == m_scaffold.GetRef(scaffoldPositionIdx) &&
+            m_glSites[siteIdx].alt == m_scaffold.GetAlt(scaffoldPositionIdx))
           break;
       }
 
@@ -2304,8 +2316,8 @@ void Insti::document() {
           "(2)";
   cerr << "\n\t-o <name>\tPrefix to use for output files";
   cerr << "\n\t-P <thread>     number of threads (0=MAX,default=1)";
-  cerr << "\n\t-v <vcf>        integrate known genotype in VCF format";
-  cerr << "\n\t-c <conf>       confidence of known genotype (0.9998)";
+//  cerr << "\n\t-v <vcf>        integrate known genotype in VCF format";
+//  cerr << "\n\t-c <conf>       confidence of known genotype (0.9998)";
   cerr << "\n\t-x <gender>     impute x chromosome data";
   cerr << "\n\t-e <file>       write log to file";
   cerr << "\n\t-g <file>       genetic map (required)";
@@ -2367,6 +2379,9 @@ void Insti::document() {
           "allele frequency for clustering and applying -q and -Q."
           "below which sites are used for clustering from scaffold.";
   cerr << "\n\t-f              Fix phase according to scaffold (default off).";
+  cerr << "\n\t-O <integer>    Size in genomic coordinates of the regions past "
+          "the regions specified by the GLs to include in the scaffold "
+          "(default 0).";
   cerr << "\n\n";
   exit(1);
 }

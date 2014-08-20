@@ -78,6 +78,8 @@ public:
               unsigned wordSize);
 
   unsigned Position(unsigned idx) { return m_sites[idx].pos; }
+  std::string GetRef(unsigned idx) { return m_sites[idx].ref; }
+  std::string GetAlt(unsigned idx) { return m_sites[idx].alt; }
 };
 
 #endif

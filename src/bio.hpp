@@ -28,6 +28,10 @@ public:
                          std::to_string(m_endBP);
     return region;
   }
+
+  std::string GetChrom() const { return m_chrom; }
+  unsigned GetStartBP() const { return m_startBP; }
+  unsigned GetEndBP() const { return m_endBP; }
 };
 
 class snp {

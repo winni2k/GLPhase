@@ -57,7 +57,8 @@ struct Init {
   bool initPhaseFromScaffold = false;
   size_t reclusterEveryNGen = 0; // 0 means don't recluster
   size_t numThreads = 1;
-  unsigned scaffoldExtraRegionSize = 0; // size in genomic coordinates of overang region for clustering
+  unsigned scaffoldExtraRegionSize =
+      0; // size in genomic coordinates of overang region for clustering
 
   // genetic map file name
   std::string geneticMap;
@@ -140,15 +141,16 @@ private:
   // data loading
   std::vector<std::vector<char> > OpenHap(std::string hapFile);
   std::vector<Bio::snp> OpenLegend(std::string legendFile);
-  void OpenVCFGZ(const std::string &vcf, const std::string &region,
+  void OpenVCFGZ(const std::string &vcf, const Bio::Region &region,
                  std::vector<std::vector<char> > &haps,
                  std::vector<Bio::snp> &sites, std::vector<std::string> &ids);
   void OpenHaps(const std::string &hapFile,
                 std::vector<std::vector<char> > &loadHaps,
-                std::vector<Bio::snp> &sites);
+                std::vector<Bio::snp> &sites, const Bio::Region &subsetRegion);
   void OpenTabHaps(const std::string &hapFile,
                    std::vector<std::vector<char> > &loadHaps,
-                   std::vector<Bio::snp> &sites, const Bio::Region & subsetRegion);
+                   std::vector<Bio::snp> &sites,
+                   const Bio::Region &subsetRegion);
   void OpenSample(const std::string &sampleFile,
                   std::vector<std::string> &fillSampleIDs);
   void MatchSamples(const std::vector<std::string> &IDs, unsigned numHaps);
@@ -190,7 +192,7 @@ public:
   // data loading
   // haps/sample
   void LoadHapsSamp(const std::string &hapsFile, const std::string &sampleFile,
-                    InstiPanelType panelType);
+                    InstiPanelType panelType, const Bio::Region &loadRegion);
 
   // hap/leg/samp
   bool LoadHapLegSamp(const std::string &legendFile, const std::string &hapFile,
@@ -198,7 +200,7 @@ public:
 
   // vcf.gz file
   void LoadVCFGZ(const std::string &vcf, InstiPanelType panel_t,
-                 const std::string &region);
+                 const Bio::Region &region);
 
   // filter out sites that aren't in main gl data
   void FilterSites(std::vector<std::vector<char> > &loadHaps,

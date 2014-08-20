@@ -44,11 +44,8 @@ int main(int ac, char **av) {
     string sLogFile;
     int opt;
     bool optMSet = false;
-    while (
-        (opt = getopt(
-             ac, av,
-             "V:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:Q:fo:DTr:P:ag:F:R:")) >=
-        0) {
+    while ((opt = getopt(ac, av, "V:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:Q:"
+                                 "fo:DTr:P:ag:F:R:O:")) >= 0) {
       switch (opt) {
 
       /*      case 'd':
@@ -63,12 +60,15 @@ int main(int ac, char **av) {
       case 'n':
         Impute::nn = stoul(optarg);
         break;
-      //      case 'v':
-      //        Impute::vcf_file.push_back(optarg);
-      //        break;
-      case 'c':
-        Impute::conf = atof(optarg);
-        break;
+      /*
+            case 'v':
+                Impute::vcf_file.push_back(optarg);
+                break;
+            case 'c':
+              Impute::conf = atof(optarg);
+              break;
+      */
+
       case 'x':
         Impute::is_x = true;
         Impute::gender(optarg);
@@ -164,6 +164,9 @@ int main(int ac, char **av) {
         break;
       case 'R':
         init.inputGLRegion = optarg;
+        break;
+      case 'O':
+        init.scaffoldExtraRegionSize = stoul(optarg);
         break;
       default:
         Insti::document();
