@@ -591,7 +591,8 @@ void Insti::OpenHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
     keptSites++;
   }
 
-  cout << "Sites kept:\t" << keptSites << " / " << lineNum << "\n";
+  cout << m_tag << ": [insti] number of sites kept: " << keptSites << " / "
+       << lineNum << "\n";
 
   if (numHaps == 0) {
     cerr << "Number of haplotypes in haps file is 0.  Haps file empty?\n";
@@ -927,75 +928,77 @@ void Insti::FilterSites(vector<vector<char> > &loadHaps, vector<snp> &loadSites,
     // the reference panel may not have less sites than the GLs
     assert(m_glSites.size() <= loadSites.size());
     filtHaps.reserve(m_glSites.size());
-  } else if (panelType == InstiPanelType::SCAFFOLD) {
 
+    // now keep all sites that are in the GL set of sites
+    // look up each load site to see if its in the GL sites
+    unsigned previousPos = 0;
+    unsigned matchSites = 0;
+    for (unsigned loadSiteIdx = 0; loadSiteIdx < loadSites.size();
+         ++loadSiteIdx) {
+      const snp &loadSite = loadSites[loadSiteIdx];
+      auto canSiteR = m_sitesUnordered.equal_range(loadSite.pos);
+
+      // the load site is not in the GL sites
+      if (distance(canSiteR.first, canSiteR.second) == 0)
+        continue;
+
+      // test each of the sites to see if it matches
+      bool match = false;
+      for (auto candidateSite = canSiteR.first;
+           candidateSite != canSiteR.second; ++candidateSite) {
+        const snp &cSite = candidateSite->second;
+        if ((loadSite.pos == cSite.pos) &&
+            (loadSite.chr.empty() ? true : loadSite.chr == cSite.chr) &&
+            (loadSite.ref == cSite.ref) && loadSite.alt == cSite.alt) {
+          match = true;
+          break;
+        }
+      }
+      if (match) {
+        if (loadSite.pos < previousPos)
+          throw std::runtime_error(
+              "[insti] Haplotypes file is not ordered by position: ");
+        if (loadSite.pos == previousPos)
+          throw std::runtime_error("[insti] Multiple variants at the same "
+                                   "position are not implemented yet");
+        previousPos = loadSite.pos;
+        ++matchSites;
+
+        // keep the site because it matches
+        filtSites.push_back(loadSite);
+        filtHaps.push_back(move(loadHaps[loadSiteIdx]));
+      }
+    }
+    assert(matchSites > 0);
+
+    // we always want to find at most as many matches as are in GL sites
+    if (matchSites > m_glSites.size())
+      throw std::runtime_error("[insti] too many matching sites found");
+
+    if (m_glSites.size() != matchSites)
+      throw std::runtime_error(
+          "[insti] Could not find all GL sites in loaded haplotype panel");
+
+  } else if (panelType == InstiPanelType::SCAFFOLD) {
+    filtHaps = std::move(loadHaps);
+    filtSites = std::move(loadSites);
     // the scaffold may have less or more sites than the GLs
   } else
     assert(false); // programming error
 
-  // now keep all sites that are in the GL set of sites
-  // look up each load site to see if its in the GL sites
-  unsigned previousPos = 0;
-  unsigned matchSites = 0;
-  for (unsigned loadSiteIdx = 0; loadSiteIdx < loadSites.size();
-       ++loadSiteIdx) {
-    const snp &loadSite = loadSites[loadSiteIdx];
-    auto canSiteR = m_sitesUnordered.equal_range(loadSite.pos);
-
-    // the load site is not in the GL sites
-    if (distance(canSiteR.first, canSiteR.second) == 0)
-      continue;
-
-    // test each of the sites to see if it matches
-    bool match = false;
-    for (auto candidateSite = canSiteR.first; candidateSite != canSiteR.second;
-         ++candidateSite) {
-      const snp &cSite = candidateSite->second;
-      if ((loadSite.pos == cSite.pos) &&
-          (loadSite.chr.empty() ? true : loadSite.chr == cSite.chr) &&
-          (loadSite.ref == cSite.ref) && loadSite.alt == cSite.alt) {
-        match = true;
-        break;
-      }
-    }
-    if (match) {
-      if (loadSite.pos < previousPos)
-        throw std::runtime_error(
-            "[insti] Haplotypes file is not ordered by position: ");
-      if (loadSite.pos == previousPos)
-        throw std::runtime_error("[insti] Multiple variants at the same "
-                                 "position are not implemented yet");
-      previousPos = loadSite.pos;
-      ++matchSites;
-
-      // keep the site because it matches
-      filtSites.push_back(loadSite);
-      filtHaps.push_back(move(loadHaps[loadSiteIdx]));
-    }
-  }
-
-  cout << "[insti] Number of loaded haplotypes: " << numHaplotypesLoaded
+  cout << m_tag
+       << ": [insti] Number of loaded haplotypes: " << numHaplotypesLoaded
        << endl;
-  cout << "[insti] Number of haplotypes left after filtering: "
+  cout << m_tag << ": [insti] Number of haplotypes left after filtering: "
        << filtHaps[0].size() << endl;
-  cout << "[insti] Number of candidate sites: " << m_glSites.size() << endl;
-  cout << "[insti] Number of sites kept: " << filtSites.size() << endl;
+  cout << m_tag << ": [insti] Number of GL sites sites: " << m_glSites.size()
+       << endl;
+  cout << m_tag << ": [insti] Number of sites kept: " << filtSites.size() << endl;
 
   if (filtHaps[0].size() != numHaplotypesLoaded)
     throw std::runtime_error(
         "Error: No sites in loaded panel matched already loaded sites. Is your "
         "input file sorted?");
-
-  // we always want to find at most as many matches as are in GL sites
-  if (matchSites > m_glSites.size())
-    throw std::runtime_error("[insti] too many matching sites found");
-
-  assert(matchSites > 0);
-
-  if (panelType == InstiPanelType::REFERENCE)
-    if (m_glSites.size() != matchSites)
-      throw std::runtime_error(
-          "[insti] Could not find all GL sites in loaded haplotype panel");
 }
 
 // swap two haps if they match and return true on swap, false otherwise
@@ -2316,8 +2319,8 @@ void Insti::document() {
           "(2)";
   cerr << "\n\t-o <name>\tPrefix to use for output files";
   cerr << "\n\t-P <thread>     number of threads (0=MAX,default=1)";
-//  cerr << "\n\t-v <vcf>        integrate known genotype in VCF format";
-//  cerr << "\n\t-c <conf>       confidence of known genotype (0.9998)";
+  //  cerr << "\n\t-v <vcf>        integrate known genotype in VCF format";
+  //  cerr << "\n\t-c <conf>       confidence of known genotype (0.9998)";
   cerr << "\n\t-x <gender>     impute x chromosome data";
   cerr << "\n\t-e <file>       write log to file";
   cerr << "\n\t-g <file>       genetic map (required)";
