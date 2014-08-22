@@ -5,7 +5,9 @@
 #define _GLOBALS_H 1
 
 // need this to work around bugi in gcc 4.7.2 when using stdint.h
+#if __GNUC_MINOR__ < 8
 #define __STDC_LIMIT_MACROS 1
+#endif
 
 // this is the number of sites that the HMM will run on
 #define NUMSITES 1024
