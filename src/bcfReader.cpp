@@ -21,18 +21,19 @@ BCFReader::BCFReader(string fileName, BCFReaderHelper::extract_t extractType,
     : m_extractType(extractType) {
 
   assert(fileName.size() > 0);
-  bcf_srs_t *readers = bcf_sr_init();
+  std::unique_ptr<bcf_srs_t, void (*)(bcf_srs_t *)> readers(
+      bcf_sr_init(), [](bcf_srs_t *s) { bcf_sr_destroy(s); });
 
   // Set the region in the bcf to iterate over
   if (!region.empty())
-    if (bcf_sr_set_regions(readers, region.c_str(), 0) < 0)
+    if (bcf_sr_set_regions(readers.get(), region.c_str(), 0) < 0)
       throw std::runtime_error("[BCFReader] Failed "
                                "to read the "
                                "regions: " +
                                region);
 
   // read header and check it
-  if (!bcf_sr_add_reader(readers, fileName.c_str()))
+  if (!bcf_sr_add_reader(readers.get(), fileName.c_str()))
     throw std::runtime_error("[BCFReader] Could not open file: " + fileName);
 
   bcf_hdr_t *hdr = readers->readers[0].header;
@@ -49,9 +50,10 @@ BCFReader::BCFReader(string fileName, BCFReaderHelper::extract_t extractType,
   // extract each line of data
   unsigned lineNum = 0;
   string extractString;
-  while (bcf_sr_next_line(readers)) {
+  while (bcf_sr_next_line(readers.get())) {
 
-    bcf1_t *rec = readers->readers[0].buffer[0];
+    std::unique_ptr<bcf1_t, void (*)(bcf1_t *)> rec(
+        readers->readers[0].buffer[0], [](bcf1_t *b) { bcf_destroy1(b); });
 
     // store site information
     string chr = bcf_hdr_id2name(hdr, rec->rid);
@@ -64,9 +66,9 @@ BCFReader::BCFReader(string fileName, BCFReaderHelper::extract_t extractType,
       if (m_extractType == BCFReaderHelper::extract_t::Haps)
         extractString = "GT";
       else if (m_extractType == BCFReaderHelper::extract_t::GL) {
-        if (bcf_get_fmt(hdr, rec, "GL"))
+        if (bcf_get_fmt(hdr, rec.get(), "GL"))
           extractString = "GL";
-        else if (bcf_get_fmt(hdr, rec, "PL"))
+        else if (bcf_get_fmt(hdr, rec.get(), "PL"))
           extractString = "PL";
         else
           throw std::runtime_error("Could not find GL or PL field in VCF/BCF");
@@ -75,18 +77,18 @@ BCFReader::BCFReader(string fileName, BCFReaderHelper::extract_t extractType,
     }
 
     // now check if expected field exists
-    if (!bcf_get_fmt(hdr, rec, extractString.c_str()))
+    if (!bcf_get_fmt(hdr, rec.get(), extractString.c_str()))
       throw std::runtime_error("expected " + extractString +
                                " field in VCF/BCF");
 
     // read haps
     try {
       if (m_extractType == BCFReaderHelper::extract_t::Haps)
-        m_haps.push_back(ExtractRecAlleles(rec, hdr));
+        m_haps.push_back(ExtractRecAlleles(rec.get(), hdr));
 
       // read GLs
       else if (m_extractType == BCFReaderHelper::extract_t::GL)
-        m_GLs.push_back(ExtractRecGLs(rec, hdr, extractString));
+        m_GLs.push_back(ExtractRecGLs(rec.get(), hdr, extractString));
 
       // could not figure out what to read
       else
@@ -101,21 +103,20 @@ BCFReader::BCFReader(string fileName, BCFReaderHelper::extract_t extractType,
     m_sites.push_back(std::move(Bio::snp(chr, pos, a1, a2)));
     ++lineNum;
   }
-
-  // clean up
-  bcf_sr_destroy(readers);
 }
 
 vector<char> BCFReader::ExtractRecAlleles(bcf1_t *rec, bcf_hdr_t *hdr) {
 
   assert(m_extractType == BCFReaderHelper::extract_t::Haps);
-  int *gt_arr = nullptr, ngt_arr = 0;
-  const int ngt = bcf_get_genotypes(hdr, rec, &gt_arr, &ngt_arr);
-  if (ngt != 2 * static_cast<int>(m_sampNames.size())) {
-    free(gt_arr);
+  int ngt_arr = 0;
+  std::unique_ptr<int[], void (*)(int *)> gt_arr(nullptr,
+                                                 [](int *i) { free(i); });
+  int *gt_arr_ptr = gt_arr.get();
+
+  const int ngt = bcf_get_genotypes(hdr, rec, &gt_arr_ptr, &ngt_arr);
+  if (ngt != 2 * static_cast<int>(m_sampNames.size()))
     throw std::runtime_error("Malformed VCF. Too few or too many "
                              "GT fields");
-  }
 
   vector<char> siteAlleles;
   siteAlleles.reserve(ngt);
@@ -123,17 +124,14 @@ vector<char> BCFReader::ExtractRecAlleles(bcf1_t *rec, bcf_hdr_t *hdr) {
     assert(gt_arr[gtNum] != bcf_gt_missing);
     assert(gt_arr[gtNum] != bcf_int32_vector_end);
 
-    if ((gtNum & 1) == 1 && !bcf_gt_is_phased(gt_arr[gtNum])) {
-      free(gt_arr);
+    if ((gtNum & 1) == 1 && !bcf_gt_is_phased(gt_arr[gtNum]))
       throw std::runtime_error("Error in GT data, genotype is not phased.");
-    }
 
     assert(bcf_gt_allele(gt_arr[gtNum]) < 2);
     siteAlleles.push_back(bcf_gt_allele(gt_arr[gtNum]) == 1);
   }
 
   // store site alleles
-  free(gt_arr);
   return siteAlleles;
 }
 

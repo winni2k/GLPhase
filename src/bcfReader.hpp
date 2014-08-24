@@ -16,6 +16,7 @@ static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 #include <htslib/synced_bcf_reader.h>
 #include <cfloat>
 #include <cmath>
+#include <memory>
 #include "bio.hpp"
 #include <stdint.h>
 

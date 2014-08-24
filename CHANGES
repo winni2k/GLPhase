@@ -1,3 +1,6 @@
+1.4.17  Sun Aug 24 17:43:08 BST 2014
+        Wrapped C objects in unique ptr 
+
 1.4.16  Wed Aug 20 14:01:08 BST 2014
         Added -O option to define how much larger the scaffold should
         be than the region that the GLs define.
