@@ -2311,7 +2311,7 @@ void Insti::document() {
   cerr << "\nAuthor\tYi Wang @ Fuli Yu' Group @ BCM-HGSC";
   // cerr << "\n\t-d <density>    relative SNP density to Sanger sequencing
   // (1)";
-  cerr << "\n\nusage\timpute [options] GLFile";
+  cerr << "\n\nusage\tinsti [options] GLFile";
 
   //    cerr << "\n\t-b <burn>       burn-in generations (56)";
   cerr << "\n\t-n <fold>       sample size*fold of nested MH sampler "

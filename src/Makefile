@@ -144,13 +144,13 @@ insti.hpp.gch: $(INSTIHEADERPRE)
 
 ## object files
 %.o: %.cpp %.hpp.gch
-	$(CXX) $(CXXFLAGS) -c $< $(LIBS)
+	$(CXX) $(CXXFLAGS) -c $<
 
 olivier/utils.o: olivier/utils.cpp olivier/utils.hpp.gch
-	$(CXX) $(CXXFLAGS) -Wno-sign-compare -c $< -o $@ $(LIBS)
+	$(CXX) $(CXXFLAGS) -Wno-sign-compare -c $< -o $@
 
 hmmLike.o: hmmLike.cpp hmmLike.hpp.gch hmmLike.h
-	$(CXX) $(CXXFLAGS) -c $< $(LIBS)
+	$(CXX) $(CXXFLAGS) -c $<
 
 ifndef NCUDA
 hmmLike.cu.o: hmmLike.cu hmmLike.hcu hmmLike.h
@@ -161,7 +161,7 @@ allCuda.link.o: hmmLike.cu.o
 endif
 
 main.o: main.cpp version.hpp.gch impute.hpp.gch insti.hpp.gch
-	$(CXX) $(CXXFLAGS) -c $< $(LIBS)
+	$(CXX) $(CXXFLAGS) -c $<
 
 ## binaries
 $(BIN): $(OBJECT_FILES)
