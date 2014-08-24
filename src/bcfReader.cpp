@@ -52,8 +52,7 @@ BCFReader::BCFReader(string fileName, BCFReaderHelper::extract_t extractType,
   string extractString;
   while (bcf_sr_next_line(readers.get())) {
 
-    std::unique_ptr<bcf1_t, void (*)(bcf1_t *)> rec(
-        readers->readers[0].buffer[0], [](bcf1_t *b) { bcf_destroy1(b); });
+    bcf1_t *rec = readers->readers[0].buffer[0];
 
     // store site information
     string chr = bcf_hdr_id2name(hdr, rec->rid);
@@ -66,9 +65,9 @@ BCFReader::BCFReader(string fileName, BCFReaderHelper::extract_t extractType,
       if (m_extractType == BCFReaderHelper::extract_t::Haps)
         extractString = "GT";
       else if (m_extractType == BCFReaderHelper::extract_t::GL) {
-        if (bcf_get_fmt(hdr, rec.get(), "GL"))
+        if (bcf_get_fmt(hdr, rec, "GL"))
           extractString = "GL";
-        else if (bcf_get_fmt(hdr, rec.get(), "PL"))
+        else if (bcf_get_fmt(hdr, rec, "PL"))
           extractString = "PL";
         else
           throw std::runtime_error("Could not find GL or PL field in VCF/BCF");
@@ -77,18 +76,18 @@ BCFReader::BCFReader(string fileName, BCFReaderHelper::extract_t extractType,
     }
 
     // now check if expected field exists
-    if (!bcf_get_fmt(hdr, rec.get(), extractString.c_str()))
+    if (!bcf_get_fmt(hdr, rec, extractString.c_str()))
       throw std::runtime_error("expected " + extractString +
                                " field in VCF/BCF");
 
     // read haps
     try {
       if (m_extractType == BCFReaderHelper::extract_t::Haps)
-        m_haps.push_back(ExtractRecAlleles(rec.get(), hdr));
+        m_haps.push_back(ExtractRecAlleles(rec, hdr));
 
       // read GLs
       else if (m_extractType == BCFReaderHelper::extract_t::GL)
-        m_GLs.push_back(ExtractRecGLs(rec.get(), hdr, extractString));
+        m_GLs.push_back(ExtractRecGLs(rec, hdr, extractString));
 
       // could not figure out what to read
       else
