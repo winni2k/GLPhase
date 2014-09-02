@@ -138,28 +138,43 @@ vector<double> BCFReader::ExtractRecGLs(bcf1_t *rec, bcf_hdr_t *hdr,
                                         const string &extractString) {
 
   assert(m_extractType == BCFReaderHelper::extract_t::GL);
-  int m_arr = 0;
-  float *arr = NULL;
-  int stride = 3;
-  int n_arr =
-      bcf_get_format_float(hdr, rec, extractString.c_str(), &arr, &m_arr);
-  if (n_arr / stride != bcf_hdr_nsamples(hdr)) {
-    free(arr);
-    throw std::runtime_error("Malformed VCF. Too few or too many "
-                             "GT fields");
-  }
-
   // convert GL to double
   vector<double> siteGLs;
-  siteGLs.reserve(n_arr);
-  if (extractString == "GL")
+
+  int m_arr = 0;
+  int stride = 3;
+  if (extractString == "GL") {
+    float *f_arr = nullptr;
+    int n_arr =
+        bcf_get_format_float(hdr, rec, extractString.c_str(), &f_arr, &m_arr);
+    if (n_arr / stride != bcf_hdr_nsamples(hdr)) {
+      free(f_arr);
+      throw std::runtime_error("Malformed VCF. Too few or too many "
+                               "GL fields");
+    }
+
+    siteGLs.reserve(n_arr);
     for (int glNum = 0; glNum != n_arr; ++glNum)
-      siteGLs.push_back(pow(10.0f, arr[glNum]));
-  else if (extractString == "PL")
+      siteGLs.push_back(pow(10.0f, f_arr[glNum]));
+    free(f_arr);
+
+  } else if (extractString == "PL") {
+    int *i_arr = nullptr;
+    int n_arr =
+        bcf_get_format_float(hdr, rec, extractString.c_str(), &i_arr, &m_arr);
+    if (n_arr / stride != bcf_hdr_nsamples(hdr)) {
+      free(i_arr);
+      throw std::runtime_error("Malformed VCF. Too few or too many "
+                               "PL fields");
+    }
+
+    siteGLs.reserve(n_arr);
     for (int glNum = 0; glNum != n_arr; ++glNum)
-      siteGLs.push_back(BCFReaderHelper::phred2Prob(arr[glNum]));
+      siteGLs.push_back(BCFReaderHelper::phred2Prob(i_arr[glNum]));
+    free(i_arr);
+  } else
+    throw logic_error("unexpected extractString");
 
   // store gls
-  free(arr);
   return siteGLs;
 }

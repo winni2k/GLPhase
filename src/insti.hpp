@@ -66,7 +66,7 @@ struct Init {
 
   // input GL file
   std::string inputGLFile = "";
-  std::string inputGLFileType = "bcf"; // default is snptools binary
+  std::string inputGLFileType = "bin"; // default is snptools binary
   std::string inputGLRegion = "";      // e.g. 20:1-50000
   std::string inputSamplesKeep = "";   // file with list of sample names to keep
 };

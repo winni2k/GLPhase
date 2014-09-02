@@ -247,6 +247,10 @@ void Insti::LoadGLs(const unordered_set<string> &keepSamples) {
 }
 
 void Insti::LoadGLBin() {
+  if (m_init.inputGLFile.substr(m_init.inputGLFile.size() - 4, 4) != ".bin")
+    throw runtime_error("[insti] Expecting input GL file to be in .bin format "
+                        "and have file name ending .bin [" +
+                        m_init.inputGLFile + "]");
   bool bRetVal = Impute::load_bin(m_init.inputGLFile.c_str());
   if (bRetVal == false)
     throw std::runtime_error("[insti] Unable to load input .bin file: " +
