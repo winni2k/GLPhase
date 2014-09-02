@@ -44,7 +44,7 @@ int main(int ac, char **av) {
     string sLogFile;
     int opt;
     bool optMSet = false;
-    while ((opt = getopt(ac, av, "V:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:Q:"
+    while ((opt = getopt(ac, av, "V:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:Q:S:"
                                  "fo:DTr:P:ag:F:R:O:")) >= 0) {
       switch (opt) {
 

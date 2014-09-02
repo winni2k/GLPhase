@@ -17,6 +17,7 @@
 #include <stdexcept>
 #include <cfloat>
 #include <omp.h>
+#include <unordered_set>
 
 #include <boost/uuid/uuid.hpp>            // uuid class
 #include <boost/uuid/uuid_generators.hpp> // generators
@@ -67,7 +68,9 @@ struct Init {
   std::string inputGLFile = "";
   std::string inputGLFileType = "bin"; // default is snptools binary
   std::string inputGLRegion = "";      // e.g. 20:1-50000
+  std::string inputSamplesKeep = "";   // file with list of sample names to keep
 };
+std::unordered_set<string> LoadSamplesUOSet(const string &sampleFile);
 }
 // require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
@@ -164,9 +167,9 @@ private:
   // expects scaffold to have been initialized
   void SetHapsAccordingToScaffold();
 
-  void LoadGLs();
+  void LoadGLs(const std::unordered_set<std::string> &keepSamples);
   void LoadGLBin();
-  void LoadGLBCF();
+  void LoadGLBCF(const std::unordered_set<std::string> &keepSamples);
 
 public:
   // uuid

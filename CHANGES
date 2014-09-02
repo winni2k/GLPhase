@@ -1,3 +1,7 @@
+1.4.18  Tue Sep 02 17:11:02 BST 2014
+        Added -S option for filtering on sample lists when reading GLs
+        from VCF/BCF files
+
 1.4.17  Sun Aug 24 17:43:08 BST 2014
         Wrapped C objects in unique ptr 
 

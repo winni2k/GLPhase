@@ -69,6 +69,33 @@ MHType Insti::s_MHSamplerType = MHType::MH;
 // handling approach...
 unsigned Insti::s_uStartClusterGen = Insti::s_uSABurninGen;
 
+namespace InstiHelper {
+unordered_set<string> LoadSamplesUOSet(const string &sampleFile) {
+
+  std::unordered_set<std::string> inputSamples;
+
+  if (sampleFile.empty())
+    return inputSamples;
+
+  ifile samplesFD(sampleFile);
+
+  if (!samplesFD.isGood())
+    throw std::runtime_error("[LoadSamplesUOSet] Could not open file: [" +
+                             sampleFile + "]");
+
+  string buffer;
+  while (getline(samplesFD, buffer, '\n')) {
+    auto ret = inputSamples.insert(buffer);
+    if (ret.second == false)
+      throw runtime_error(
+          "[LoadSamplesUOSet] Error while loading samples from file [" +
+          sampleFile + "]: The sample " + *ret.first +
+          " was encountered twice");
+  }
+  return inputSamples;
+}
+}
+
 Insti::Insti(InstiHelper::Init &init)
     : m_reclusterEveryNGen(init.reclusterEveryNGen),
       m_scaffoldHapsFile(init.scaffoldHapsFile),
@@ -84,8 +111,11 @@ Insti::Insti(InstiHelper::Init &init)
   else
     throw std::runtime_error("[insti] Estimator needs to be less than 4");
 
+  // load keep samples
+  auto keepSamples = InstiHelper::LoadSamplesUOSet(m_init.inputSamplesKeep);
+
   // load input GLs according to file type
-  LoadGLs();
+  LoadGLs(keepSamples);
 
   // setting range object based on load bin
   if (m_glSites.empty())
@@ -205,12 +235,12 @@ int Insti::RWSelection(const vector<EMCChain> &rvcChains) {
   return iChainIndex;
 }
 
-void Insti::LoadGLs() {
+void Insti::LoadGLs(const unordered_set<string> &keepSamples) {
 
   if (m_init.inputGLFileType == "bin")
     LoadGLBin();
   else if (m_init.inputGLFileType == "bcf")
-    LoadGLBCF();
+    LoadGLBCF(keepSamples);
   else
     throw std::runtime_error("Unknown GL file type specified: " +
                              m_init.inputGLFileType);
@@ -223,7 +253,7 @@ void Insti::LoadGLBin() {
                              m_init.inputGLFile);
 }
 
-void Insti::LoadGLBCF() {
+void Insti::LoadGLBCF(const unordered_set<string> &keepSamples) {
 
   string bcfFile = m_init.inputGLFile;
 
@@ -236,8 +266,27 @@ void Insti::LoadGLBCF() {
   posi.clear();
 
   BCFReader bcf(bcfFile, BCFReaderHelper::extract_t::GL, m_init.inputGLRegion);
-  name = bcf.GetSampNames();
-  in = name.size();
+  vector<string> glSampNames = bcf.GetSampNames();
+
+  // subset the samples according to subset list
+  vector<char> keepSamp;
+  keepSamp.reserve(glSampNames.size());
+  name.reserve(glSampNames.size());
+  unsigned numSampsKept = 0;
+  for (auto samp : glSampNames) {
+    auto ret = keepSamples.find(samp);
+    if (!keepSamples.empty() && ret == keepSamples.end())
+      keepSamp.push_back(0);
+    else {
+      name.push_back(samp);
+      keepSamp.push_back(1);
+      ++numSampsKept;
+    }
+  }
+  if (numSampsKept != keepSamples.size() && !keepSamples.empty())
+    throw runtime_error("[Insti::LoadGLBCF] Number of samples loaded is not "
+                        "equal to the number of samples in keep file");
+  assert(name.size() == numSampsKept);
 
   m_glSites = bcf.GetSites();
   mn = m_glSites.size(); // mn = number of sites
@@ -262,20 +311,21 @@ void Insti::LoadGLBCF() {
   posi.reserve(mn);
 
   // extract GLs of interest
-  prob.reserve(mn * in * 2);
+  prob.reserve(mn * numSampsKept * 2);
   for (size_t siteNum = 0; siteNum < mn; ++siteNum) {
     posi.push_back(m_glSites[siteNum].pos);
-    for (size_t sampNum = 0; sampNum < in; ++sampNum) {
-
-      // save the het GL
-      prob.push_back(bcf.GetSiteGL(siteNum, 3 * sampNum + 1));
-      // save the hom alt GL
-      prob.push_back(bcf.GetSiteGL(siteNum, 3 * sampNum + 2));
+    for (size_t sampNum = 0; sampNum < keepSamp.size(); ++sampNum) {
+      if (keepSamp[sampNum] == 1) {
+        // save the het GL
+        prob.push_back(bcf.GetSiteGL(siteNum, 3 * sampNum + 1));
+        // save the hom alt GL
+        prob.push_back(bcf.GetSiteGL(siteNum, 3 * sampNum + 2));
+      }
     }
   }
 
   // clean up
-
+  in = name.size();
   clog << "sites\t" << mn << endl;
   clog << "sample\t" << in << endl; // which sample
 }
@@ -993,7 +1043,8 @@ void Insti::FilterSites(vector<vector<char> > &loadHaps, vector<snp> &loadSites,
        << filtHaps[0].size() << endl;
   cout << m_tag << ": [insti] Number of GL sites sites: " << m_glSites.size()
        << endl;
-  cout << m_tag << ": [insti] Number of sites kept: " << filtSites.size() << endl;
+  cout << m_tag << ": [insti] Number of sites kept: " << filtSites.size()
+       << endl;
 
   if (filtHaps[0].size() != numHaplotypesLoaded)
     throw std::runtime_error(
@@ -2326,6 +2377,7 @@ void Insti::document() {
   cerr << "\n\t-g <file>       genetic map (required)";
   cerr << "\n\t-F <string>     Input GL file type (bin). Valid values are "
           "\"bin\" or \"bcf\"";
+  cerr << "\n\t-S <file>       list of samples to keep from GLs";
 
   cerr << "\n\n    GENERATION OPTIONS";
   cerr << "\n\t-m <mcmc>       sampling generations (200)";
