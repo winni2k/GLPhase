@@ -464,9 +464,8 @@ void Insti::OpenTabHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
     if (!match)
       continue;
 
-    if (pos == previousPos)
-      throw std::runtime_error("[insti] Multiple variants at the same "
-                               "position are not implemented yet");
+    if (pos < previousPos)
+      throw std::runtime_error("[insti] haplotype variants are out of order");
     previousPos = pos;
     ++matchSites;
 
@@ -1012,9 +1011,6 @@ void Insti::FilterSites(vector<vector<char> > &loadHaps, vector<snp> &loadSites,
         if (loadSite.pos < previousPos)
           throw std::runtime_error(
               "[insti] Haplotypes file is not ordered by position: ");
-        if (loadSite.pos == previousPos)
-          throw std::runtime_error("[insti] Multiple variants at the same "
-                                   "position are not implemented yet");
         previousPos = loadSite.pos;
         ++matchSites;
 
