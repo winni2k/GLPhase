@@ -235,6 +235,7 @@ int main(int ac, char **av) {
     if (outBase.empty())
       outBase = init.inputGLFile;
 
+    outBase += ".phased";
     lp.save_vcf(outBase.c_str(), commandLine.str());
     try {
       lp.save_relationship_graph(outBase);

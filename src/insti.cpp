@@ -2368,7 +2368,7 @@ void Insti::document() {
   cerr << "\n\t-n <fold>       sample size*fold of nested MH sampler "
           "iteration "
           "(2)";
-  cerr << "\n\t-o <name>\tPrefix to use for output files";
+  cerr << "\n\t-o <name>\tPrefix to use for output files. \".phased\" will be added to to the prefix.";
   cerr << "\n\t-P <thread>     number of threads (0=MAX,default=1)";
   //  cerr << "\n\t-v <vcf>        integrate known genotype in VCF format";
   //  cerr << "\n\t-c <conf>       confidence of known genotype (0.9998)";
