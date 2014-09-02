@@ -161,7 +161,7 @@ vector<double> BCFReader::ExtractRecGLs(bcf1_t *rec, bcf_hdr_t *hdr,
   } else if (extractString == "PL") {
     int *i_arr = nullptr;
     int n_arr =
-        bcf_get_format_float(hdr, rec, extractString.c_str(), &i_arr, &m_arr);
+        bcf_get_format_int32(hdr, rec, extractString.c_str(), &i_arr, &m_arr);
     if (n_arr / stride != bcf_hdr_nsamples(hdr)) {
       free(i_arr);
       throw std::runtime_error("Malformed VCF. Too few or too many "
