@@ -4,6 +4,8 @@
   This code was copied from Erik Garison's tabixpp library
   commit: c2d6c12eb827805fb13db4bab20f74b212b8b6d0
 
+  and then modified to work with htslib
+
 */
 
 #include "tabix.hpp"

@@ -2368,7 +2368,8 @@ void Insti::document() {
   cerr << "\n\t-n <fold>       sample size*fold of nested MH sampler "
           "iteration "
           "(2)";
-  cerr << "\n\t-o <name>\tPrefix to use for output files. \".phased\" will be added to to the prefix.";
+  cerr << "\n\t-o <name>\tPrefix to use for output files. \".phased\" will be "
+          "added to to the prefix.";
   cerr << "\n\t-P <thread>     number of threads (0=MAX,default=1)";
   //  cerr << "\n\t-v <vcf>        integrate known genotype in VCF format";
   //  cerr << "\n\t-c <conf>       confidence of known genotype (0.9998)";
@@ -2377,6 +2378,10 @@ void Insti::document() {
   cerr << "\n\t-g <file>       genetic map (required)";
   cerr << "\n\t-F <string>     Input GL file type (bin). Valid values are "
           "\"bin\" or \"bcf\"";
+  cerr << "\n\t-R <string>     Region to run imputation on.  Only works with "
+          "VCF/BCF input GL file. Region should be of the form 20:100-1000 for "
+          "chromosome 20 starting at genomic position 100 and ending at "
+          "genomic position 1000 (inclusive).";
   cerr << "\n\t-S <file>       list of samples to keep from GLs";
 
   cerr << "\n\n    GENERATION OPTIONS";
