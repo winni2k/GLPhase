@@ -168,6 +168,9 @@ int main(int ac, char **av) {
       case 'O':
         init.scaffoldExtraRegionSize = stoul(optarg);
         break;
+      case 'S':
+        init.inputSamplesKeep = optarg;
+        break;
       default:
         Insti::document();
       }
