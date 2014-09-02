@@ -94,7 +94,7 @@ private:
   std::shared_ptr<Sampler> m_sampler;
 
   // keep track of GL sites, names as unordered map of snps
-  std::unordered_map<unsigned, Bio::snp> m_sitesUnordered;
+  std::unordered_multimap<unsigned, Bio::snp> m_sitesUnordered;
 
   // name -> name index in global variable "name"
   std::unordered_map<std::string, unsigned> m_namesUnordered;
