@@ -19,7 +19,6 @@ static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 #include <memory>
 #include "bio.hpp"
 #include <stdint.h>
-#include <iostream>
 
 namespace BCFReaderHelper {
 
