@@ -7,7 +7,8 @@ using namespace std;
 
 namespace BCFReaderHelper {
 double phred2Prob(double phred) {
-  assert(phred >= 0);
+  if (phred < 0)
+    throw runtime_error("phred is smaller than 0: " + to_string(phred));
 
   if (phred >= DBL_MAX_10_EXP * 10)
     return DBL_MIN;
@@ -169,8 +170,18 @@ vector<double> BCFReader::ExtractRecGLs(bcf1_t *rec, bcf_hdr_t *hdr,
     }
 
     siteGLs.reserve(n_arr);
-    for (int glNum = 0; glNum != n_arr; ++glNum)
-      siteGLs.push_back(BCFReaderHelper::phred2Prob(i_arr[glNum]));
+    for (int glNum = 0; glNum != n_arr; ++glNum) {
+      try {
+        siteGLs.push_back(BCFReaderHelper::phred2Prob(i_arr[glNum]));
+      }
+      catch (const std::exception &e) {
+        cerr << "In position " << to_string(= rec->pos + 1) << " "
+             << rec->d.allele[0] << " " << rec->d.allele[1] << ": at GL number "
+             << to_string(glNum) << e.what();
+        free(i_arr);
+        exit(1);
+      }
+    }
     free(i_arr);
   } else
     throw logic_error("unexpected extractString");
