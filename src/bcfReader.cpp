@@ -175,11 +175,11 @@ vector<double> BCFReader::ExtractRecGLs(bcf1_t *rec, bcf_hdr_t *hdr,
         siteGLs.push_back(BCFReaderHelper::phred2Prob(i_arr[glNum]));
       }
       catch (const std::exception &e) {
-        string err("In position " + to_string(rec->pos + 1) + " " +
-                   rec->d.allele[0] + " " + rec->d.allele[1] +
-                   ": at GL number " + to_string(glNum) + e.what());
         free(i_arr);
-        throw runtime_error(err);
+        throw runtime_error("In position " + to_string(rec->pos + 1) + " " +
+                            rec->d.allele[0] + " " + rec->d.allele[1] +
+                            ": at GL number " + to_string(glNum) + ": " +
+                            e.what());
       }
     }
     free(i_arr);
