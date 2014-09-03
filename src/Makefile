@@ -1,6 +1,6 @@
 
 #targets
-.PHONY: clean test all debug static release
+.PHONY: clean test all debug static release cgrind
 
 
 BDIR := ../bin
@@ -36,6 +36,7 @@ release: BIN += .release
 all: $(BIN)
 release: $(BIN)
 debug: $(BIN).debug
+cgrind: $(BIN).cgrind
 test: debug
 test: $(OBJECT_FILES) $(HEADER_FILES)
 	$(MAKE) -C testing
@@ -45,6 +46,7 @@ all: CXXFLAGS += -O3
 release: CXXFLAGS += -O3 -DNDEBUG
 static: CXXFLAGS += -O3 -DNDEBUG
 debug: CXXFLAGS += -O0 -ggdb
+cgrind: CXXFLAGS += -O3 -ggdb
 test: CXXFLAGS += -O0 -ggdb
 
 # gcc
@@ -172,6 +174,9 @@ static: $(OBJECT_FILES)
 	$(CXX) $(CXXFLAGS) $(OBJECT_FILES) -o $(BDIR)/insti.$(VERSION).static-$(KERNEL) $(SLIBS)
 
 $(BIN).debug: $(OBJECT_FILES)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)
+
+$(BIN).cgrind: $(OBJECT_FILES)
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)
 
 
