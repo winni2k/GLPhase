@@ -172,6 +172,8 @@ vector<double> BCFReader::ExtractRecGLs(bcf1_t *rec, bcf_hdr_t *hdr,
     siteGLs.reserve(n_arr);
     for (int glNum = 0; glNum != n_arr; ++glNum) {
       try {
+        if (i_arr[glNum] < 0)
+          throw runtime_error("phred < 0: " + to_string(i_arr[glNum]));
         siteGLs.push_back(BCFReaderHelper::phred2Prob(i_arr[glNum]));
       }
       catch (const std::exception &e) {
