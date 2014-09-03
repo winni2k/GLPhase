@@ -25,6 +25,11 @@ namespace BCFReaderHelper {
 enum class extract_t { GL, Haps };
 
 double phred2Prob(double phred);
+class unexpected_val_error : public std::runtime_error {
+public:
+  explicit unexpected_val_error(const std::string &error_message)
+      : std::runtime_error(error_message) {}
+};
 }
 
 class BCFReader {

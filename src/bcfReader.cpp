@@ -94,6 +94,12 @@ BCFReader::BCFReader(string fileName, BCFReaderHelper::extract_t extractType,
       else
         throw std::logic_error("unexpected BCFReaderHelper::extract_t type");
     }
+    // skipping sites with unexpected values for now
+    catch (BCFReaderHelper::unexpected_val_error &e) {
+      cerr << "Dropping malformed VCF line at site " << chr << ":" << pos
+           << endl;
+      continue;
+    }
     catch (std::runtime_error &e) {
       throw std::runtime_error(string(e.what()) + " at line " +
                                to_string(lineNum) + " and site " + chr + ":" +
@@ -148,7 +154,6 @@ vector<double> BCFReader::ExtractRecGLs(bcf1_t *rec, bcf_hdr_t *hdr,
     float *f_arr = nullptr;
     int n_arr =
         bcf_get_format_float(hdr, rec, extractString.c_str(), &f_arr, &m_arr);
-    assert(n_arr >=0);
     if (n_arr / stride != bcf_hdr_nsamples(hdr)) {
       free(f_arr);
       throw std::runtime_error("Malformed VCF. Too few or too many "
@@ -156,6 +161,7 @@ vector<double> BCFReader::ExtractRecGLs(bcf1_t *rec, bcf_hdr_t *hdr,
     }
 
     siteGLs.reserve(n_arr);
+    assert(n_arr >= 0);
     for (int glNum = 0; glNum != n_arr; ++glNum)
       siteGLs.push_back(pow(10.0f, f_arr[glNum]));
     free(f_arr);
@@ -164,7 +170,6 @@ vector<double> BCFReader::ExtractRecGLs(bcf1_t *rec, bcf_hdr_t *hdr,
     int *i_arr = nullptr;
     int n_arr =
         bcf_get_format_int32(hdr, rec, extractString.c_str(), &i_arr, &m_arr);
-    assert(n_arr >=0);
     if (n_arr / stride != bcf_hdr_nsamples(hdr)) {
       free(i_arr);
       throw std::runtime_error("Malformed VCF. Too few or too many "
@@ -172,19 +177,12 @@ vector<double> BCFReader::ExtractRecGLs(bcf1_t *rec, bcf_hdr_t *hdr,
     }
 
     siteGLs.reserve(n_arr);
+    assert(n_arr >= 0);
     for (int glNum = 0; glNum != n_arr; ++glNum) {
-      try {
-        if (i_arr[glNum] < 0)
-          throw runtime_error("phred < 0: " + to_string(i_arr[glNum]));
-        siteGLs.push_back(BCFReaderHelper::phred2Prob(i_arr[glNum]));
-      }
-      catch (const std::exception &e) {
-        free(i_arr);
-        throw runtime_error("In position " + to_string(rec->pos + 1) + " " +
-                            rec->d.allele[0] + " " + rec->d.allele[1] +
-                            ": at GL number " + to_string(glNum) + ": " +
-                            e.what());
-      }
+      if (i_arr[glNum] < 0)
+        throw BCFReaderHelper::unexpected_val_error("phred < 0: " +
+                                                    to_string(i_arr[glNum]));
+      siteGLs.push_back(BCFReaderHelper::phred2Prob(i_arr[glNum]));
     }
     free(i_arr);
   } else
