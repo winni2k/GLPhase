@@ -96,7 +96,7 @@ BCFReader::BCFReader(string fileName, BCFReaderHelper::extract_t extractType,
     }
     // skipping sites with unexpected values for now
     catch (BCFReaderHelper::unexpected_val_error &e) {
-      cerr << "Dropping malformed VCF line at site " << chr << ":" << pos
+      cerr << "[BCFReader] Dropping malformed VCF line at site " << chr << ":" << pos
            << endl;
       continue;
     }
