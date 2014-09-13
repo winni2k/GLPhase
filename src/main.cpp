@@ -45,7 +45,7 @@ int main(int ac, char **av) {
     int opt;
     bool optMSet = false;
     while ((opt = getopt(ac, av, "V:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:Q:S:"
-                                 "fo:DTr:P:ag:F:R:O:")) >= 0) {
+                                 "fo:DTr:P:ag:F:R:O:u:")) >= 0) {
       switch (opt) {
 
       /*      case 'd':
@@ -171,6 +171,13 @@ int main(int ac, char **av) {
       case 'S':
         init.inputSamplesKeep = optarg;
         break;
+      case 'u':
+        init.reclusterStage = optarg;
+        if (init.reclusterStage.size() != 1) {
+          cerr << "-u needs to be a single char" << endl;
+          exit(1);
+        }
+        break;
       default:
         Insti::document();
       }
@@ -182,6 +189,8 @@ int main(int ac, char **av) {
     Impute::bn = Insti::s_uSABurninGen + Insti::s_uNonSABurninGen;
     if (optMSet == false)
       Insti::s_uStartClusterGen = Insti::s_uSABurninGen;
+    clog << "Clustering will start at generation " << Insti::s_uStartClusterGen
+         << endl;
 
     // need to specify ref panel if kickstarting
     if (Insti::s_bKickStartFromRef) {

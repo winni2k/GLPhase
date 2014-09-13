@@ -57,6 +57,7 @@ struct Init {
   bool scaffoldUsingMAF = false;
   bool initPhaseFromScaffold = false;
   size_t reclusterEveryNGen = 0; // 0 means don't recluster
+  std::string reclusterStage{ 's' };
   size_t numThreads = 1;
   unsigned scaffoldExtraRegionSize =
       0; // size in genomic coordinates of overang region for clustering
@@ -105,7 +106,6 @@ private:
 
   // scaffold haplotypes
   HapPanel m_scaffold;
-  size_t m_reclusterEveryNGen = 0;
 
   // see InstiHelper::init for default values
   const std::string m_scaffoldHapsFile;   // location of scaffold haps file

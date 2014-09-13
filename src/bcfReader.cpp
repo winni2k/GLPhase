@@ -96,8 +96,8 @@ BCFReader::BCFReader(string fileName, BCFReaderHelper::extract_t extractType,
     }
     // skipping sites with unexpected values for now
     catch (BCFReaderHelper::unexpected_val_error &e) {
-      cerr << "[BCFReader] Dropping malformed VCF line at site " << chr << ":" << pos
-           << endl;
+      cerr << "[BCFReader] Dropping malformed VCF line at site " << chr << ":"
+           << pos << endl;
       continue;
     }
     catch (std::runtime_error &e) {
@@ -179,9 +179,11 @@ vector<double> BCFReader::ExtractRecGLs(bcf1_t *rec, bcf_hdr_t *hdr,
     siteGLs.reserve(n_arr);
     assert(n_arr >= 0);
     for (int glNum = 0; glNum != n_arr; ++glNum) {
-      if (i_arr[glNum] < 0)
+      if (i_arr[glNum] < 0) {
+        free(i_arr);
         throw BCFReaderHelper::unexpected_val_error("phred < 0: " +
                                                     to_string(i_arr[glNum]));
+      }
       siteGLs.push_back(BCFReaderHelper::phred2Prob(i_arr[glNum]));
     }
     free(i_arr);

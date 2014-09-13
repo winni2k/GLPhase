@@ -97,8 +97,7 @@ unordered_set<string> LoadSamplesUOSet(const string &sampleFile) {
 }
 
 Insti::Insti(InstiHelper::Init &init)
-    : m_reclusterEveryNGen(init.reclusterEveryNGen),
-      m_scaffoldHapsFile(init.scaffoldHapsFile),
+    : m_scaffoldHapsFile(init.scaffoldHapsFile),
       m_scaffoldSampleFile(init.scaffoldSampleFile),
       m_initPhaseFromScaffold(init.initPhaseFromScaffold),
       m_geneticMap(init.geneticMap), m_init(init),
@@ -1810,17 +1809,44 @@ void Insti::estimate() {
     pen *= pen; // pen = 1 after bn/2 iterations
 
     // recluster if it's the right generation
-    // yes, don't recluster on iteration bn
-    if (m_reclusterEveryNGen > 0 && m_nIteration > bn)
-      if ((m_nIteration - bn) % m_reclusterEveryNGen == 0)
-        if (std::dynamic_pointer_cast<KNN>(iterationSampler)) {
-          cout << m_tag << ":\tReclustering haplotypes\n";
-          m_sampler = make_shared<KNN>(
-              s_uNumClusters, haps, WN, NUMSITES, m_init.scaffoldFreqLB,
-              m_init.scaffoldFreqUB, m_init.scaffoldUsingMAF, rng,
-              Insti::s_clusterDistanceMetric);
-          cout << m_tag << ":\tReclustering complete.\n";
-        }
+    // yes, don't recluster on first iteration
+    bool reclustThisGen = false;
+    if (m_init.reclusterEveryNGen > 0) {
+      switch (m_init.reclusterStage[0]) {
+      // recluster in sampling generation
+      case 's':
+        if (m_nIteration > bn &&
+            (m_nIteration - bn) % m_init.reclusterEveryNGen == 0)
+          reclustThisGen = true;
+        break;
+      // recluster in burnin generation
+      case 'b':
+        if (m_nIteration < bn && m_nIteration > 0 &&
+            m_nIteration % m_init.reclusterEveryNGen == 0)
+          reclustThisGen = true;
+        break;
+      // recluster in all gens
+      case 'a':
+        if (m_nIteration > 0 && m_nIteration % m_init.reclusterEveryNGen == 0)
+          reclustThisGen = true;
+        break;
+      default:
+        throw runtime_error("unexpected recluster stage option given: " +
+                            string(m_init.reclusterStage));
+      }
+    }
+
+    if (reclustThisGen) {
+      if (std::dynamic_pointer_cast<KNN>(iterationSampler)) {
+        cout << m_tag << ":\tReclustering haplotypes\n";
+        m_sampler = make_shared<KNN>(
+            s_uNumClusters, haps, WN, NUMSITES, m_init.scaffoldFreqLB,
+            m_init.scaffoldFreqUB, m_init.scaffoldUsingMAF, rng,
+            Insti::s_clusterDistanceMetric);
+        cout << m_tag << ":\tReclustering complete.\n";
+      } else
+        throw runtime_error("Tried to recluster when not using KNN sampler");
+    }
 
     // the uniform relationship "graph" will be used until
     // -M option says not to.
@@ -2419,7 +2445,9 @@ void Insti::document() {
   cerr << "\n\t-T              Use shared tract length as distance metric for "
           "clustering";
   cerr << "\n\t-r <integer>    Recluster every -r generations. Only works when "
-          "-t=2";
+          "-t=2.  Will start at generation -M";
+  cerr << "\n\t-u <char>       Only recluster in burnin ('b'), sampling ('s') "
+          "or all ('a') generations.  Respects -M and -r options. Default is 's'.";
 
   cerr << "\n\n    REFERENCE PANEL OPTIONS";
   cerr << "\n\t-H <file>       IMPUTE2 style HAP file";
