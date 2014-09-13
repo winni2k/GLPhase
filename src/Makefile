@@ -53,7 +53,7 @@ test: CXXFLAGS += -O0 -ggdb
 CXX := g++-4.7+ # alternatively: /opt/well/llvm/llvm-3.3/bin/clang
 CXXFLAGS += -Wall -Wextra -std=c++11 -mpopcnt -fopenmp
 CXXFLAGS +=  -Wno-unused-local-typedefs  # necessary for boost minor version < 56
-BOOSTLIB := -lboost_iostreams-mt #alternatively: /opt/boost/boost-1.54.0-intel/lib/libboost_iostreams.a
+BOOSTLIB := -lboost_iostreams #alternatively: /opt/boost/boost-1.54.0-intel/lib/libboost_iostreams.a
 STDCPPLIB := -lstdc++
 LIBS += -lgsl -lgslcblas -ltabix -lbz2 $(BOOSTLIB) $(STDCPPLIB) -lm -lz -lhts
 
