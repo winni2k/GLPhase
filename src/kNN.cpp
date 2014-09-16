@@ -31,7 +31,11 @@ KNN::KNN(unsigned numClust, const std::vector<uint64_t> &haplotypes,
                            ") less than lower bound(" + to_string(m_freqLB) +
                            ")");
 
-  assert(haplotypes.size() == m_numHaps * m_numWordsPerHap);
+  if (haplotypes.size() != m_numHaps * m_numWordsPerHap)
+    throw runtime_error(
+        "number of haps (" + to_string(m_numHaps) +
+        ") * number of words per hap (" + to_string(m_numWordsPerHap) +
+        ") is not equal to haplotype size (" + haplotypes.size() + ")");
 
   if (m_numClusters > m_numHaps - 2) {
     m_numClusters = m_numHaps - 2;
@@ -118,7 +122,8 @@ void KNN::ClusterHaps(const vector<uint64_t> &haplotypes) {
 
   // let user know where we stand
   cout << "[KNN::ClusterHaps]: Finding " << m_numClusters
-       << " nearest neighbors for " << m_numHaps << " haplotypes at " << m_numSites << " sites" << endl;
+       << " nearest neighbors for " << m_numHaps << " haplotypes at "
+       << m_numSites << " sites" << endl;
 
   for (unsigned uSampNum = 0; uSampNum < m_numHaps / 2; ++uSampNum) {
 
