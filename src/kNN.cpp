@@ -1,5 +1,4 @@
 #include "kNN.hpp"
-#include <utility>
 
 using namespace std;
 using namespace KNNhelper;
@@ -32,10 +31,11 @@ KNN::KNN(unsigned numClust, const std::vector<uint64_t> &haplotypes,
                            ")");
 
   if (haplotypes.size() != m_numHaps * m_numWordsPerHap)
-    throw runtime_error(
-        "number of haps (" + to_string(m_numHaps) +
-        ") * number of words per hap (" + to_string(m_numWordsPerHap) +
-        ") is not equal to haplotype size (" + haplotypes.size() + ")");
+    throw runtime_error("number of haps (" + to_string(m_numHaps) +
+                        ") * number of words per hap (" +
+                        to_string(m_numWordsPerHap) +
+                        ") is not equal to haplotype size (" +
+                        to_string(haplotypes.size()) + ")");
 
   if (m_numClusters > m_numHaps - 2) {
     m_numClusters = m_numHaps - 2;
