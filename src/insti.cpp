@@ -2447,7 +2447,8 @@ void Insti::document() {
   cerr << "\n\t-r <integer>    Recluster every -r generations. Only works when "
           "-t=2.  Will start at generation -M";
   cerr << "\n\t-u <char>       Only recluster in burnin ('b'), sampling ('s') "
-          "or all ('a') generations.  Respects -M and -r options. Default is 's'.";
+          "or all ('a') generations.  Respects -M and -r options. Default is "
+          "'s'.";
 
   cerr << "\n\n    REFERENCE PANEL OPTIONS";
   cerr << "\n\t-H <file>       IMPUTE2 style HAP file";
@@ -2458,14 +2459,15 @@ void Insti::document() {
   cerr << "\n\t-h <file>       WTCCC style HAPS file";
   cerr << "\n\t-s <file>       WTCCC style SAMPLE file";
   cerr << "\n\t-q <float>      Lower bound of variant allele frequency ([0-1], "
-          "default 0.05) "
+          "default " << m_init.scaffoldFreqLB
+       << ") "
           "above which sites are used for clustering from scaffold.";
   cerr << "\n\t-Q <float>      Upper bound of variant allele frequency ([0-1], "
-          "default 0.05) "
+          "default " << m_init.scaffoldFreqUB
+       << ") "
           "below which sites are used for clustering from scaffold.";
   cerr << "\n\t-a              Use minor allele frequency instead of variant "
-          "allele frequency for clustering and applying -q and -Q."
-          "below which sites are used for clustering from scaffold.";
+          "allele frequency for clustering and applying -q and -Q.";
   cerr << "\n\t-f              Fix phase according to scaffold (default off).";
   cerr << "\n\t-O <integer>    Size in genomic coordinates of the regions past "
           "the regions specified by the GLs to include in the scaffold "

@@ -379,18 +379,28 @@ fast Impute::hmm_like(unsigned I, unsigned *P) {
   return score + logf(l00 + l01 + l10 + l11);
 }
 
-// take an individual number I, a set of four haplotypes P, and
-// penalty S and update haplotypes of individual I
+// take an individual number I, a set of four haplotype indices P, and
+// penalty S to update haplotypes of individual I
+// All our tests are with the penalty set to 1
 void Impute::hmm_work(unsigned I, unsigned *P, fast S) {
 
-  // setup the different haplotypes
+  // set up pointers to the beginning of four hapltoypes
+  // m0 is "mother haplotype 0", m1 is "mother haplotype 1"
+  // f0 is "father haplotype 0", f1 is "father haplotype 1"
+
+  // wn stands for "word number".  This is the number of unsigned
+  // integers that a haplotype is stored in
+
   uint64_t *f0 = &haps[P[0] * wn], *f1 = &haps[P[1] * wn],
            *m0 = &haps[P[2] * wn], *m1 = &haps[P[3] * wn];
 
   //	backward recursion
+  // mn is the number of sites in the chunk being phased
+  // fast is a typedef for float (not my choice)
   vector<fast> beta(mn * 4);
 
   // create pointers that point to last set of elements of emit, tran and beta
+  // en is the number of emission matrix elements per sample
   fast *e = &emit[(I + 1) * en - 4], *t = &tran[(mn - 1) * 3], sum,
        *b = &beta[(mn - 1) * 4];
   fast l00 = 0, l01 = 0, l10 = 0, l11 = 0;
@@ -400,7 +410,9 @@ void Impute::hmm_work(unsigned I, unsigned *P, fast S) {
   b[0] = b[1] = b[2] = b[3] = 1;
 
   // fill b with the forward probabilites
+  // test(f0, m) returns 1 if haplotype f0 is 1 at site m and 0 otherwise
   for (unsigned m = mn - 1; m; m--, e -= 4, t -= 3) {
+
     b00 = b[0] * e[(test(f0, m) << 1) | test(m0, m)];
     b01 = b[1] * e[(test(f0, m) << 1) | test(m1, m)];
     b10 = b[2] * e[(test(f1, m) << 1) | test(m0, m)];
@@ -451,10 +463,8 @@ void Impute::hmm_work(unsigned I, unsigned *P, fast S) {
     l10 *= sum;
     l11 *= sum;
 
-    // p00 is P(phase 0|0 | l, b)
     fast p00 = l00 * b[0], p01 = l01 * b[1], p10 = l10 * b[2], p11 = l11 * b[3];
 
-    // c00 is P(phase 0|0 | emit, l, b, GL) at site m penalized by S
     // powf effectively inflates the importance of small numbers
     // while S is < 1 (first bn/2 iterations)
     fast c00 = powf(p[0] * (p00 * pc[s00][0] + p01 * pc[s01][0] +
