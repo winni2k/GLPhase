@@ -23,6 +23,7 @@
 //#include	<omp.h>
 #include <set>
 #include <zlib.h>
+#include <stdexcept>
 #include "bio.hpp"
 
 #define MaskHA 0x80

@@ -368,6 +368,8 @@ fast Impute::hmm_like(unsigned I, unsigned *P) {
 
     // rescale probabilities if they become too small
     if ((sum = l00 + l01 + l10 + l11) < norm) {
+      if (sum == 0)
+        return FLT_MIN_EXP;
       sum = 1.0f / sum;
       score -= logf(sum); // add sum to score
       l00 *= sum;
@@ -422,7 +424,11 @@ void Impute::hmm_work(unsigned I, unsigned *P, fast S) {
     b[1] = b01 * t[0] + (b00 + b11) * t[1] + b10 * t[2];
     b[2] = b10 * t[0] + (b00 + b11) * t[1] + b01 * t[2];
     b[3] = b11 * t[0] + (b01 + b10) * t[1] + b00 * t[2];
-    sum = 1.0f / (b[0] + b[1] + b[2] + b[3]);
+    sum = (b[0] + b[1] + b[2] + b[3]);
+    if (sum == 0)
+      throw runtime_error(
+          "Chosen haplotypes are incompatible with emission matrix");
+    sum = 1.0f / sum;
     b[0] *= sum;
     b[1] *= sum;
     b[2] *= sum;
@@ -646,8 +652,8 @@ void Impute::save_vcf(const char *F) {
     gzprintf(f, "\t%s", name[i].c_str());
   for (unsigned m = 0; m < mn; m++) {
     gzprintf(f, "\n%s\t%u\t.\t%c\t%c\t100\tPASS\t.\tGT:AP",
-             m_glSites[m].chr.c_str(), m_glSites[m].pos, m_glSites[m].ref.c_str(),
-             m_glSites[m].alt.c_str());
+             m_glSites[m].chr.c_str(), m_glSites[m].pos,
+             m_glSites[m].ref.c_str(), m_glSites[m].alt.c_str());
     fast *p = &prob[m * hn];
     for (unsigned i = 0; i < in; i++, p += 2) {
       fast prr = (1 - p[0]) * (1 - p[1]),
