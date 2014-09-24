@@ -4,7 +4,7 @@ using namespace std;
 using namespace KNNhelper;
 
 // initialization for kNN clustering
-KNN::KNN(unsigned numClust, const std::vector<uint64_t> &haplotypes,
+KNN::KNN(unsigned numClust, std::vector<uint64_t> haplotypes,
          unsigned numWordsPerHap, unsigned numSites, double freqLB,
          double freqUB, bool usingMAF, gsl_rng *rng, kNNDistT distMetric)
     : Sampler(rng, haplotypes.size() / numWordsPerHap / 2,

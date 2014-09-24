@@ -6,40 +6,13 @@ static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 using namespace std;
 using namespace Bio;
 
-void HapPanel::Init(vector<vector<char> > &inHaps, vector<snp> &inSites,
-                    vector<string> &inSampleIDs) {
+namespace HapPanelHelper {
 
-  assert(m_initialized == false);
-
-  // assume sample IDs are OK and work from there
-  std::swap(m_sampleIDs, inSampleIDs);
-
-  if (inSites.size() != inHaps.size())
-      throw myException("inSites size (" + sutils::uint2str(inSites.size()) +
-                      ") is not equal to inHaps size (" +
-                        sutils::uint2str(inHaps.size()) + ")");
-
-  // fill the sites of the ref panel
-  assert(inSites.size() > 0);
-  std::swap(m_sites, inSites);
-
-  // fill the haplotypes of the ref panel
-  assert(inHaps[0].size() > 0);
-  assert(m_sampleIDs.size() > 0);
-  m_numHaps = inHaps[0].size();
-  m_numWordsPerHap = static_cast<unsigned>(
-      ceil(static_cast<double>(inHaps.size()) / m_wordSize));
-  vector<uint64_t> storeHaps =
-      Char2BitVec(inHaps, m_numWordsPerHap, m_wordSize);
-  std::swap(m_haps, storeHaps);
-
-  assert(m_haps.size() % m_numHaps == 0);
-  m_initialized = true;
-}
+namespace qi = boost::spirit::qi;
 
 // converts a vector of vectors of chars (0,1) to a bitvector
-vector<uint64_t> HapPanel::Char2BitVec(const vector<vector<char> > &inHaps,
-                                       unsigned numWords, unsigned wordSize) {
+vector<uint64_t> Char2BitVec(const vector<vector<char> > &inHaps,
+                             unsigned numWords, unsigned wordSize) {
 
   assert(ceil(static_cast<double>(inHaps.size()) / wordSize) == numWords);
 
@@ -51,9 +24,9 @@ vector<uint64_t> HapPanel::Char2BitVec(const vector<vector<char> > &inHaps,
   for (unsigned siteNum = 0; siteNum < numSites; siteNum++) {
     for (unsigned hapNum = 0; hapNum < numHaps; hapNum++) {
       if (inHaps[siteNum][hapNum] == 0)
-        set0(&storeHaps[hapNum * numWords], siteNum);
+        HapPanelHelper::set0(&storeHaps[hapNum * numWords], siteNum);
       else if (inHaps[siteNum][hapNum] == 1)
-        set1(&storeHaps[hapNum * numWords], siteNum);
+        HapPanelHelper::set1(&storeHaps[hapNum * numWords], siteNum);
       else {
         cout << "programming error";
         throw 1;
@@ -61,4 +34,789 @@ vector<uint64_t> HapPanel::Char2BitVec(const vector<vector<char> > &inHaps,
     }
   }
   return storeHaps;
+}
+
+void set1(uint64_t *P, unsigned I) {
+
+  // I >> Uint64_TShift is moving along the array according to which uint64_t
+  // I is in
+  // e.g. I <= 63 is first uint64_t, and so forth in blocks of 64 bits
+  P[I >> WORDSHIFT] |= static_cast<uint64_t>(1) << (I & WORDMOD);
+}
+
+void set0(uint64_t *P, unsigned I) {
+  P[I >> WORDSHIFT] &= ~(static_cast<uint64_t>(1) << (I & WORDMOD));
+}
+
+// make sure samples loaded and samples in main GLs match
+// would only be used for scaffold at the moment
+void MatchSamples(const std::vector<std::string> &canonicalIDs,
+                  const std::vector<std::string> &IDs, unsigned numHaps) {
+
+  // make sure ids match names pulled from bin files
+  if (canonicalIDs.size() != IDs.size())
+    throw runtime_error("number of IDs loaded (" +
+                        sutils::uint2str(IDs.size()) +
+                        ") does not match number of IDs expected (" +
+                        sutils::uint2str(canonicalIDs.size()) + ").");
+
+  for (unsigned i = 0; i < canonicalIDs.size(); i++) {
+    if (canonicalIDs[i] != IDs[i])
+      throw runtime_error(
+          "ID number " + sutils::uint2str(i) +
+          " (0-based): expected IDs and IDs from sample file do not match (" +
+          canonicalIDs[i] + " and " + IDs[i] + " respectively) do not agree.");
+  }
+
+  // make sure number of haplotypes in haplotypes matches number of samples *2
+  if (IDs.size() * 2 != numHaps)
+    throw runtime_error("Number of haplotypes according to haps file (" +
+                        sutils::uint2str(numHaps) + ") and sample file (" +
+                        sutils::uint2str(IDs.size() * 2) + ") do not match.");
+}
+
+// HAPS/SAMPLE sample file
+vector<string> OpenSample(const string &sampleFile) {
+
+  vector<string> fillSampleIDs;
+  cout << "[HapPanel] Loading samples file: " << sampleFile << endl;
+
+  // read in sample file
+  ifile sampleFD(sampleFile);
+
+  if (!sampleFD.isGood())
+    throw runtime_error("Could not open file: " + sampleFile);
+
+  string buffer;
+
+  // discard header
+  unsigned lineNum = 0;
+  unsigned numCols = 0;
+
+  while (getline(sampleFD, buffer, '\n')) {
+    if (buffer.size() == 0)
+      throw runtime_error("Error in sample file " + sampleFile +
+                          ": empty lines detected.");
+
+    lineNum++;
+    vector<string> tokens;
+    sutils::tokenize(buffer, tokens);
+
+    // make sure header start is correct
+    if (lineNum == 1) {
+      vector<string> headerTokenized;
+      string header = "ID_1 ID_2 missing";
+      sutils::tokenize(header, headerTokenized);
+
+      for (unsigned i = 0; i != headerTokenized.size(); i++) {
+        if (tokens[i] != headerTokenized[i])
+          throw runtime_error(
+              "Error in sample file (" + sampleFile +
+              "): header start does not match:\n\t" + header +
+              "\n.  Instead the first line of the header is:\n\t" + buffer +
+              "\n");
+      }
+
+      numCols = tokens.size();
+      continue;
+    }
+
+    if (tokens.size() != numCols)
+      throw runtime_error(
+          "Error in sample file (" + sampleFile + ") at line number " +
+          sutils::uint2str(lineNum) + ": number of columns (" +
+          sutils::uint2str(tokens.size()) + ") does not match previous line");
+
+    // ignore second line of samples file
+    if (lineNum == 2)
+      continue;
+
+    // now add sample id to vector
+    fillSampleIDs.push_back(tokens[0]);
+  }
+  return fillSampleIDs;
+}
+
+// read in the haps file
+// store haps and sites
+void OpenHaps(const string &hapsFile, const Region &region,
+              vector<vector<char> > &loadHaps, vector<snp> &loadSites) {
+
+  cout << "[HapPanel] Loading haps file: " << hapsFile << endl;
+  ifile hapsFD(hapsFile);
+
+  if (!hapsFD.isGood())
+    throw runtime_error("Could not open file: " + hapsFile);
+
+  string buffer;
+  unsigned lineNum = 0;
+  unsigned keptSites = 0;
+  unsigned numHaps = 0;
+  loadSites.clear();
+  loadHaps.clear();
+
+  // for making sure input file is sorted by position
+  unsigned previousPos = 0;
+  // create a map of site positions
+  while (getline(hapsFD, buffer, '\n')) {
+
+    lineNum++;
+
+    //// only read position
+    // figure out where the first three spaces are located
+    vector<size_t> spaceIdxs;
+    size_t nextStartIdx = 0;
+    for (unsigned i = 0; i < 3; ++i) {
+      if (i == 0)
+        spaceIdxs.push_back(buffer.find_first_of(" "));
+      else
+        spaceIdxs.push_back(buffer.find_first_of(" ", nextStartIdx));
+      if (spaceIdxs[i] == string::npos)
+        throw runtime_error("Space in Haps file not found where expected");
+      nextStartIdx = spaceIdxs[i] + 1;
+    }
+
+    // load chrom and check input haps is correct chrom
+    string chr = buffer.substr(0, spaceIdxs[0]);
+    if (chr != region.GetChrom())
+      throw runtime_error("Found site on chromosome '" + chr +
+                          "' when chromosome '" + region.GetChrom() +
+                          "' was expected");
+
+    // move ahead and extract position from third field
+    size_t endReadIdx = 0;
+    unsigned pos = stoul(
+        buffer.substr(spaceIdxs[1] + 1, spaceIdxs[2] - (spaceIdxs[1] + 1)),
+        &endReadIdx, 0);
+
+    // make sure the whole field was parsed!
+    if (endReadIdx != spaceIdxs[2] - (spaceIdxs[1] + 1))
+      throw runtime_error("Input haplotypes line field three was read as " +
+                          sutils::uint2str(pos) +
+                          " and does not seem to be an unsigned integer.\n" +
+                          "Read was " + sutils::uint2str(endReadIdx) +
+                          " char(s) long" + "\nThe field was actually " +
+                          sutils::uint2str(spaceIdxs[2]) + " char(s) long");
+
+    // make sure input sites are sorted by position
+    if (pos < previousPos)
+      throw runtime_error("Input haplotypes file " + hapsFile +
+                          " needs to be sorted by position");
+    previousPos = pos;
+
+    // start loading only once we hit the first site
+    if (pos < region.GetStartBP())
+      continue;
+
+    // stop loading sites if the current site is past the last site position in
+    // the GLs
+    if (pos > region.GetEndBP())
+      break;
+
+    // split entire line for processing
+    vector<string> tokens;
+    boost::split(tokens, buffer, boost::is_any_of(" "));
+
+    // make sure header start is correct
+    if (numHaps == 0) {
+      if (tokens.size() <= 5)
+        throw runtime_error("haps file " + hapsFile +
+                            " contains too few columns (" +
+                            sutils::uint2str(tokens.size()) + ")");
+
+      // count number of haps
+      numHaps = tokens.size() - 5;
+
+    } else {
+      if (tokens.size() - 5 != numHaps)
+        throw runtime_error(
+            "Every row of haplotypes file must have the same number of "
+            "columns");
+    }
+
+    // store site of haplotype
+    loadSites.push_back(snp(chr, pos, tokens[3], tokens[4]));
+    vector<char> loadSite;
+    loadSite.reserve(numHaps);
+
+    for (unsigned i = 5; i != tokens.size(); i++) {
+      int val = atoi(tokens[i].c_str());
+
+      if (val == 0)
+        loadSite.push_back(0);
+      else if (val == 1)
+        loadSite.push_back(1);
+      else {
+        throw runtime_error("All alleles are not 0 or 1 In haplotypes file " +
+                            hapsFile + " at line number " +
+                            sutils::uint2str(lineNum) + " (0-based)");
+      }
+    }
+
+    loadHaps.push_back(std::move(loadSite));
+
+    // keeping this site
+    keptSites++;
+  }
+
+  cout << "[HapPanel] Sites kept:\t" << keptSites << " / " << lineNum << "\n";
+
+  if (numHaps == 0) {
+    cerr << "[HapPanel] Number of haplotypes in haps file is 0.  Haps file "
+            "empty?\n";
+    exit(1);
+  }
+}
+
+void OpenTabHaps(const string &hapsFile, const Region &region,
+                 vector<vector<char> > &loadHaps, vector<snp> &loadSites) {
+  cout << "[HapPanel] Loading tabixed haps file: " << hapsFile << endl;
+
+  // clear all the containers that are going to be filled up
+  vector<snp> fillSites;
+  vector<vector<char> > fillHaps;
+
+  string file(hapsFile);
+  Tabix tabix(file);
+  tabix.setRegion(region.AsString());
+
+  // start parsing haplotype lines
+  string buffer;
+  unsigned numHaps = 0;
+  while (tabix.getNextLine(buffer)) {
+
+    // split on tab
+    vector<string> tokens;
+    boost::split(tokens, buffer, boost::is_any_of("\t"));
+    if (tokens[0] != region.GetChrom())
+      throw std::runtime_error("[insti] Found site on chromosome '" +
+                               tokens[0] + "' when chromosome '" +
+                               region.GetChrom() + "' was expected");
+    if (tokens.size() < 6)
+      throw std::runtime_error("[insti] Site has no haplotypes at site: " +
+                               buffer.substr(0, 50));
+
+    // parse position
+    size_t lastChar;
+    unsigned pos = stoul(tokens[2], &lastChar);
+    if (lastChar != tokens[2].size())
+      throw std::runtime_error(
+          "[insti] Malformed site: could not parse position: " +
+          buffer.substr(0, 50));
+
+    Bio::snp newSite(tokens[0], pos, tokens[3], tokens[4]);
+
+    // check to make sure the correct number of haplotypes exist in line
+    if (tokens.size() < 6)
+      throw std::runtime_error("[HapPanel] no haplotypes in haps file: " +
+                               hapsFile);
+    if (numHaps == 0)
+      numHaps = tokens.size() - 5;
+    else if (numHaps != tokens.size() - 5)
+      throw std::runtime_error("[insti] Wrong number of alleles at site: " +
+                               buffer.substr(0, 50));
+
+    // stuff haplotypes into vector
+    vector<char> alleles;
+    alleles.reserve(numHaps);
+    for (unsigned allNum = 0; allNum < numHaps; ++allNum)
+      if (tokens[allNum + 5] == "0")
+        alleles.push_back(0);
+      else if (tokens[allNum + 5] == "1")
+        alleles.push_back(1);
+      else
+        throw std::runtime_error(
+            "[insti] Malformed site: allele is neither 0 or 1 at site: " +
+            buffer.substr(0, 50));
+
+    // stuff that vector into vector of char vectors...
+    fillHaps.push_back(move(alleles));
+
+    // keep the site because it matches
+    fillSites.push_back(move(newSite));
+  }
+
+  // we are done do a swap to fill the incoming vectors
+  swap(loadSites, fillSites);
+  swap(loadHaps, fillHaps);
+}
+
+vector<snp> OpenLegend(const string &legendFile) {
+
+  // read in legend file
+  ifile legendFD(legendFile);
+
+  if (!legendFD.isGood())
+    throw runtime_error("Could not open file: " + legendFile);
+
+  string buffer;
+  vector<snp> loadLeg;
+
+  // discard header
+  unsigned lineNum = 0;
+
+  while (getline(legendFD, buffer, '\n')) {
+    if (buffer.size() == 0)
+      throw runtime_error("Error in legend file " + legendFile +
+                          ": empty lines detected.");
+
+    lineNum++;
+    vector<string> tokens;
+    sutils::tokenize(buffer, tokens);
+
+    // make sure header start is correct
+    if (lineNum == 1) {
+      vector<string> headerTokenized;
+      string header = "id position a0 a1";
+      sutils::tokenize(header, headerTokenized);
+
+      for (unsigned i = 0; i != headerTokenized.size(); i++) {
+        if (tokens[i] != headerTokenized[i])
+          throw runtime_error(
+              "Error in legend file " + legendFile +
+              ": header start does not match:\n\t" + header +
+              "\n.  Instead the first line of the header is:\n\t" + buffer +
+              "\n");
+      }
+
+      continue;
+    }
+
+    // add each site to loadLeg
+    loadLeg.push_back(
+        snp("", strtoul(tokens[1].c_str(), NULL, 0), tokens[2], tokens[3]));
+  }
+
+  return loadLeg;
+}
+
+vector<vector<char> > OpenHap(const string &hapFile) {
+
+  // read in the hap file
+  ifile hapFD(hapFile);
+
+  if (!hapFD.isGood())
+    throw runtime_error("Could not open file: " + hapFile);
+
+  string buffer;
+  int lineNum = -1;
+  unsigned uNumHaps = 0;
+  vector<vector<char> > loadHaps;
+
+  while (getline(hapFD, buffer, '\n')) {
+    lineNum++;
+
+    // read line
+    vector<string> tokens;
+    sutils::tokenize(buffer, tokens);
+
+    // make sure header start is correct
+    if (lineNum == 0) {
+
+      // count number of haps
+      uNumHaps = tokens.size();
+    }
+
+    // make sure the number of haps does not change
+    if (tokens.size() != uNumHaps)
+      throw runtime_error(
+          "Every row of hap file must have the same number of columns");
+
+    // store haplotypes
+    vector<char> inSite;
+    inSite.reserve(uNumHaps);
+
+    for (unsigned i = 0; i != tokens.size(); i++) {
+      int val = atoi(tokens[i].c_str());
+
+      if (val == 0)
+        inSite.push_back(0);
+      else if (val == 1)
+        inSite.push_back(1);
+      else {
+        throw runtime_error("All alleles are not 0 or 1 In haplotypes file " +
+                            hapFile + " at line number " +
+                            sutils::uint2str(lineNum) + " (0-based)");
+      }
+    }
+
+    loadHaps.push_back(inSite);
+  }
+
+  if (uNumHaps == 0)
+    throw runtime_error("num haps is 0.  Haps file empty?\n");
+
+  return loadHaps;
+}
+
+vector<string> OpenSamp(const string &sampleFile) {
+  ifile sampFD{ sampleFile };
+  if (!sampFD.isGood())
+    throw runtime_error("Could not open file: " + sampleFile);
+
+  string buffer;
+  vector<string> tokens;
+  // read header
+  getline(sampFD, buffer, '\n');
+  boost::split(tokens, buffer, boost::is_any_of(" "));
+  if (tokens[0] != "sample")
+    throw runtime_error("Input sample file does not have a header with first "
+                        "column equal to 'sample': " +
+                        sampleFile);
+
+  // read body
+  vector<string> sampIDs;
+  while (getline(sampFD, buffer, '\n')) {
+    boost::split(tokens, buffer, boost::is_any_of(" "));
+    sampIDs.push_back(move(tokens[0]));
+  }
+  return sampIDs;
+}
+
+void OpenVCFGZ(string vcf, const Region &region,
+               vector<vector<char> > &loadHaps, vector<snp> &loadSites,
+               vector<string> &ids) {
+  loadHaps.clear();
+  loadSites.clear();
+  ids.clear();
+
+  // open vcf using tabixpp
+  Tabix tbx(vcf);
+  tbx.setRegion(region.AsString());
+
+  // get the header
+  string header{ tbx.getHeader() };
+
+  using qi::omit;
+  using qi::lit;
+
+  // parse header for sample names
+  auto first = header.begin();
+  auto last = header.end();
+  qi::parse(first, last,
+
+            //  Begin grammar
+            omit[*("##" > +(qi::graph | ' ' | '\t') > lit('\n'))] >
+                "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t" >
+                +(qi::graph | ' ') % omit[lit('\t')] > omit[lit("\n")],
+            //  End grammar
+            ids);
+
+  if (first != last)
+    throw std::runtime_error(
+        "Could not find #CHROM line in VCF header of file: " + vcf +
+        "\nHeader found:\n" + header);
+
+  // start churning through the region of interest
+  unsigned siteNum = 0;
+  string line;
+  GTParser::vcf_grammar<string::const_iterator> grammar(siteNum);
+  while (tbx.getNextLine(line)) {
+    auto cfirst = line.cbegin();
+    vector<char> loadSite;
+    loadSite.reserve(ids.size() * 2);
+
+    // load values from string into these objects
+    //    string chr = "", ref = "", alt = "";
+    unsigned genomic_pos;
+    vector<string> firstCols(8);
+    vector<t_genotype> genotypes;
+    qi::parse(cfirst, line.cend(), grammar, firstCols[0], genomic_pos,
+              firstCols[1], firstCols[2], firstCols[3], firstCols[4],
+              firstCols[5], firstCols[6], firstCols[7], genotypes);
+
+    // make sure parser parsed everything
+    if (cfirst != line.cend())
+      throw std::runtime_error(
+          "Malformed VCF line at line " + to_string(siteNum + 1) +
+          " of VCF body in file: " + vcf + "\nLine: " + line);
+
+    // make sure the correct number of haps were found
+    if (genotypes.size() != ids.size())
+      throw std::runtime_error(
+          "Malformed VCF line: incorrect number of columns at line " +
+          to_string(siteNum + 1) + " of VCF body in file: " + vcf);
+
+    // copy alleles to site
+    for (auto geno : genotypes) {
+      loadSite.push_back(geno.allele1);
+      loadSite.push_back(geno.allele2);
+    }
+
+    loadSites.push_back(
+        snp(firstCols[0], genomic_pos, firstCols[2], firstCols[3]));
+    loadHaps.push_back(move(loadSite));
+    ++siteNum;
+  }
+}
+}
+
+using namespace HapPanelHelper;
+
+HapPanel::HapPanel(vector<string> inFiles, vector<string> keepSampleIDs,
+                   HapPanelHelper::Init init)
+    : m_keepSampIDsList{ std::move(keepSampleIDs) },
+      m_init{ std::move(init), } {
+
+  // push sampleIDs into unordered map
+  m_keepSampIDsUnorderedMap.reserve(m_keepSampIDsList.size());
+  for (size_t idx = 0; idx < m_keepSampIDsList.size(); ++idx)
+    m_keepSampIDsUnorderedMap.insert(make_pair(m_keepSampIDsList[idx], idx));
+
+  assert(m_init.keepSites.empty() xor m_init.keepRegion.empty());
+
+  // handle region/sites to keep
+  if (!m_init.keepSites.empty()) {
+
+    // make sure keep sites are sorted on position
+    if (!is_sorted(m_init.keepSites.begin(), m_init.keepSites.end(),
+                   Bio::snpPosComp()))
+      throw runtime_error("[HapPanel] input sites are not sorted by position");
+
+    // set region to extract
+    m_keepRegion =
+        Region(string(m_init.keepSites.front().chr),
+               m_init.keepSites.front().pos, m_init.keepSites.back().pos);
+
+    // create unordered map from keepsites
+    m_keepSites.reserve(m_init.keepSites.size());
+    for (size_t siteIdx = 0; siteIdx < m_init.keepSites.size(); ++siteIdx)
+      m_keepSites.insert(std::make_pair(m_init.keepSites[siteIdx], siteIdx));
+  } else {
+    assert(!m_init.matchAllSites);
+    assert(m_init.keepAllSitesInRegion);
+    m_keepRegion = m_init.keepRegion;
+  }
+
+  // load haplotypes and samples
+  vector<vector<char> > loadHaps;
+  vector<snp> loadSites;
+  vector<string> loadIDs;
+  if (m_init.hapFileType == HapPanelHelper::HapFileType::IMPUTE2) {
+    assert(inFiles.size() == 3);
+    loadSites = std::move(OpenLegend(std::move(inFiles[1])));
+    loadHaps = std::move(OpenHap(std::move(inFiles[0])));
+    loadIDs = std::move(OpenSamp(std::move(inFiles[2])));
+  } else if (m_init.hapFileType == HapPanelHelper::HapFileType::WTCCC) {
+    assert(inFiles.size() == 2);
+    OpenHaps(move(inFiles[0]), m_keepRegion, loadHaps, loadSites);
+    OpenSample(inFiles[1]);
+  } else if (m_init.hapFileType == HapPanelHelper::HapFileType::WTCCC_TBX) {
+    assert(inFiles.size() == 2);
+    OpenTabHaps(inFiles[0], m_keepRegion, loadHaps, loadSites);
+    OpenSample(inFiles[1]);
+  } else if (m_init.hapFileType == HapPanelHelper::HapFileType::VCF) {
+    assert(inFiles.size() == 1);
+    OpenVCFGZ(inFiles[0], m_keepRegion, loadHaps, loadSites, loadIDs);
+  } else
+    assert(false);
+
+  if (loadHaps.empty())
+    throw std::runtime_error("Input files contain no haplotypes: " +
+                             inFiles[0]);
+
+  // filter samples
+  SubsetSamples(loadIDs, loadHaps);
+  OrderSamples(loadIDs, loadHaps);
+
+  // filter on sites
+  assert(!loadHaps.empty());
+  vector<vector<char> > filtHaps;
+  vector<snp> filtSites;
+
+  if (!m_init.keepAllSitesInRegion && !m_keepSites.empty())
+    FilterSites(loadHaps, loadSites);
+
+  m_haps = std::move(filtHaps);
+  m_sites = std::move(filtSites);
+  m_sampleIDs = std::move(loadIDs);
+
+  CheckPanel();
+};
+
+void HapPanel::SubsetSamples(vector<string> &loadIDs,
+                             vector<vector<char> > &loadHaps) {
+
+  if (m_keepSampIDsList.empty())
+    return;
+
+  assert(loadIDs.size() >= m_keepSampIDsList.size());
+
+  if (!loadHaps.empty())
+    assert(loadIDs.size() * 2 == loadHaps[0].size());
+
+  vector<unsigned> idIdxsToKeep;
+
+  for (unsigned idIdx = 0; idIdx < loadIDs.size(); idIdx++) {
+    auto foundID = m_keepSampIDsUnorderedMap.find(loadIDs[idIdx]);
+
+    if (foundID != m_keepSampIDsUnorderedMap.end())
+      idIdxsToKeep.push_back(idIdx);
+  }
+
+  // subset haplotypes
+  vector<string> tempIDs;
+  tempIDs.reserve(idIdxsToKeep.size());
+
+  for (auto keepIdx : idIdxsToKeep)
+    tempIDs.push_back(loadIDs[keepIdx]);
+
+  std::swap(tempIDs, loadIDs);
+
+  size_t numHaplotypesLoaded = 0;
+  for (unsigned siteIdx = 0; siteIdx < loadHaps.size(); siteIdx++) {
+
+    // subset haps
+    vector<char> tempSite;
+    tempSite.reserve(idIdxsToKeep.size() * 2);
+
+    for (auto keepIdx : idIdxsToKeep) {
+      tempSite.push_back(loadHaps[siteIdx][keepIdx * 2]);
+      tempSite.push_back(loadHaps[siteIdx][keepIdx * 2 + 1]);
+    }
+
+    assert(tempSite.size() == idIdxsToKeep.size() * 2);
+    std::swap(tempSite, loadHaps[siteIdx]);
+    assert(loadHaps[siteIdx].size() == idIdxsToKeep.size() * 2);
+    ++numHaplotypesLoaded;
+  }
+
+  if (!loadHaps.empty())
+    assert(loadIDs.size() * 2 == loadHaps[0].size());
+
+  cout << "[HapPanel] Number of loaded haplotypes: " << numHaplotypesLoaded
+       << endl;
+  cout << "[HapPanel] Number of haplotypes left after filtering: "
+       << loadHaps[0].size() << endl;
+}
+
+// Filter sites based on keep sites
+void HapPanel::FilterSites(vector<vector<char> > &loadHaps,
+                           vector<snp> &loadSites) {
+
+  assert(loadSites.size() > 0);
+  assert(loadSites.size() == loadHaps.size());
+  assert(loadHaps[0].size() > 0);
+
+  vector<vector<char> > filtHaps;
+  vector<snp> filtSites;
+
+  // initializing filtHaps
+  //    for(auto & iter  : filtHaps)
+  //      iter.resize(loadSites.size());
+
+  const unsigned numHaplotypesLoaded = loadHaps[0].size();
+
+  // now keep all sites that are in the GL set of sites
+  // look up each load site to see if its in the GL sites
+  unsigned previousIdx = 0;
+  unsigned matchSites = 0;
+  for (unsigned loadSiteIdx = 0; loadSiteIdx < loadSites.size();
+       ++loadSiteIdx) {
+
+    auto got = m_keepSites.find(loadSites[loadSiteIdx]);
+    if (got == m_keepSites.end())
+      continue;
+
+    // match
+    if (matchSites > 0) {
+      if (got->second <= previousIdx)
+        throw std::runtime_error(
+            "Haplotypes file is not ordered in same order as site list");
+      previousIdx = got->second;
+    }
+
+    ++matchSites;
+
+    // keep the site because it matches
+    filtSites.push_back(got->first);
+    filtHaps.push_back(move(loadHaps[loadSiteIdx]));
+  }
+
+  cout << "[HapPanel] Number of candidate sites: " << loadSites.size() << endl;
+
+  std::swap(filtSites, loadSites);
+  std::swap(filtHaps, loadHaps);
+
+  cout << "[HapPanel] Number of sites kept: " << loadSites.size() << endl;
+
+  if (filtHaps[0].size() != numHaplotypesLoaded)
+    throw std::runtime_error(
+        "Error: No sites in loaded panel matched already loaded sites. Is your "
+        "input file sorted?");
+
+  // we always want to find at most as many matches as are in GL sites
+  if (matchSites > m_keepSites.size())
+    throw std::runtime_error("[HapPanel] too many matching sites found. There "
+                             "are duplicate sites in input.");
+
+  assert(matchSites > 0);
+}
+
+void HapPanel::OrderSamples(vector<string> &loadIDs,
+                            vector<vector<char> > &loadHaps) {
+
+  assert(loadIDs.size() == m_keepSampIDsUnorderedMap.size());
+
+  if (!loadHaps.empty())
+    assert(loadIDs.size() * 2 == loadHaps[0].size());
+
+  vector<size_t> orderedLoadNameIdxs;
+  orderedLoadNameIdxs.reserve(loadIDs.size());
+
+  for (unsigned idIdx = 0; idIdx < loadIDs.size(); idIdx++) {
+    auto foundID = m_keepSampIDsUnorderedMap.find(loadIDs[idIdx]);
+
+    if (foundID == m_keepSampIDsUnorderedMap.end())
+      assert(false);
+
+    assert(foundID->second < m_keepSampIDsList.size());
+    orderedLoadNameIdxs.push_back(foundID->second);
+  }
+
+  // sort names according to orderedLoadNameIdxs
+  vector<string> tempIDs(orderedLoadNameIdxs.size());
+
+  for (unsigned nameOrderIdx = 0; nameOrderIdx < orderedLoadNameIdxs.size();
+       nameOrderIdx++)
+    tempIDs[orderedLoadNameIdxs[nameOrderIdx]] = loadIDs[nameOrderIdx];
+
+  std::swap(tempIDs, loadIDs);
+  for (size_t i; i < loadIDs.size(); ++i)
+    assert(loadIDs[i] == m_keepSampIDsList.at(i));
+
+  // sort haplotypes according to orderedLoadNameIdxs
+  for (unsigned siteIdx = 0; siteIdx < loadHaps.size(); siteIdx++) {
+
+    // subset haps
+    vector<char> tempSite(orderedLoadNameIdxs.size() * 2);
+
+    for (unsigned nameOrderIdx = 0; nameOrderIdx < orderedLoadNameIdxs.size();
+         nameOrderIdx++) {
+      tempSite[orderedLoadNameIdxs[nameOrderIdx] * 2] =
+          loadHaps[siteIdx][nameOrderIdx * 2];
+      tempSite[orderedLoadNameIdxs[nameOrderIdx] * 2 + 1] =
+          loadHaps[siteIdx][nameOrderIdx * 2 + 1];
+    }
+
+    assert(tempSite.size() == orderedLoadNameIdxs.size() * 2);
+    std::swap(tempSite, loadHaps[siteIdx]);
+    assert(loadHaps[siteIdx].size() == orderedLoadNameIdxs.size() * 2);
+  }
+
+  if (!loadHaps.empty())
+    assert(loadIDs.size() * 2 == loadHaps[0].size());
+}
+
+void HapPanel::CheckPanel() {
+
+  if (m_init.matchAllSites)
+    if (m_sites.size() != m_keepSites.size())
+      throw runtime_error("Input file should match all sites in keep list (" +
+                          to_string(m_keepSites.size()) +
+                          "), but it only matches a subset of those sites (" +
+                          to_string(m_sites.size()) + ")");
+
+  assert(!m_haps.empty());
+  MatchSamples(m_keepSampIDsList, m_sampleIDs, m_haps[0].size());
 }

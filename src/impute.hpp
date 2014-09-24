@@ -30,7 +30,6 @@
 #define MaskHB 0x40
 #define MaskG 0x3f
 typedef float fast;
-typedef double real;
 
 struct Site {
   std::string chr, all;
@@ -93,7 +92,7 @@ public:
 
   // number of burnin, sampling iterations and folds
   static unsigned bn, sn, nn;
-  static real density, conf;
+  static double density, conf;
   static std::vector<std::string> vcf_file;
   static std::set<std::string> male;
   static bool is_x, is_y;
@@ -104,7 +103,7 @@ public:
 
   std::vector<Bio::snp> m_glSites;
   std::vector<std::string> name;
-  std::vector<real> posi;
+  std::vector<double> posi;
   std::vector<fast> prob;
   //    std::vector <std::uint16_t> pare;
 

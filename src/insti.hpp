@@ -59,8 +59,9 @@ struct Init {
   size_t reclusterEveryNGen = 0; // 0 means don't recluster
   std::string reclusterStage{ 's' };
   size_t numThreads = 1;
-  unsigned scaffoldExtraRegionSize =
-      0; // size in genomic coordinates of overang region for clustering
+
+  // size in genomic coordinates of overhang region for clustering
+  unsigned scaffoldExtraRegionSize = 0;
 
   // genetic map file name
   std::string geneticMap;
@@ -142,25 +143,7 @@ private:
                      unsigned m_uNumRefHaps);
 
   // data loading
-  std::vector<std::vector<char> > OpenHap(std::string hapFile);
-  std::vector<Bio::snp> OpenLegend(std::string legendFile);
-  void OpenVCFGZ(const std::string &vcf, const Bio::Region &region,
-                 std::vector<std::vector<char> > &haps,
-                 std::vector<Bio::snp> &sites, std::vector<std::string> &ids);
-  void OpenHaps(const std::string &hapFile,
-                std::vector<std::vector<char> > &loadHaps,
-                std::vector<Bio::snp> &sites, const Bio::Region &subsetRegion);
-  void OpenTabHaps(const std::string &hapFile,
-                   std::vector<std::vector<char> > &loadHaps,
-                   std::vector<Bio::snp> &sites,
-                   const Bio::Region &subsetRegion);
-  void OpenSample(const std::string &sampleFile,
-                  std::vector<std::string> &fillSampleIDs);
-  void MatchSamples(const std::vector<std::string> &IDs, unsigned numHaps);
-  void SubsetSamples(std::vector<std::string> &loadIDs,
-                     std::vector<std::vector<char> > &loadHaps);
-  void OrderSamples(std::vector<std::string> &loadIDs,
-                    std::vector<std::vector<char> > &loadHaps);
+  // not sure what this is for ?
   bool SwapMatch(const Bio::snp &loadSite, const Site &existSite,
                  std::vector<char> &loadHap, std::vector<char> &existHap);
 
@@ -175,17 +158,17 @@ public:
   // uuid
   const boost::uuids::uuid m_tag;
 
-  Insti() = delete;
+  explicit Insti() = delete;
 
-  Insti(InstiHelper::Init &init);
+  explicit Insti(InstiHelper::Init init);
 
   unsigned GetScaffoldNumWordsPerHap() { return m_scaffold.NumWordsPerHap(); }
   std::string GetScaffoldID(unsigned idx) { return m_scaffold.GetID(idx); }
   bool TestScaffoldSite(unsigned hapNum, unsigned siteNum) {
     assert(hapNum < m_scaffold.NumHaps());
     assert(siteNum < m_scaffold.MaxSites());
-    std::vector<uint64_t> *scaffoldHaps = m_scaffold.Haplotypes();
-    uint64_t *scaffoldHapsPointer = scaffoldHaps->data();
+    std::vector<uint64_t> scaffoldHaps = m_scaffold.Haplotypes_uint64_t();
+    uint64_t *scaffoldHapsPointer = scaffoldHaps.data();
     return test(&scaffoldHapsPointer[hapNum * m_scaffold.NumWordsPerHap()],
                 siteNum);
   }
@@ -211,12 +194,9 @@ public:
                    std::vector<std::vector<char> > &filtHaps,
                    std::vector<Bio::snp> &filtSites, InstiPanelType panelType);
 
-  // copy haplotypes to space in program where they actually are supposed to
-  // go
-  // along with list of sites if applicable
-  void LoadHaps(std::vector<std::vector<char> > &inHaps,
-                std::vector<Bio::snp> &inSites,
-                std::vector<std::string> &inSampleIDs,
+  // Open and copy haplotypes to space in program where they actually are
+  // supposed to go
+  void LoadHaps(std::vector<std::string> inFiles, HapPanelHelper::Init init,
                 InstiPanelType panelType);
 
   void CheckPanelPrereqs(InstiPanelType panelType);
@@ -306,7 +286,7 @@ public:
   void save_vcf(const char *F, std::string commandLine);
 
   bool UsingScaffold() {
-    return (m_scaffold.Initialized());
+    return (!m_scaffold.empty());
   };
 };
 

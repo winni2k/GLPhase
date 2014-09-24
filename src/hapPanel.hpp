@@ -6,80 +6,134 @@
 
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
+#include "globals.h"
 #include <math.h>
-#include <vector>
 #include <stdint.h>
-#include <string>
+#include <algorithm>
 #include <cassert>
+#include <string>
 #include <iostream>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 #include "bio.hpp"
 #include "utils.hpp"
-#include "globals.h"
+#include "tabix.hpp"
+#include "vcf_parser.hpp"
+
+namespace HapPanelHelper {
+
+enum class HapFileType { WTCCC, IMPUTE2, VCF, WTCCC_TBX };
+
+std::vector<uint64_t> Char2BitVec(const std::vector<std::vector<char> > &inHaps,
+                                  unsigned numWords, unsigned wordSize);
+void set1(uint64_t *P, unsigned I);
+void set0(uint64_t *P, unsigned I);
+
+// HAPS/SAMPLE format
+std::vector<std::string> OpenSample(const std::string &sampleFile);
+void OpenHaps(const std::string &hapsFile, const Bio::Region &region,
+              std::vector<std::vector<char> > &loadHaps,
+              std::vector<Bio::snp> &sites);
+void OpenTabHaps(const std::string &hapsFile, const Bio::Region &region,
+                 std::vector<std::vector<char> > &loadHaps,
+                 std::vector<Bio::snp> &loadSites);
+
+// HAP/LEG/SAMP format
+std::vector<std::vector<char> > OpenHap(const std::string &hapFile);
+std::vector<Bio::snp> OpenLegend(const std::string &legendFile);
+std::vector<std::string> OpenSamp(const std::string &sampFile);
+
+// BCF
+void OpenVCFGZ(const std::string &vcf, const std::string &region,
+               std::vector<std::vector<char> > &loadHaps,
+               std::vector<Bio::snp> &loadSites, std::vector<std::string> &ids);
+
+struct Init {
+
+  HapFileType hapFileType = HapFileType::IMPUTE2;
+
+  // find a site in the haplotypes for every site in the
+  // keep site list
+  bool matchAllSites = false;
+
+  // keep all sites that were found within region
+  bool keepAllSitesInRegion = false;
+
+  // filter on region
+  Bio::Region keepRegion;
+  std::vector<Bio::snp> keepSites;
+};
+}
 
 class HapPanel {
 
 private:
+  // input variables
+  std::vector<std::string> m_keepSampIDsList;
+
+  std::unordered_map<std::string, size_t> m_keepSampIDsUnorderedMap;
+  std::unordered_map<Bio::snp, size_t, Bio::snpKeyHasher> m_keepSites;
+  Bio::Region m_keepRegion;
+
+  HapPanelHelper::Init m_init;
+
+  // internal storage
   unsigned m_wordSize = WORDSIZE;
-  std::vector<uint64_t> m_haps;
+  std::vector<std::vector<char> > m_haps;
   std::vector<Bio::snp> m_sites;
   std::vector<std::string> m_sampleIDs;
-  unsigned m_numHaps = 0;
-  unsigned m_numWordsPerHap;
-  bool m_initialized = false;
 
-  void set1(uint64_t *P, unsigned I) {
+  void OrderSamples(std::vector<std::string> &loadIDs,
+                    std::vector<std::vector<char> > &loadHaps);
+  void SubsetSamples(std::vector<std::string> &loadIDs,
+                     std::vector<std::vector<char> > &loadHaps);
+  void FilterSites(std::vector<std::vector<char> > &loadHaps,
+                   std::vector<Bio::snp> &loadSites);
 
-    // I >> Uint64_TShift is moving along the array according to which uint64_t
-    // I is in
-    // e.g. I <= 63 is first uint64_t, and so forth in blocks of 64 bits
-    P[I >> WORDSHIFT] |= static_cast<uint64_t>(1) << (I & WORDMOD);
-  }
-
-  void set0(uint64_t *P, unsigned I) {
-    P[I >> WORDSHIFT] &= ~(static_cast<uint64_t>(1) << (I & WORDMOD));
-  }
+  void CheckPanel();
 
 public:
-  void Init(std::vector<std::vector<char> > &inHaps,
-            std::vector<Bio::snp> &inSites,
-            std::vector<std::string> &inSampleIDs);
+  explicit HapPanel() {};
+  explicit HapPanel(std::vector<std::string> inFiles,
+                    std::vector<std::string> keepSampleIDs,
+                    HapPanelHelper::Init init);
 
-  std::string GetID(unsigned idx) {
-    assert(idx < m_sampleIDs.size());
-    return m_sampleIDs[idx];
+  unsigned NumWordsPerHap() const {
+    return static_cast<unsigned>(
+        ceil(static_cast<double>(m_haps.size()) / m_wordSize));
   }
-  unsigned NumHaps() {
-    assert(m_initialized);
-    return m_numHaps;
-  }
-  unsigned NumWordsPerHap() {
-    assert(m_initialized);
-    return m_numWordsPerHap;
-  }
-  std::vector<uint64_t> *Haplotypes() {
-    assert(m_initialized);
-    return &m_haps;
-  }
-  uint64_t *Hap(unsigned hapNum) {
-    assert(hapNum < m_numHaps);
-    return &m_haps[hapNum * m_numWordsPerHap];
-  }
-  unsigned MaxSites() {
-    assert(Initialized());
-    return NumWordsPerHap() * m_wordSize;
-  }
-  unsigned NumSites() {
-    assert(m_initialized);
+
+  std::vector<uint64_t> Haplotypes_uint64_t() const {
+    return HapPanelHelper::Char2BitVec(m_haps, NumWordsPerHap(), m_wordSize);
+  };
+  std::vector<uint64_t> Haplotypes_uint64_t(size_t numWordsPerHap) const {
+    assert(numWordsPerHap >= NumWordsPerHap());
+    return HapPanelHelper::Char2BitVec(m_haps, numWordsPerHap, m_wordSize);
+  };
+
+  std::string GetID(size_t idx) const {
+    return m_sampleIDs.at(idx);
+  };
+  size_t NumHaps() const {
+    return m_haps[0].size();
+  };
+  size_t NumSites() const {
     return m_sites.size();
-  }
-  bool Initialized() { return m_initialized; }
-  std::vector<uint64_t>
-  Char2BitVec(const std::vector<std::vector<char> > &inHaps, unsigned numWords,
-              unsigned wordSize);
+  };
 
-  unsigned Position(unsigned idx) { return m_sites[idx].pos; }
-  std::string GetRef(unsigned idx) { return m_sites[idx].ref; }
-  std::string GetAlt(unsigned idx) { return m_sites[idx].alt; }
+  size_t MaxSites() const { return NumWordsPerHap() * m_wordSize; }
+
+  bool empty() const { return m_sites.empty(); }
+  /*
+  vector<uint64_t> Hap(unsigned hapNum) const {
+      assert(hapNum < m_numHaps);
+  return &m_haps[hapNum * m_numWordsPerHap];
+}
+  */
+  bool snp_is_equal(const Bio::snp &lhs, size_t siteIdx) {
+    return lhs == m_sites.at(siteIdx);
+  }
 };
 
 #endif

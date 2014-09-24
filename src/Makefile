@@ -109,6 +109,9 @@ clean:
 %.hpp.gch: %.hpp
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
+impute.hpp.gch: impute.hpp bio.hpp.gch
+	$(CXX) $(CXXFLAGS) -x c++-header $<
+
 ifndef NCUDA
 hmmLike.hpp.gch: hmmLike.hpp sampler.hpp.gch olivier/utils.hpp.gch glPack.hpp.gch hmmLike.h
 	$(CXX) $(CXXFLAGS) -x c++-header $<

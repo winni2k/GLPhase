@@ -8,7 +8,7 @@
 #include "impute.hpp"
 
 using namespace std;
-const fast norm =
+const fast normVal =
     powf(FLT_MIN,
          2.0f / 3.0f); // basically avoid singularity or floating point error
 
@@ -16,8 +16,8 @@ const fast norm =
 unsigned Impute::bn;
 unsigned Impute::sn;
 unsigned Impute::nn;
-real Impute::density;
-real Impute::conf;
+double Impute::density;
+double Impute::conf;
 vector<string> Impute::vcf_file;
 set<string> Impute::male;
 bool Impute::is_x;
@@ -103,7 +103,7 @@ unsigned Impute::load_vcf(const char *F) { // this section loads known genotypes
   if ((t = ti_open(F, 0)) == 0)
     return 0;
   vector<uint16_t> vid;
-  real rest = (1 - conf) /
+  double rest = (1 - conf) /
               2; // confidence of known genotype.  the rest has low confidence
   unsigned vin;
   {
@@ -367,7 +367,7 @@ fast Impute::hmm_like(unsigned I, unsigned *P) {
                                                      // and 3.
 
     // rescale probabilities if they become too small
-    if ((sum = l00 + l01 + l10 + l11) < norm) {
+    if ((sum = l00 + l01 + l10 + l11) < normVal) {
       if (sum == 0)
         return FLT_MIN_EXP;
       sum = 1.0f / sum;
@@ -618,7 +618,7 @@ void Impute::replace(unsigned I) {
 // to put them...
 void Impute::result(void) {
   prob.resize(mn * hn);
-  fast norm = 1.0 / sn; // sn = no. of sampling iterations
+  fast normVal = 1.0 / sn; // sn = no. of sampling iterations
 
   // mn = number of sites
   for (unsigned m = 0; m < mn; m++) {
@@ -626,8 +626,8 @@ void Impute::result(void) {
 
     // in = number individuals
     for (unsigned i = 0; i < in; i++, p += 2) {
-      p[0] = hsum[i * 2 * mn + m] * norm;
-      p[1] = hsum[(i * 2 + 1) * mn + m] * norm;
+      p[0] = hsum[i * 2 * mn + m] * normVal;
+      p[1] = hsum[(i * 2 + 1) * mn + m] * normVal;
     }
   }
 }

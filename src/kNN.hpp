@@ -65,7 +65,7 @@ private:
   bool UsingScaffold() { return m_usingScaffold; }
 
 public:
-  KNN(unsigned numClust, const std::vector<uint64_t> &vuHaplotypes,
+  KNN(unsigned numClust, std::vector<uint64_t> vuHaplotypes,
       unsigned numWordsPerHap, unsigned numSites, double freqLB, double freqUB,
       bool usingMAF, gsl_rng *rng, kNNDistT distMetric = kNNDistT::hamming);
 
