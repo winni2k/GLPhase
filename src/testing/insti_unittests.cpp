@@ -19,6 +19,10 @@ string refHap =
     sampleDir + "/20_0_62000000.011976121_012173018.paste.onlyThree.hap";
 string refLegend =
     sampleDir + "/20_0_62000000.011976121_012173018.paste.onlyThree.legend";
+string refSamp =
+    sampleDir + "/20_0_62000000.011976121_012173018.paste.onlyThree.hap.indv";
+string refSample =
+    sampleDir + "/20_0_62000000.011976121_012173018.paste.onlyThree.sample";
 string refHaps =
     sampleDir + "/20_0_62000000.011976121_012173018.paste.onlyThree.haps";
 string refVCFGZ =
@@ -134,7 +138,8 @@ TEST(Insti, loadBin) {
 
   //  cerr << "BLOINC2\n";
   // now test refpanel loading
-  lp.LoadHapLegSamp(refLegend, refHap, "", InstiPanelType::REFERENCE);
+  lp.LoadHapLegSamp(refLegend, refHap, refSamp, InstiPanelType::REFERENCE,
+                    Bio::Region());
 
   for (unsigned i = 0; i != 601; i++) {
     EXPECT_EQ(0, lp.TestRefHap(0, i));
@@ -224,7 +229,8 @@ TEST(Insti, loadGLVCF) {
 
   //  cerr << "BLOINC2\n";
   // now test refpanel loading
-  lp.LoadHapLegSamp(refLegend, refHap, "", InstiPanelType::REFERENCE);
+  lp.LoadHapLegSamp(refLegend, refHap, refSamp, InstiPanelType::REFERENCE,
+                    Bio::Region());
 
   for (unsigned i = 0; i != 601; i++) {
     EXPECT_EQ(0, lp.TestRefHap(0, i));
@@ -315,7 +321,8 @@ TEST(Insti, loadGLVCFExtraSites) {
 
   //  cerr << "BLOINC2\n";
   // now test refpanel loading
-  lp.LoadHapLegSamp(refLegend, refHap, "", InstiPanelType::REFERENCE);
+  lp.LoadHapLegSamp(refLegend, refHap, refSamp, InstiPanelType::REFERENCE,
+                    Bio::Region());
 
   for (unsigned i = 0; i != 601; i++) {
     EXPECT_EQ(0, lp.TestRefHap(0, i));
@@ -343,8 +350,7 @@ TEST(Insti, loadHapsSamp) {
   Insti lp(init);
 
   lp.initialize();
-  const string nothing = "";
-  lp.LoadHapsSamp(refHaps, nothing, InstiPanelType::REFERENCE, refRegion);
+  lp.LoadHapsSamp(refHaps, refSample, InstiPanelType::REFERENCE, Bio::Region());
 
   for (unsigned i = 0; i != 601; i++) {
     EXPECT_EQ(0, lp.TestRefHap(0, i));
@@ -423,7 +429,8 @@ TEST(Insti, loadHapsSamp) {
   Insti lp3(init);
 
   lp3.initialize();
-  lp3.LoadHapsSamp(refHaps, nothing, InstiPanelType::REFERENCE, refRegion);
+  lp3.LoadHapsSamp(refHaps, refSample, InstiPanelType::REFERENCE,
+                   Bio::Region());
 
   // test the scaffold loading
   ASSERT_EXIT(lp3.LoadHapsSamp(scaffoldHapsWrongReg, scaffHapsSampSample,
@@ -473,23 +480,32 @@ TEST(Insti, loadHapLegSampErrors) {
   lp.initialize();
 
   //    cerr << "BLOINC1\n";
-  ASSERT_EXIT(lp.LoadHapLegSamp("", sampleHap, "", InstiPanelType::REFERENCE),
+  ASSERT_EXIT(lp.LoadHapLegSamp("", sampleHap, "", InstiPanelType::REFERENCE,
+                                Bio::Region()),
               ::testing::ExitedWithCode(1),
               "Need to define a legend file if defining a hap file");
-  ASSERT_EXIT(
-      lp.LoadHapLegSamp(sampleLegend, "", "", InstiPanelType::REFERENCE),
-      ::testing::ExitedWithCode(1),
-      "Need to define a hap file if defining a legend file");
-  EXPECT_ANY_THROW(lp.LoadHapsSamp(refHaps, brokenHapsSampSample,
-                                   InstiPanelType::SCAFFOLD, refRegion));
+  ASSERT_EXIT(lp.LoadHapLegSamp(sampleLegend, "", "", InstiPanelType::REFERENCE,
+                                Bio::Region()),
+              ::testing::ExitedWithCode(1),
+              "Need to define a hap file if defining a legend file");
+  ASSERT_EXIT(lp.LoadHapsSamp(refHaps, brokenHapsSampSample,
+                              InstiPanelType::SCAFFOLD, refRegion),
+              ::testing::ExitedWithCode(2), "Error in sample file "
+                                            "../../samples/brokenFiles/"
+                                            "onlyThree.hapsSample.extraLine."
+                                            "sample: empty lines detected.");
 
   /*
                   "Input haplotypes file " + unsortedRefHaps +
                   " needs to be sorted by position");
   */
-  EXPECT_ANY_THROW(lp.LoadHapsSamp(unsortedRefHaps,
-                                   scaffHapsSampUnorderedSample,
-                                   InstiPanelType::SCAFFOLD, refRegion));
+  ASSERT_EXIT(lp.LoadHapsSamp(unsortedRefHaps, scaffHapsSampUnorderedSample,
+                              InstiPanelType::SCAFFOLD, refRegion),
+              ::testing::ExitedWithCode(2), "Input haplotypes file "
+                                            "../../samples/"
+                                            "20_0_62000000.011976121_012173018."
+                                            "paste.onlyThree.unsorted.haps "
+                                            "needs to be sorted by position");
 }
 
 TEST(Insti, initializingHapsFromScaffold) {
@@ -534,7 +550,7 @@ TEST(Insti, LoadVCFGZ) {
   Insti lp(init);
 
   lp.initialize();
-  lp.LoadVCFGZ(refVCFGZ, InstiPanelType::REFERENCE, refRegion);
+  lp.LoadVCFGZ(refVCFGZ, InstiPanelType::REFERENCE, Bio::Region());
 
   for (unsigned i = 0; i != 601; i++) {
     EXPECT_EQ(0, lp.TestRefHap(0, i));

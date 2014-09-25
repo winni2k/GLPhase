@@ -85,7 +85,7 @@ vector<string> OpenSample(const string &sampleFile) {
   ifile sampleFD(sampleFile);
 
   if (!sampleFD.isGood())
-    throw runtime_error("Could not open file: " + sampleFile);
+    throw runtime_error("Could not open sample file: [" + sampleFile + "]");
 
   string buffer;
 
@@ -134,6 +134,8 @@ vector<string> OpenSample(const string &sampleFile) {
     // now add sample id to vector
     fillSampleIDs.push_back(tokens[0]);
   }
+  clog << "[HapPanel] Loaded " << fillSampleIDs.size() << " sample IDs" << endl;
+
   return fillSampleIDs;
 }
 
@@ -146,7 +148,7 @@ void OpenHaps(const string &hapsFile, const Region &region,
   ifile hapsFD(hapsFile);
 
   if (!hapsFD.isGood())
-    throw runtime_error("Could not open file: " + hapsFile);
+    throw runtime_error("Could not open haps file [" + hapsFile + "]");
 
   string buffer;
   unsigned lineNum = 0;
@@ -341,13 +343,13 @@ void OpenTabHaps(const string &hapsFile, const Region &region,
   swap(loadHaps, fillHaps);
 }
 
-vector<snp> OpenLegend(const string &legendFile) {
+vector<snp> OpenLegend(const string &legendFile, string chrom) {
 
   // read in legend file
   ifile legendFD(legendFile);
 
   if (!legendFD.isGood())
-    throw runtime_error("Could not open file: " + legendFile);
+    throw runtime_error("Could not open legend file [" + legendFile + "]");
 
   string buffer;
   vector<snp> loadLeg;
@@ -384,7 +386,7 @@ vector<snp> OpenLegend(const string &legendFile) {
 
     // add each site to loadLeg
     loadLeg.push_back(
-        snp("", strtoul(tokens[1].c_str(), NULL, 0), tokens[2], tokens[3]));
+        snp(chrom, strtoul(tokens[1].c_str(), NULL, 0), tokens[2], tokens[3]));
   }
 
   return loadLeg;
@@ -396,7 +398,7 @@ vector<vector<char> > OpenHap(const string &hapFile) {
   ifile hapFD(hapFile);
 
   if (!hapFD.isGood())
-    throw runtime_error("Could not open file: " + hapFile);
+    throw runtime_error("Could not open hap file [" + hapFile + "]");
 
   string buffer;
   int lineNum = -1;
@@ -452,7 +454,7 @@ vector<vector<char> > OpenHap(const string &hapFile) {
 vector<string> OpenSamp(const string &sampleFile) {
   ifile sampFD{ sampleFile };
   if (!sampFD.isGood())
-    throw runtime_error("Could not open file: " + sampleFile);
+    throw runtime_error("Could not open sample file [" + sampleFile + "]");
 
   string buffer;
   vector<string> tokens;
@@ -470,6 +472,7 @@ vector<string> OpenSamp(const string &sampleFile) {
     boost::split(tokens, buffer, boost::is_any_of(" "));
     sampIDs.push_back(move(tokens[0]));
   }
+  clog << "[HapPanel] Loaded " << sampIDs.size() << " sample IDs" << endl;
   return sampIDs;
 }
 
@@ -553,17 +556,17 @@ void OpenVCFGZ(string vcf, const Region &region,
 
 using namespace HapPanelHelper;
 
-HapPanel::HapPanel(vector<string> inFiles, vector<string> keepSampleIDs,
-                   HapPanelHelper::Init init)
-    : m_keepSampIDsList{ std::move(keepSampleIDs) },
-      m_init{ std::move(init), } {
+HapPanel::HapPanel(const vector<string> &inFiles, HapPanelHelper::Init init)
+    : m_init{ std::move(init), } {
 
   // push sampleIDs into unordered map
-  m_keepSampIDsUnorderedMap.reserve(m_keepSampIDsList.size());
-  for (size_t idx = 0; idx < m_keepSampIDsList.size(); ++idx)
-    m_keepSampIDsUnorderedMap.insert(make_pair(m_keepSampIDsList[idx], idx));
+  m_keepSampIDsUnorderedMap.reserve(m_init.keepSampleIDs.size());
+  for (size_t idx = 0; idx < m_init.keepSampleIDs.size(); ++idx)
+    m_keepSampIDsUnorderedMap.insert(make_pair(m_init.keepSampleIDs[idx], idx));
 
-  assert(m_init.keepSites.empty() xor m_init.keepRegion.empty());
+  if (!(m_init.keepSites.empty() xor m_init.keepRegion.empty()))
+    throw runtime_error(
+        "Please only specify site list or region for filtering");
 
   // handle region/sites to keep
   if (!m_init.keepSites.empty()) {
@@ -594,17 +597,18 @@ HapPanel::HapPanel(vector<string> inFiles, vector<string> keepSampleIDs,
   vector<string> loadIDs;
   if (m_init.hapFileType == HapPanelHelper::HapFileType::IMPUTE2) {
     assert(inFiles.size() == 3);
-    loadSites = std::move(OpenLegend(std::move(inFiles[1])));
+    loadSites =
+        std::move(OpenLegend(std::move(inFiles[1]), m_keepRegion.GetChrom()));
     loadHaps = std::move(OpenHap(std::move(inFiles[0])));
     loadIDs = std::move(OpenSamp(std::move(inFiles[2])));
   } else if (m_init.hapFileType == HapPanelHelper::HapFileType::WTCCC) {
     assert(inFiles.size() == 2);
     OpenHaps(move(inFiles[0]), m_keepRegion, loadHaps, loadSites);
-    OpenSample(inFiles[1]);
+    loadIDs = move(OpenSample(inFiles[1]));
   } else if (m_init.hapFileType == HapPanelHelper::HapFileType::WTCCC_TBX) {
     assert(inFiles.size() == 2);
     OpenTabHaps(inFiles[0], m_keepRegion, loadHaps, loadSites);
-    OpenSample(inFiles[1]);
+    loadIDs = move(OpenSample(inFiles[1]));
   } else if (m_init.hapFileType == HapPanelHelper::HapFileType::VCF) {
     assert(inFiles.size() == 1);
     OpenVCFGZ(inFiles[0], m_keepRegion, loadHaps, loadSites, loadIDs);
@@ -616,19 +620,18 @@ HapPanel::HapPanel(vector<string> inFiles, vector<string> keepSampleIDs,
                              inFiles[0]);
 
   // filter samples
-  SubsetSamples(loadIDs, loadHaps);
-  OrderSamples(loadIDs, loadHaps);
+  if (!m_init.keepSampleIDs.empty()) {
+    SubsetSamples(loadIDs, loadHaps);
+    OrderSamples(loadIDs, loadHaps);
+  }
 
   // filter on sites
   assert(!loadHaps.empty());
-  vector<vector<char> > filtHaps;
-  vector<snp> filtSites;
-
   if (!m_init.keepAllSitesInRegion && !m_keepSites.empty())
     FilterSites(loadHaps, loadSites);
 
-  m_haps = std::move(filtHaps);
-  m_sites = std::move(filtSites);
+  m_haps = std::move(loadHaps);
+  m_sites = std::move(loadSites);
   m_sampleIDs = std::move(loadIDs);
 
   CheckPanel();
@@ -637,10 +640,10 @@ HapPanel::HapPanel(vector<string> inFiles, vector<string> keepSampleIDs,
 void HapPanel::SubsetSamples(vector<string> &loadIDs,
                              vector<vector<char> > &loadHaps) {
 
-  if (m_keepSampIDsList.empty())
+  if (m_init.keepSampleIDs.empty())
     return;
 
-  assert(loadIDs.size() >= m_keepSampIDsList.size());
+  assert(loadIDs.size() >= m_init.keepSampleIDs.size());
 
   if (!loadHaps.empty())
     assert(loadIDs.size() * 2 == loadHaps[0].size());
@@ -705,10 +708,7 @@ void HapPanel::FilterSites(vector<vector<char> > &loadHaps,
   //    for(auto & iter  : filtHaps)
   //      iter.resize(loadSites.size());
 
-  const unsigned numHaplotypesLoaded = loadHaps[0].size();
-
-  // now keep all sites that are in the GL set of sites
-  // look up each load site to see if its in the GL sites
+  // now keep all sites that are in the keepSites
   unsigned previousIdx = 0;
   unsigned matchSites = 0;
   for (unsigned loadSiteIdx = 0; loadSiteIdx < loadSites.size();
@@ -740,7 +740,7 @@ void HapPanel::FilterSites(vector<vector<char> > &loadHaps,
 
   cout << "[HapPanel] Number of sites kept: " << loadSites.size() << endl;
 
-  if (filtHaps[0].size() != numHaplotypesLoaded)
+  if (matchSites == 0)
     throw std::runtime_error(
         "Error: No sites in loaded panel matched already loaded sites. Is your "
         "input file sorted?");
@@ -749,8 +749,6 @@ void HapPanel::FilterSites(vector<vector<char> > &loadHaps,
   if (matchSites > m_keepSites.size())
     throw std::runtime_error("[HapPanel] too many matching sites found. There "
                              "are duplicate sites in input.");
-
-  assert(matchSites > 0);
 }
 
 void HapPanel::OrderSamples(vector<string> &loadIDs,
@@ -770,7 +768,7 @@ void HapPanel::OrderSamples(vector<string> &loadIDs,
     if (foundID == m_keepSampIDsUnorderedMap.end())
       assert(false);
 
-    assert(foundID->second < m_keepSampIDsList.size());
+    assert(foundID->second < m_init.keepSampleIDs.size());
     orderedLoadNameIdxs.push_back(foundID->second);
   }
 
@@ -783,7 +781,7 @@ void HapPanel::OrderSamples(vector<string> &loadIDs,
 
   std::swap(tempIDs, loadIDs);
   for (size_t i; i < loadIDs.size(); ++i)
-    assert(loadIDs[i] == m_keepSampIDsList.at(i));
+    assert(loadIDs[i] == m_init.keepSampleIDs.at(i));
 
   // sort haplotypes according to orderedLoadNameIdxs
   for (unsigned siteIdx = 0; siteIdx < loadHaps.size(); siteIdx++) {
@@ -818,5 +816,6 @@ void HapPanel::CheckPanel() {
                           to_string(m_sites.size()) + ")");
 
   assert(!m_haps.empty());
-  MatchSamples(m_keepSampIDsList, m_sampleIDs, m_haps[0].size());
+  if (!m_init.keepSampleIDs.empty())
+    MatchSamples(m_init.keepSampleIDs, m_sampleIDs, m_haps[0].size());
 }

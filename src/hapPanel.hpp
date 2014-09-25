@@ -41,7 +41,7 @@ void OpenTabHaps(const std::string &hapsFile, const Bio::Region &region,
 
 // HAP/LEG/SAMP format
 std::vector<std::vector<char> > OpenHap(const std::string &hapFile);
-std::vector<Bio::snp> OpenLegend(const std::string &legendFile);
+std::vector<Bio::snp> OpenLegend(const std::string &legendFile, string chrom);
 std::vector<std::string> OpenSamp(const std::string &sampFile);
 
 // BCF
@@ -62,7 +62,11 @@ struct Init {
 
   // filter on region
   Bio::Region keepRegion;
+  // or filter on site list
   std::vector<Bio::snp> keepSites;
+
+  // keep only specific samples
+  std::vector<std::string> keepSampleIDs;
 };
 }
 
@@ -95,8 +99,7 @@ private:
 
 public:
   explicit HapPanel() {};
-  explicit HapPanel(std::vector<std::string> inFiles,
-                    std::vector<std::string> keepSampleIDs,
+  explicit HapPanel(const std::vector<std::string> &inFiles,
                     HapPanelHelper::Init init);
 
   unsigned NumWordsPerHap() const {

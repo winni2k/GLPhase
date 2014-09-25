@@ -334,7 +334,7 @@ void Insti::LoadGLBCF(const unordered_set<string> &keepSamples) {
   clog << "sample\t" << in << endl; // which sample
 }
 
-void Insti::LoadVCFGZ(const string &vcf, InstiPanelType panel_t,
+void Insti::LoadVCFGZ(string vcf, InstiPanelType panel_t,
                       const Bio::Region &region) {
 
   cout << "[insti] Loading haplotypes from VCF: " << vcf << endl;
@@ -349,9 +349,8 @@ void Insti::LoadVCFGZ(const string &vcf, InstiPanelType panel_t,
   LoadHaps(move(inFiles), move(init), panel_t);
 };
 
-void Insti::LoadHapsSamp(const string &hapsFile, const string &sampleFile,
-                         InstiPanelType panelType,
-                         const Bio::Region &loadRegion) {
+void Insti::LoadHapsSamp(string hapsFile, string sampleFile,
+                         InstiPanelType panelType, Bio::Region loadRegion) {
 
   // make sure both files are defined
   if (sampleFile.empty())
@@ -365,7 +364,7 @@ void Insti::LoadHapsSamp(const string &hapsFile, const string &sampleFile,
   CheckPanelPrereqs(panelType);
 
   HapPanelHelper::Init init;
-  init.keepRegion = loadRegion;
+  init.keepRegion = std::move(loadRegion);
   // read the haps and sites from a haps file
   if (hapsFile.size() > 11 &&
       hapsFile.compare(hapsFile.size() - 11, 11, ".tabhaps.gz") == 0)
@@ -400,23 +399,21 @@ void Insti::LoadHaps(vector<string> inFiles, HapPanelHelper::Init init,
 
     // store the haplotypes in the correct place based on what type of panel we
     // are loading
-    switch (panelType) {
-    case InstiPanelType::REFERENCE: {
+    if (panelType == InstiPanelType::REFERENCE) {
       init.matchAllSites = true;
       init.keepSites = m_glSites;
-      HapPanel input(std::move(inFiles), name, init);
+      HapPanel input(inFiles, init);
       vector<uint64_t> storeHaps = input.Haplotypes_uint64_t(GetNumWords());
       storeHaps.swap(m_vRefHaps);
       m_uNumRefHaps = input.NumHaps();
       cout << "Reference panel haplotypes\t" << m_uNumRefHaps << endl;
       return;
-    }
-
-    case InstiPanelType::SCAFFOLD: {
+    } else if (panelType == InstiPanelType::SCAFFOLD) {
       static_assert(WORDMOD >= 0,
                     "WORDMOD global is not greater or equal to 0");
       init.keepAllSitesInRegion = true;
-      m_scaffold = HapPanel(std::move(inFiles), name, init);
+      init.keepSampleIDs = name;
+      m_scaffold = HapPanel(inFiles, std::move(init));
 
       cout << "Scaffold haplotypes\t" << m_scaffold.NumHaps() << endl;
 
@@ -426,18 +423,15 @@ void Insti::LoadHaps(vector<string> inFiles, HapPanelHelper::Init init,
             "haplotypes for every input sample");
 
       return;
-    }
-
-    default:
+    } else
       assert(false); // this should not happen
-    }
   }
   catch (exception &e) {
 
-    cerr << "Error loading haplotype files [";
+    cerr << "Error loading files [";
     for (auto f : inFiles)
       cerr << " " << f;
-    cerr << "]" << endl << e.what() << endl;
+    cerr << " ]" << endl << e.what() << endl;
     exit(2);
   }
 }
@@ -458,8 +452,8 @@ void Insti::CheckPanelPrereqs(InstiPanelType panelType) {
   }
 }
 
-bool Insti::LoadHapLegSamp(const string &legendFile, const string &hapFile,
-                           const string &sampleFile, InstiPanelType panelType) {
+bool Insti::LoadHapLegSamp(string legendFile, string hapFile, string sampleFile,
+                           InstiPanelType panelType, Bio::Region loadRegion) {
 
   // make sure required files are defined
   if (legendFile.size() == 0) {
@@ -472,20 +466,14 @@ bool Insti::LoadHapLegSamp(const string &legendFile, const string &hapFile,
     document();
   }
 
-  if (sampleFile.size() == 0 && panelType == InstiPanelType::SCAFFOLD) {
+  if (sampleFile.size() == 0) {
     cerr << "Need to define a sample file if using scaffold\n";
-    document();
-  }
-
-  // for now sample loading is not implemented
-  if (sampleFile.size() > 0) {
-    cerr << "for now sample loading is not implemented in the sampleghap "
-            "paradigm";
     document();
   }
 
   HapPanelHelper::Init init;
   init.hapFileType = HapPanelHelper::HapFileType::IMPUTE2;
+  init.keepRegion = std::move(loadRegion);
   vector<string> inFiles{ hapFile, legendFile, sampleFile };
   LoadHaps(move(inFiles), move(init), panelType);
 
@@ -700,7 +688,7 @@ void Insti::initialize() {
   // load ref haps
   if (s_sRefLegendFile.size() > 0 || s_sRefHapFile.size() > 0)
     LoadHapLegSamp(s_sRefLegendFile, s_sRefHapFile, "",
-                   InstiPanelType::REFERENCE);
+                   InstiPanelType::REFERENCE, Region());
 
   if (m_bUsingRefHaps) {
 
@@ -1523,13 +1511,13 @@ void Insti::SetHapsAccordingToScaffold() {
   // pull out each hap and change it to match information contained in the
   // scaffold
   vector<uint64_t> scaffHaps = m_scaffold.Haplotypes_uint64_t();
-  assert(wn == m_scaffold.NumWordsPerHap());
+  size_t nwph = m_scaffold.NumWordsPerHap();
   assert(2 * in == m_scaffold.NumHaps());
   for (unsigned hapNum = 0; hapNum < 2 * in; hapNum++) {
 
     // define pointers to an individual's two haplotype hap
     uint64_t *hap = &haps[hapNum * wn];
-    uint64_t *scaffHap = &scaffHaps[hapNum * wn];
+    uint64_t *scaffHap = &scaffHaps[hapNum * nwph];
 
     // check each site if it needs to be replaced
     unsigned scaffoldSiteIdx = 0;

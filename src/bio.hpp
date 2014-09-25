@@ -81,9 +81,34 @@ struct snpKeyHasher {
   }
 };
 
+struct snpNoChrKeyHasher {
+  std::size_t operator()(const Bio::snp &k) const {
+    using boost::hash_value;
+    using boost::hash_combine;
+
+    // Start with a hash value of 0    .
+    std::size_t seed = 0;
+
+    // Modify 'seed' by XORing and bit-shifting in
+    // one member of 'Key' after the other:
+    hash_combine(seed, hash_value(k.pos));
+    hash_combine(seed, hash_value(k.ref));
+    hash_combine(seed, hash_value(k.alt));
+
+    // Return the result.
+    return seed;
+  }
+};
+
 struct snpPosComp {
   bool operator()(const Bio::snp &a, const Bio::snp &b) {
     return a.pos < b.pos;
+  }
+};
+
+struct snpNoChr_eq {
+  bool operator()(const Bio::snp &a, const Bio::snp &b) {
+    return (a.pos == b.pos && a.ref == b.ref && a.alt == b.alt);
   }
 };
 }

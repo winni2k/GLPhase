@@ -177,15 +177,16 @@ public:
 
   // data loading
   // haps/sample
-  void LoadHapsSamp(const std::string &hapsFile, const std::string &sampleFile,
-                    InstiPanelType panelType, const Bio::Region &loadRegion);
+  void LoadHapsSamp(std::string hapsFile, std::string sampleFile,
+                    InstiPanelType panelType, Bio::Region loadRegion);
 
   // hap/leg/samp
-  bool LoadHapLegSamp(const std::string &legendFile, const std::string &hapFile,
-                      const std::string &sampleFile, InstiPanelType panelType);
+  bool LoadHapLegSamp(std::string legendFile, std::string hapFile,
+                      std::string sampleFile, InstiPanelType panelType,
+                      Bio::Region loadRegion);
 
   // vcf.gz file
-  void LoadVCFGZ(const std::string &vcf, InstiPanelType panel_t,
+  void LoadVCFGZ(std::string vcf, InstiPanelType panel_t,
                  const Bio::Region &region);
 
   // filter out sites that aren't in main gl data
