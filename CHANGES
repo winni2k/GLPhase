@@ -1,3 +1,12 @@
+1.4.21  Thu Sep 25 15:09:47 BST 2014
+        major code refactoring
+
+1.4.20  Thu Sep 25 15:09:25 BST 2014
+        added -u option (may not be work yet)
+
+1.4.19  Thu Sep 25 15:09:02 BST 2014
+        Fixed some bugs, output is now BCF.gz by default
+
 1.4.18  Tue Sep 02 17:11:02 BST 2014
         Added -S option for filtering on sample lists when reading GLs
         from VCF/BCF files
