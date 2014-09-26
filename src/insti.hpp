@@ -65,7 +65,7 @@ struct Init {
 
   bool fixPhaseFromScaffold = false;
   double fixPhaseFrequencyUpperBound = 1;
-  double fixPhaseFrequencyLowerBound = 1;
+  double fixPhaseFrequencyLowerBound = 0;
   bool fixPhaseReferenceAlleleFrequency = true;
 
   size_t reclusterEveryNGen = 0; // 0 means don't recluster
@@ -298,9 +298,21 @@ public:
   void save_relationship_graph(std::string sOutputFile);
   void save_vcf(const char *F, std::string commandLine);
 
-  bool UsingScaffold() {
-    return (!m_scaffold.empty());
-  };
+  bool UsingScaffold() { return (!m_scaffold.empty()); }
+
+  // for testing purposes...
+  std::vector<fast> GetEmit() const { return emit; }
+  std::pair<size_t, size_t> GetEmitDim() const { return make_pair(in, en); }
+  std::vector<std::vector<float> > Getpc() const {
+
+    std::vector<std::vector<float> > retPC;
+    for (size_t i = 0; i < 4; ++i) {
+      retPC.push_back(std::vector<float>());
+      for (size_t j = 0; j < 4; ++j)
+        retPC[i].push_back(pc[i][j]);
+    }
+    return retPC;
+  }
 };
 
 #endif /* _INSTI_H */

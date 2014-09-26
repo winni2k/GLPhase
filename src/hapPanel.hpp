@@ -108,7 +108,7 @@ public:
         ceil(static_cast<double>(m_haps.size()) / m_wordSize));
   }
 
-  void FilterSitesOnAlleleFrequency(double upperBound, double lowerBound,
+  void FilterSitesOnAlleleFrequency(double lowerBound, double upperBound,
                                     bool useReferenceAlleleFrequency);
 
   std::vector<uint64_t> Haplotypes_uint64_t() const {

@@ -1,3 +1,7 @@
+1.4.22  Fri Sep 26 14:18:15 BST 2014
+        Fixed bug in overhang option (was not working)
+        Added fix from scaffold option
+
 1.4.21  Thu Sep 25 15:09:47 BST 2014
         major code refactoring
 

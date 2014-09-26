@@ -832,7 +832,7 @@ void HapPanel::FilterSitesOnAlleleFrequency(double lowerBound,
 
   assert(lowerBound >= 0);
   assert(upperBound <= 1);
-  assert(lowerBound >= upperBound);
+  assert(lowerBound <= upperBound);
 
   // calculate allele frequencies
   vector<double> alleleFrequencies;
@@ -855,6 +855,10 @@ void HapPanel::FilterSitesOnAlleleFrequency(double lowerBound,
       filteredHaps.push_back(m_haps[i]);
       filteredSites.push_back(m_sites[i]);
     }
+
+  if (filteredSites.empty())
+    throw runtime_error(
+        "[HapPanel] No sites left after filtering on allele frequency");
 
   // put the filtered haplotypes back in to position
   std::unordered_map<Bio::snp, size_t, Bio::snpKeyHasher> sitesUnorderedMap;

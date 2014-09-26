@@ -1558,6 +1558,7 @@ void Insti::LoadScaffold() {
 
 void Insti::FixEmitAccordingToScaffold() {
 
+  clog << "[insti] Fixing emission matrix according to scaffold" << endl;
   const unordered_map<string, string> &files = m_init.scaffoldFiles;
 
   // figure out how to what type of scaffold we are loading
@@ -1604,7 +1605,7 @@ void Insti::FixEmitAccordingToScaffold() {
   // load scaffold and filter sites
   HapPanel haplotypes(move(inFiles), move(init));
   haplotypes.FilterSitesOnAlleleFrequency(
-      m_init.fixPhaseFrequencyUpperBound, m_init.fixPhaseFrequencyLowerBound,
+      m_init.fixPhaseFrequencyLowerBound, m_init.fixPhaseFrequencyUpperBound,
       m_init.fixPhaseReferenceAlleleFrequency);
 
   // fix emit according to scaffold
@@ -1713,11 +1714,23 @@ void Insti::document() {
           "below which sites are used for clustering from scaffold.";
   cerr << "\n\t-a              Use minor allele frequency instead of variant "
           "allele frequency for clustering and applying -q and -Q.";
-  cerr << "\n\t-f              Fix phase according to scaffold (default off).";
+  cerr << "\n\t-f              Initialize phase according to scaffold (default "
+          "off).";
   cerr << "\n\t-O <integer>    Size in genomic coordinates of the regions "
           "past "
           "the regions specified by the GLs to include in the scaffold "
           "(default 0).";
+
+  cerr << "\n\n    FIXING PHASE FROM SCAFFOLD OPTIONS";
+  cerr << "\n\tSpecifying any of the options below turns on fixing of phase "
+          "from scaffold.";
+  cerr << "\n\tThe scaffold is specified with the -h, -s and -l options. ";
+  cerr << "\n\t-w <float>      Set lower bound of allele frequency of sites to "
+          "fix ([0-1], default 0).";
+  cerr << "\n\t-W <float>      Set upper bound of allele frequency of sites to "
+          "fix ([0-1], default 1).";
+  cerr << "\n\t-A              Use minor allele frequency instead of variant "
+          "allele frequency for applying -w and -W";
   cerr << "\n\n";
   exit(1);
 }

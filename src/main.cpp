@@ -45,7 +45,7 @@ int main(int ac, char **av) {
     int opt;
     bool optMSet = false;
     while ((opt = getopt(ac, av, "V:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:Q:S:"
-                                 "fo:DTr:P:ag:F:R:O:u:")) >= 0) {
+                                 "fo:DTr:P:ag:F:R:O:u:w:W:A")) >= 0) {
       switch (opt) {
 
       /*      case 'd':
@@ -173,6 +173,18 @@ int main(int ac, char **av) {
         break;
       case 'S':
         init.inputSamplesKeep = optarg;
+        break;
+      case 'w':
+        init.fixPhaseFromScaffold = true;
+        init.fixPhaseFrequencyLowerBound = stod(optarg);
+        break;
+      case 'W':
+        init.fixPhaseFromScaffold = true;
+        init.fixPhaseFrequencyUpperBound = stod(optarg);
+        break;
+      case 'A':
+        init.fixPhaseFromScaffold = true;
+        init.fixPhaseReferenceAlleleFrequency = false;
         break;
       case 'u':
         init.reclusterStage = optarg;

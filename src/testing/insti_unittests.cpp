@@ -12,6 +12,8 @@ string sampleLegend =
     sampleDir + "/20_011976121_012173018.bin.onlyThree.legend";
 string sampleHap = sampleDir + "/20_011976121_012173018.bin.onlyThree.hap";
 string sampleBin = sampleDir + "/20_011976121_012173018.bin.onlyThree.bin";
+string sampleBinSubsetSites =
+    sampleDir + "/20_12026201_12125640.bin.onlyThree.bin";
 string sampleVCF = sampleDir + "/20_011976121_012173018.bin.onlyThree.vcf.gz";
 string sampleVCFExtraSites =
     sampleDir + "/20_011976121_012173018.bin.onlyThree.extraSites.vcf.gz";
@@ -620,5 +622,193 @@ TEST(Insti, LoadVCFGZ) {
     EXPECT_EQ(1, lp2.TestScaffoldSite(1, i));
     EXPECT_EQ(1, lp2.TestScaffoldSite(2, i));
     EXPECT_EQ(0, lp2.TestScaffoldSite(3, i));
+  }
+}
+
+TEST(Insti, loadHapsSamp_overhang) {
+
+  {
+    InstiHelper::Init init;
+    init.geneticMap = geneticMap;
+    init.inputGLFile = sampleBinSubsetSites;
+    Insti lp(init);
+
+    lp.initialize();
+
+    lp.LoadHapsSamp(refHaps, refSample, InstiPanelType::REFERENCE,
+                    Bio::Region());
+
+    for (unsigned i = 0; i != 345; i++) {
+      EXPECT_EQ(0, lp.TestRefHap(0, i));
+      EXPECT_EQ(0, lp.TestRefHap(2, i));
+      EXPECT_EQ(1, lp.TestRefHap(3, i));
+    }
+
+    for (unsigned i = 345; i != 512; i++) {
+      EXPECT_EQ(1, lp.TestRefHap(0, i));
+      EXPECT_EQ(0, lp.TestRefHap(1, i));
+      EXPECT_EQ(0, lp.TestRefHap(2, i));
+      EXPECT_EQ(1, lp.TestRefHap(3, i));
+    }
+
+    // test the scaffold loading
+    lp.LoadHapsSamp(scaffoldHaps, scaffHapsSampSample, InstiPanelType::SCAFFOLD,
+                    refRegion);
+    ASSERT_EQ("samp1", lp.GetScaffoldID(0));
+    ASSERT_EQ("samp2", lp.GetScaffoldID(1));
+    ASSERT_EQ("samp3", lp.GetScaffoldID(2));
+
+    ASSERT_EQ(6, lp.GetScaffoldNumHaps());
+    ASSERT_EQ(1, lp.GetScaffoldNumWordsPerHap());
+    ASSERT_EQ(50, lp.GetScaffoldNumSites());
+
+    for (unsigned i = 0; i != 26; i++) {
+      EXPECT_EQ(0, lp.TestScaffoldSite(0, i));
+      EXPECT_EQ(1, lp.TestScaffoldSite(1, i));
+      EXPECT_EQ(0, lp.TestScaffoldSite(2, i));
+      EXPECT_EQ(1, lp.TestScaffoldSite(3, i));
+      EXPECT_EQ(0, lp.TestScaffoldSite(4, i));
+      EXPECT_EQ(0, lp.TestScaffoldSite(5, i));
+    }
+
+    for (unsigned i = 26; i != 50; i++) {
+      EXPECT_EQ(1, lp.TestScaffoldSite(0, i));
+      EXPECT_EQ(0, lp.TestScaffoldSite(1, i));
+      EXPECT_EQ(0, lp.TestScaffoldSite(2, i));
+      EXPECT_EQ(1, lp.TestScaffoldSite(3, i));
+      EXPECT_EQ(1, lp.TestScaffoldSite(4, i));
+      EXPECT_EQ(0, lp.TestScaffoldSite(5, i));
+    }
+  }
+  {
+    InstiHelper::Init init;
+    init.geneticMap = geneticMap;
+    init.inputGLFile = sampleBinSubsetSites;
+    Insti lp(init);
+
+    lp.initialize();
+
+    // test restricted scaffold region
+    lp.LoadHapsSamp(scaffoldHaps, scaffHapsSampSample, InstiPanelType::SCAFFOLD,
+                    Bio::Region("20", 12077400, 12102094));
+    ASSERT_EQ("samp1", lp.GetScaffoldID(0));
+    ASSERT_EQ("samp2", lp.GetScaffoldID(1));
+    ASSERT_EQ("samp3", lp.GetScaffoldID(2));
+
+    ASSERT_EQ(6, lp.GetScaffoldNumHaps());
+    ASSERT_EQ(1, lp.GetScaffoldNumWordsPerHap());
+    ASSERT_EQ(3, lp.GetScaffoldNumSites());
+
+    for (unsigned i = 0; i != 2; i++) {
+      EXPECT_EQ(0, lp.TestScaffoldSite(0, i));
+      EXPECT_EQ(1, lp.TestScaffoldSite(1, i));
+      EXPECT_EQ(0, lp.TestScaffoldSite(2, i));
+      EXPECT_EQ(1, lp.TestScaffoldSite(3, i));
+      EXPECT_EQ(0, lp.TestScaffoldSite(4, i));
+      EXPECT_EQ(0, lp.TestScaffoldSite(5, i));
+    }
+
+    {
+      size_t i = 2;
+      EXPECT_EQ(1, lp.TestScaffoldSite(0, i));
+      EXPECT_EQ(0, lp.TestScaffoldSite(1, i));
+      EXPECT_EQ(0, lp.TestScaffoldSite(2, i));
+      EXPECT_EQ(1, lp.TestScaffoldSite(3, i));
+      EXPECT_EQ(1, lp.TestScaffoldSite(4, i));
+      EXPECT_EQ(0, lp.TestScaffoldSite(5, i));
+    };
+  }
+  {
+    // now test overhang
+    InstiHelper::Init init;
+    init.geneticMap = geneticMap;
+    init.inputGLFile = sampleBinSubsetSites;
+    init.scaffoldFiles["h"] = scaffoldHaps;
+    init.scaffoldFiles["s"] = scaffHapsSampSample;
+    init.scaffoldExtraRegionSize = 10000;
+    Insti lp2(init);
+
+    lp2.initialize();
+
+    lp2.LoadHapsSamp(refHaps, refSample, InstiPanelType::REFERENCE,
+                     Bio::Region());
+
+    for (unsigned i = 0; i != 345; i++) {
+      EXPECT_EQ(0, lp2.TestRefHap(0, i));
+      EXPECT_EQ(0, lp2.TestRefHap(2, i));
+      EXPECT_EQ(1, lp2.TestRefHap(3, i));
+    }
+
+    for (unsigned i = 345; i != 512; i++) {
+      EXPECT_EQ(1, lp2.TestRefHap(0, i));
+      EXPECT_EQ(0, lp2.TestRefHap(1, i));
+      EXPECT_EQ(0, lp2.TestRefHap(2, i));
+      EXPECT_EQ(1, lp2.TestRefHap(3, i));
+    }
+
+    // test the scaffold loading
+    ASSERT_EQ("samp1", lp2.GetScaffoldID(0));
+    ASSERT_EQ("samp2", lp2.GetScaffoldID(1));
+    ASSERT_EQ("samp3", lp2.GetScaffoldID(2));
+
+    ASSERT_EQ(6, lp2.GetScaffoldNumHaps());
+    ASSERT_EQ(1, lp2.GetScaffoldNumWordsPerHap());
+    ASSERT_EQ(50 - 9 - 11, lp2.GetScaffoldNumSites());
+
+    for (unsigned i = 0; i != 26 - 9; i++) {
+      EXPECT_EQ(0, lp2.TestScaffoldSite(0, i));
+      EXPECT_EQ(1, lp2.TestScaffoldSite(1, i));
+      EXPECT_EQ(0, lp2.TestScaffoldSite(2, i));
+      EXPECT_EQ(1, lp2.TestScaffoldSite(3, i));
+      EXPECT_EQ(0, lp2.TestScaffoldSite(4, i));
+      EXPECT_EQ(0, lp2.TestScaffoldSite(5, i));
+    }
+
+    for (unsigned i = 26 - 9; i != 50 - 9 - 11; i++) {
+      EXPECT_EQ(1, lp2.TestScaffoldSite(0, i));
+      EXPECT_EQ(0, lp2.TestScaffoldSite(1, i));
+      EXPECT_EQ(0, lp2.TestScaffoldSite(2, i));
+      EXPECT_EQ(1, lp2.TestScaffoldSite(3, i));
+      EXPECT_EQ(1, lp2.TestScaffoldSite(4, i));
+      EXPECT_EQ(0, lp2.TestScaffoldSite(5, i));
+    }
+  }
+}
+
+TEST(Insti, fixEmit) {
+
+  {
+    InstiHelper::Init init;
+    init.geneticMap = geneticMap;
+    init.inputGLFile = sampleBinSubsetSites;
+    init.fixPhaseFromScaffold = true;
+    init.scaffoldFiles["h"] = scaffoldHaps;
+    init.scaffoldFiles["s"] = scaffHapsSampSample;
+
+    Insti lp(init);
+
+    lp.initialize();
+
+    std::vector<float> emit = lp.GetEmit();
+    auto emitDim = lp.GetEmitDim();
+    vector<vector<float> > pc = lp.Getpc();
+    ASSERT_EQ(3, emitDim.first);
+    ASSERT_EQ(4 * 512, emitDim.second);
+
+    // test emit
+    // test first scaffold site, site 7 in gls
+    vector<char> sampPhase = { 1, 1, 0 };
+    size_t siteNum = 12;
+    for (size_t sampNum = 0; sampNum != 3; ++sampNum)
+      for (size_t i = 0; i != 4; ++i)
+        EXPECT_FLOAT_EQ(pc.at(i).at(sampPhase.at(sampNum)),
+                        emit.at(sampNum * emitDim.second + 4 * siteNum + i));
+
+    // next site
+    siteNum = 60;
+    for (size_t sampNum = 0; sampNum != 3; ++sampNum)
+      for (size_t i = 0; i != 4; ++i)
+        EXPECT_FLOAT_EQ(pc.at(i).at(sampPhase.at(sampNum)),
+                        emit.at(sampNum * emitDim.second + 4 * siteNum + i));
   }
 }
