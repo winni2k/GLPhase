@@ -786,7 +786,7 @@ void HapPanel::OrderSamples(vector<string> &loadIDs,
     tempIDs[orderedLoadNameIdxs[nameOrderIdx]] = loadIDs[nameOrderIdx];
 
   std::swap(tempIDs, loadIDs);
-  for (size_t i; i < loadIDs.size(); ++i)
+  for (size_t i = 0; i < loadIDs.size(); ++i)
     assert(loadIDs[i] == m_init.keepSampleIDs.at(i));
 
   // sort haplotypes according to orderedLoadNameIdxs
