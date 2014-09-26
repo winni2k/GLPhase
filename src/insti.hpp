@@ -48,14 +48,26 @@
 namespace InstiHelper {
 struct Init {
   unsigned estimator = 0;
-  std::string scaffoldHapsFile;
-  std::string scaffoldSampleFile; // location of scaffold sample file
-  double scaffoldFreqLB =
-      0.05; // cutoff variant AF for what to cluster on in scaffold
-  double scaffoldFreqUB =
-      0.95; // cutoff variant AF for what to cluster in scaffold
+
+  // Please in order of hap, sample legend;
+  // hap, sample
+  // VCF/BCF
+  std::unordered_map<std::string, std::string> scaffoldFiles = { { "h", "" },
+                                                                 { "s", "" },
+                                                                 { "l", "" } };
+
+  // cutoff variant AF for what to cluster on in scaffold
+  double scaffoldFreqLB = 0.05;
+  // cutoff variant AF for what to cluster in scaffold
+  double scaffoldFreqUB = 0.95;
   bool scaffoldUsingMAF = false;
   bool initPhaseFromScaffold = false;
+
+  bool fixPhaseFromScaffold = false;
+  double fixPhaseFrequencyUpperBound = 1;
+  double fixPhaseFrequencyLowerBound = 1;
+  bool fixPhaseReferenceAlleleFrequency = true;
+
   size_t reclusterEveryNGen = 0; // 0 means don't recluster
   std::string reclusterStage{ 's' };
   size_t numThreads = 1;
@@ -109,9 +121,6 @@ private:
   HapPanel m_scaffold;
 
   // see InstiHelper::init for default values
-  const std::string m_scaffoldHapsFile;   // location of scaffold haps file
-  const std::string m_scaffoldSampleFile; // location of scaffold sample file
-  const bool m_initPhaseFromScaffold;
   GeneticMap m_geneticMap;
   const InstiHelper::Init m_init;
 
@@ -147,12 +156,15 @@ private:
   bool SwapMatch(const Bio::snp &loadSite, const Site &existSite,
                  std::vector<char> &loadHap, std::vector<char> &existHap);
 
-  // expects scaffold to have been initialized
-  void SetHapsAccordingToScaffold();
-
   void LoadGLs(const std::unordered_set<std::string> &keepSamples);
   void LoadGLBin();
   void LoadGLBCF(const std::unordered_set<std::string> &keepSamples);
+
+  void LoadScaffold();
+
+  // expects scaffold to have been initialized
+  void SetHapsAccordingToScaffold();
+  void FixEmitAccordingToScaffold();
 
 public:
   // uuid

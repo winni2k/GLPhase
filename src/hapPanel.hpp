@@ -81,12 +81,13 @@ private:
   Bio::Region m_keepRegion;
 
   HapPanelHelper::Init m_init;
-
-  // internal storage
   unsigned m_wordSize = WORDSIZE;
+
+  // internal storage / invariants
   std::vector<std::vector<char> > m_haps;
   std::vector<Bio::snp> m_sites;
   std::vector<std::string> m_sampleIDs;
+  std::unordered_map<Bio::snp, size_t, Bio::snpKeyHasher> m_sitesUnorderedMap;
 
   void OrderSamples(std::vector<std::string> &loadIDs,
                     std::vector<std::vector<char> > &loadHaps);
@@ -106,6 +107,9 @@ public:
     return static_cast<unsigned>(
         ceil(static_cast<double>(m_haps.size()) / m_wordSize));
   }
+
+  void FilterSitesOnAlleleFrequency(double upperBound, double lowerBound,
+                                    bool useReferenceAlleleFrequency);
 
   std::vector<uint64_t> Haplotypes_uint64_t() const {
     return HapPanelHelper::Char2BitVec(m_haps, NumWordsPerHap(), m_wordSize);
@@ -136,6 +140,18 @@ public:
   */
   bool snp_is_equal(const Bio::snp &lhs, size_t siteIdx) {
     return lhs == m_sites.at(siteIdx);
+  }
+
+  int FindSiteIndex(const Bio::snp &test) {
+    auto got = m_sitesUnorderedMap.find(test);
+    if (got == m_sitesUnorderedMap.end())
+      return -1;
+    else
+      return got->second;
+  }
+
+  char GetAllele(size_t siteIdx, size_t haplotypeIdx) {
+    return m_haps.at(siteIdx).at(haplotypeIdx);
   }
 };
 

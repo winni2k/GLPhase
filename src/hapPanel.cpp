@@ -630,9 +630,15 @@ HapPanel::HapPanel(const vector<string> &inFiles, HapPanelHelper::Init init)
   if (!m_init.keepAllSitesInRegion && !m_keepSites.empty())
     FilterSites(loadHaps, loadSites);
 
-  m_haps = std::move(loadHaps);
-  m_sites = std::move(loadSites);
-  m_sampleIDs = std::move(loadIDs);
+  std::unordered_map<Bio::snp, size_t, Bio::snpKeyHasher> sitesUnorderedMap;
+  sitesUnorderedMap.reserve(loadSites.size());
+  for (size_t i = 0; i < loadSites.size(); ++i)
+    sitesUnorderedMap.insert(make_pair(loadSites[i], i));
+
+  std::swap(m_haps, loadHaps);
+  std::swap(m_sites, loadSites);
+  std::swap(m_sampleIDs, loadIDs);
+  std::swap(m_sitesUnorderedMap, sitesUnorderedMap);
 
   CheckPanel();
 };
@@ -818,4 +824,45 @@ void HapPanel::CheckPanel() {
   assert(!m_haps.empty());
   if (!m_init.keepSampleIDs.empty())
     MatchSamples(m_init.keepSampleIDs, m_sampleIDs, m_haps[0].size());
+}
+
+void HapPanel::FilterSitesOnAlleleFrequency(double lowerBound,
+                                            double upperBound,
+                                            bool useReferenceAlleleFrequency) {
+
+  assert(lowerBound >= 0);
+  assert(upperBound <= 1);
+  assert(lowerBound >= upperBound);
+
+  // calculate allele frequencies
+  vector<double> alleleFrequencies;
+  alleleFrequencies.reserve(m_sites.size());
+  for (auto siteAlleles : m_haps)
+    alleleFrequencies.push_back(
+        std::count(siteAlleles.begin(), siteAlleles.end(), 1) /
+        static_cast<double>(m_haps.size()));
+
+  // convert allele frequencies to the correct scale
+  if (!useReferenceAlleleFrequency)
+    for (auto &af : alleleFrequencies)
+      af = abs(af - 0.5) * -1 + 0.5;
+
+  vector<vector<char> > filteredHaps;
+  vector<snp> filteredSites;
+  for (size_t i = 0; i < alleleFrequencies.size(); ++i)
+    if (alleleFrequencies[i] >= lowerBound &&
+        alleleFrequencies[i] <= upperBound) {
+      filteredHaps.push_back(m_haps[i]);
+      filteredSites.push_back(m_sites[i]);
+    }
+
+  // put the filtered haplotypes back in to position
+  std::unordered_map<Bio::snp, size_t, Bio::snpKeyHasher> sitesUnorderedMap;
+  sitesUnorderedMap.reserve(filteredSites.size());
+  for (size_t i = 0; i < filteredSites.size(); ++i)
+    sitesUnorderedMap[filteredSites[i]] = i;
+
+  std::swap(m_haps, filteredHaps);
+  std::swap(m_sites, filteredSites);
+  std::swap(m_sitesUnorderedMap, sitesUnorderedMap);
 }

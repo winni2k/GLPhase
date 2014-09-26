@@ -511,9 +511,9 @@ TEST(Insti, loadHapLegSampErrors) {
 TEST(Insti, initializingHapsFromScaffold) {
   InstiHelper::Init init;
   init.geneticMap = geneticMap;
-  init.scaffoldHapsFile = scaffoldHaps;
+  init.scaffoldFiles["h"] = scaffoldHaps;
+  init.scaffoldFiles["s"] = scaffHapsSampSample;
   init.initPhaseFromScaffold = true;
-  init.scaffoldSampleFile = scaffHapsSampSample;
   init.inputGLFile = sampleBin;
   Insti lp(init);
 

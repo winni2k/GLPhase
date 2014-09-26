@@ -98,10 +98,7 @@ unordered_set<string> LoadSamplesUOSet(const string &sampleFile) {
 }
 
 Insti::Insti(InstiHelper::Init init)
-    : m_scaffoldHapsFile(init.scaffoldHapsFile),
-      m_scaffoldSampleFile(init.scaffoldSampleFile),
-      m_initPhaseFromScaffold(init.initPhaseFromScaffold),
-      m_geneticMap(init.geneticMap), m_init{ std::move(init) },
+    : m_geneticMap(init.geneticMap), m_init{ std::move(init) },
       m_tag(boost::uuids::random_generator()()) {
 
   omp_set_num_threads(init.numThreads);
@@ -701,34 +698,16 @@ void Insti::initialize() {
   }
 
   // load the scaffold
-  if (!m_scaffoldHapsFile.empty()) {
-    Bio::Region scaffoldRegion = m_runRegion;
-    if (m_init.scaffoldExtraRegionSize > 0) {
-      unsigned overhang = m_init.scaffoldExtraRegionSize;
-      unsigned start = m_glSites[0].pos;
-      start = start < overhang ? 0 : start - overhang;
-      unsigned end = m_glSites.back().pos + overhang;
-      scaffoldRegion = Bio::Region(m_glSites[0].chr, start, end);
-    }
+  if (!m_init.scaffoldFiles.at("h").empty()) {
+    LoadScaffold();
 
-    if (!m_scaffoldSampleFile.empty())
-      LoadHapsSamp(m_scaffoldHapsFile, m_scaffoldSampleFile,
-                   InstiPanelType::SCAFFOLD, scaffoldRegion);
+    // change phase and genotype of main haps to that from scaffold
+    if (m_init.initPhaseFromScaffold)
+      SetHapsAccordingToScaffold();
 
-    // then this might be a VCF instead!
-    else if (m_scaffoldHapsFile.size() >= 7 &&
-             m_scaffoldHapsFile.compare(m_scaffoldHapsFile.size() - 7, 7,
-                                        ".vcf.gz") == 0)
-      LoadVCFGZ(m_scaffoldHapsFile, InstiPanelType::SCAFFOLD, scaffoldRegion);
-    else {
-      throw std::runtime_error(
-          "[insti] Error while loading scaffold haps/sample "
-          "files: Need to define a sample file");
-    }
-  }
-  // change phase and genotype of main haps to that from scaffold
-  if (m_initPhaseFromScaffold) {
-    SetHapsAccordingToScaffold();
+    // fix haplotypes from scaffold
+    if (m_init.fixPhaseFromScaffold)
+      FixEmitAccordingToScaffold();
   }
 }
 
@@ -1547,32 +1526,128 @@ void Insti::SetHapsAccordingToScaffold() {
   }
 }
 
+void Insti::LoadScaffold() {
+
+  assert(!m_init.scaffoldFiles.at("h").empty());
+
+  // redefine region if necessary
+  Bio::Region scaffoldRegion = m_runRegion;
+  if (m_init.scaffoldExtraRegionSize > 0) {
+    unsigned overhang = m_init.scaffoldExtraRegionSize;
+    unsigned start = m_glSites[0].pos;
+    start = start < overhang ? 0 : start - overhang;
+    unsigned end = m_glSites.back().pos + overhang;
+    scaffoldRegion = Bio::Region(m_glSites[0].chr, start, end);
+  }
+
+  if (!m_init.scaffoldFiles.at("s").empty())
+    LoadHapsSamp(m_init.scaffoldFiles.at("h"), m_init.scaffoldFiles.at("s"),
+                 InstiPanelType::SCAFFOLD, scaffoldRegion);
+
+  // then this might be a VCF instead!
+  else if (m_init.scaffoldFiles.at("h").size() >= 7 &&
+           m_init.scaffoldFiles.at("h").compare(
+               m_init.scaffoldFiles.at("h").size() - 7, 7, ".vcf.gz") == 0)
+    LoadVCFGZ(m_init.scaffoldFiles.at("h"), InstiPanelType::SCAFFOLD,
+              scaffoldRegion);
+  else {
+    throw std::runtime_error("[insti] Error while loading scaffold haps/sample "
+                             "files: Need to define a sample file");
+  }
+}
+
+void Insti::FixEmitAccordingToScaffold() {
+
+  const unordered_map<string, string> &files = m_init.scaffoldFiles;
+
+  // figure out how to what type of scaffold we are loading
+  if (files.at("h").empty())
+    throw runtime_error("Fixing of phase according to scaffold was requested, "
+                        "but no haplotypes were supplied (-h)");
+
+  // prepare loading of haplotypes
+  HapPanelHelper::Init init;
+  init.keepSites = m_glSites;
+  init.keepSampleIDs = name;
+  vector<string> inFiles;
+
+  // assume vcfgz
+  if (files.at("s").empty()) {
+    clog << "[insti] Loading haplotypes in GZVCF for fixing of phase" << endl;
+    inFiles.push_back(files.at("h"));
+    init.hapFileType = HapPanelHelper::HapFileType::VCF;
+  }
+  // assume WTCCC
+  else if (files.at("l").empty()) {
+    clog << "[insti] Loading haplotypes in WTCCC format fixing of phase"
+         << endl;
+    inFiles.push_back(files.at("h"));
+    inFiles.push_back(files.at("s"));
+    if (inFiles[0].size() > 11 &&
+        inFiles[0].compare(inFiles[0].size() - 11, 11, ".tabhaps.gz") == 0)
+      init.hapFileType = HPH::HapFileType::WTCCC_TBX;
+    else
+      init.hapFileType = HPH::HapFileType::WTCCC;
+
+  }
+
+  // assume IMPUTE2
+  else {
+    clog << "[insti] Loading haplotypes in IMPUTE2 format fixing of phase"
+         << endl;
+    inFiles.push_back(files.at("h"));
+    inFiles.push_back(files.at("s"));
+    inFiles.push_back(files.at("l"));
+    init.hapFileType = HPH::HapFileType::IMPUTE2;
+  }
+
+  // load scaffold and filter sites
+  HapPanel haplotypes(move(inFiles), move(init));
+  haplotypes.FilterSitesOnAlleleFrequency(
+      m_init.fixPhaseFrequencyUpperBound, m_init.fixPhaseFrequencyLowerBound,
+      m_init.fixPhaseReferenceAlleleFrequency);
+
+  // fix emit according to scaffold
+  for (unsigned i = 0; i < in; i++) {
+    fast *e = &emit[i * en];
+
+    for (unsigned m = 0; m < mn; ++m, e += 4) {
+      int scaffoldSiteIdx = haplotypes.FindSiteIndex(m_glSites[m]);
+      if (scaffoldSiteIdx > -1) {
+        const size_t phase =
+            (haplotypes.GetAllele(static_cast<size_t>(scaffoldSiteIdx), i * 2)
+             << 1) |
+            (haplotypes.GetAllele(static_cast<size_t>(scaffoldSiteIdx),
+                                  i * 2 + 1));
+        assert(phase < 4);
+        for (unsigned j = 0; j < 4; j++)
+          e[j] = pc[j][phase];
+      }
+    }
+  }
+}
+
 void Insti::document() {
   cerr << "Author\tWarren W. Kretzschmar @ Marchini Group @ Universiy of "
           "Oxford - Statistics";
   cerr << "\n\nThis code is based on SNPTools impute:";
   cerr << "\nhaplotype imputation by cFDSL distribution";
   cerr << "\nAuthor\tYi Wang @ Fuli Yu' Group @ BCM-HGSC";
-  // cerr << "\n\t-d <density>    relative SNP density to Sanger sequencing
-  // (1)";
   cerr << "\n\nusage\tinsti [options] GLFile";
-
-  //    cerr << "\n\t-b <burn>       burn-in generations (56)";
   cerr << "\n\t-n <fold>       sample size*fold of nested MH sampler "
           "iteration "
           "(2)";
   cerr << "\n\t-o <name>\tPrefix to use for output files. \".phased\" will be "
           "added to to the prefix.";
   cerr << "\n\t-P <thread>     number of threads (0=MAX,default=1)";
-  //  cerr << "\n\t-v <vcf>        integrate known genotype in VCF format";
-  //  cerr << "\n\t-c <conf>       confidence of known genotype (0.9998)";
   cerr << "\n\t-x <gender>     impute x chromosome data";
   cerr << "\n\t-e <file>       write log to file";
   cerr << "\n\t-g <file>       genetic map (required)";
   cerr << "\n\t-F <string>     Input GL file type (bin). Valid values are "
           "\"bin\" or \"bcf\"";
   cerr << "\n\t-R <string>     Region to run imputation on.  Only works with "
-          "VCF/BCF input GL file. Region should be of the form 20:100-1000 for "
+          "VCF/BCF input GL file. Region should be of the form 20:100-1000 "
+          "for "
           "chromosome 20 starting at genomic position 100 and ending at "
           "genomic position 1000 (inclusive).";
   cerr << "\n\t-S <file>       list of samples to keep from GLs";
@@ -1611,7 +1686,8 @@ void Insti::document() {
           "number of haplotypes to keep)";
   cerr << "\n\t-T              Use shared tract length as distance metric for "
           "clustering";
-  cerr << "\n\t-r <integer>    Recluster every -r generations. Only works when "
+  cerr << "\n\t-r <integer>    Recluster every -r generations. Only works "
+          "when "
           "-t=2.  Will start at generation -M";
   cerr << "\n\t-u <char>       Only recluster in burnin ('b'), sampling ('s') "
           "or all ('a') generations.  Respects -M and -r options. Default is "
@@ -1625,18 +1701,21 @@ void Insti::document() {
   cerr << "\n\n    SCAFFOLD OPTIONS";
   cerr << "\n\t-h <file>       WTCCC style HAPS file";
   cerr << "\n\t-s <file>       WTCCC style SAMPLE file";
-  cerr << "\n\t-q <float>      Lower bound of variant allele frequency ([0-1], "
+  cerr << "\n\t-q <float>      Lower bound of variant allele frequency "
+          "([0-1], "
           "default 0.05"
        << ") "
           "above which sites are used for clustering from scaffold.";
-  cerr << "\n\t-Q <float>      Upper bound of variant allele frequency ([0-1], "
+  cerr << "\n\t-Q <float>      Upper bound of variant allele frequency "
+          "([0-1], "
           "default 0.95"
        << ") "
           "below which sites are used for clustering from scaffold.";
   cerr << "\n\t-a              Use minor allele frequency instead of variant "
           "allele frequency for clustering and applying -q and -Q.";
   cerr << "\n\t-f              Fix phase according to scaffold (default off).";
-  cerr << "\n\t-O <integer>    Size in genomic coordinates of the regions past "
+  cerr << "\n\t-O <integer>    Size in genomic coordinates of the regions "
+          "past "
           "the regions specified by the GLs to include in the scaffold "
           "(default 0).";
   cerr << "\n\n";

@@ -127,10 +127,13 @@ int main(int ac, char **av) {
         optMSet = true;
         break;
       case 'h':
-        init.scaffoldHapsFile = optarg;
+        init.scaffoldFiles["h"] = optarg;
         break;
       case 's':
-        init.scaffoldSampleFile = optarg;
+        init.scaffoldFiles["s"] = optarg;
+        break;
+      case 'l':
+        init.scaffoldFiles["l"] = optarg;
         break;
       case 'q':
         init.scaffoldFreqLB = std::stod(optarg);
