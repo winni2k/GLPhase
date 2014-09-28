@@ -12,6 +12,8 @@ string sampleLegend =
     sampleDir + "/20_011976121_012173018.bin.onlyThree.legend";
 string sampleHap = sampleDir + "/20_011976121_012173018.bin.onlyThree.hap";
 string sampleBin = sampleDir + "/20_011976121_012173018.bin.onlyThree.bin";
+string sampleBinSubsetOneTriallelic =
+    sampleDir + "/20_12026201_12125640.bin.onlyThree.oneTriAllelic.bin";
 string sampleBinSubsetSites =
     sampleDir + "/20_12026201_12125640.bin.onlyThree.bin";
 string sampleVCF = sampleDir + "/20_011976121_012173018.bin.onlyThree.vcf.gz";
@@ -47,6 +49,12 @@ string scaffoldHap =
     sampleDir + "/20_011976121_012173018.bin.onlyThree.scaffold50.hap";
 string scaffoldHaps =
     sampleDir + "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted.haps";
+string scaffoldOneTriallelicHaps = sampleDir + "/20_011976121_012173018.bin."
+                                               "onlyThree.scaffold50.sorted."
+                                               "oneTriallelic.haps";
+string scaffoldOneTriallelicOutOfOrderHaps =
+    sampleDir + "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted."
+                "oneTriallelicOutOfOrder.haps";
 string scaffoldTabHaps =
     sampleDir +
     "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted.tabhaps.gz";
@@ -777,38 +785,158 @@ TEST(Insti, loadHapsSamp_overhang) {
 
 TEST(Insti, fixEmit) {
 
-  {
-    InstiHelper::Init init;
-    init.geneticMap = geneticMap;
-    init.inputGLFile = sampleBinSubsetSites;
-    init.fixPhaseFromScaffold = true;
-    init.scaffoldFiles["h"] = scaffoldHaps;
-    init.scaffoldFiles["s"] = scaffHapsSampSample;
+  InstiHelper::Init init;
+  init.geneticMap = geneticMap;
+  init.inputGLFile = sampleBinSubsetSites;
+  init.fixPhaseFromScaffold = true;
+  init.scaffoldFiles["h"] = scaffoldHaps;
+  init.scaffoldFiles["s"] = scaffHapsSampSample;
 
-    Insti lp(init);
+  Insti lp(init);
 
-    lp.initialize();
+  lp.initialize();
 
-    std::vector<float> emit = lp.GetEmit();
-    auto emitDim = lp.GetEmitDim();
-    vector<vector<float> > pc = lp.Getpc();
-    ASSERT_EQ(3, emitDim.first);
-    ASSERT_EQ(4 * 512, emitDim.second);
+  std::vector<float> emit = lp.GetEmit();
+  auto emitDim = lp.GetEmitDim();
+  vector<vector<float> > pc = lp.Getpc();
+  ASSERT_EQ(3, emitDim.first);
+  ASSERT_EQ(4 * 512, emitDim.second);
 
-    // test emit
-    // test first scaffold site, site 7 in gls
-    vector<char> sampPhase = { 1, 1, 0 };
-    size_t siteNum = 12;
-    for (size_t sampNum = 0; sampNum != 3; ++sampNum)
-      for (size_t i = 0; i != 4; ++i)
-        EXPECT_FLOAT_EQ(pc.at(i).at(sampPhase.at(sampNum)),
-                        emit.at(sampNum * emitDim.second + 4 * siteNum + i));
+  // test emit
+  // test first scaffold site, site 7 in gls
+  vector<char> sampPhase = { 1, 1, 0 };
+  size_t siteNum = 12;
+  for (size_t sampNum = 0; sampNum != 3; ++sampNum)
+    for (size_t i = 0; i != 4; ++i)
+      EXPECT_FLOAT_EQ(pc.at(i).at(sampPhase.at(sampNum)),
+                      emit.at(sampNum * emitDim.second + 4 * siteNum + i));
 
-    // next site
-    siteNum = 60;
-    for (size_t sampNum = 0; sampNum != 3; ++sampNum)
-      for (size_t i = 0; i != 4; ++i)
-        EXPECT_FLOAT_EQ(pc.at(i).at(sampPhase.at(sampNum)),
-                        emit.at(sampNum * emitDim.second + 4 * siteNum + i));
-  }
+  // next site
+  siteNum = 60;
+  for (size_t sampNum = 0; sampNum != 3; ++sampNum)
+    for (size_t i = 0; i != 4; ++i)
+      EXPECT_FLOAT_EQ(pc.at(i).at(sampPhase.at(sampNum)),
+                      emit.at(sampNum * emitDim.second + 4 * siteNum + i));
+
+  // test future triallelic site
+  siteNum = 386;
+  sampPhase[0] = 2;
+  sampPhase[1] = 1;
+  sampPhase[2] = 2;
+  for (size_t sampNum = 0; sampNum != 3; ++sampNum)
+    for (size_t i = 0; i != 4; ++i)
+      EXPECT_FLOAT_EQ(pc.at(i).at(sampPhase.at(sampNum)),
+                      emit.at(sampNum * emitDim.second + 4 * siteNum + i));
+}
+
+TEST(Insti, fixEmitOneTriallelic) {
+
+  InstiHelper::Init init;
+  init.geneticMap = geneticMap;
+  init.inputGLFile = sampleBinSubsetOneTriallelic;
+  init.fixPhaseFromScaffold = true;
+  init.scaffoldFiles["h"] = scaffoldOneTriallelicHaps;
+  init.scaffoldFiles["s"] = scaffHapsSampSample;
+
+  Insti lp(init);
+
+  lp.initialize();
+
+  std::vector<float> emit = lp.GetEmit();
+  auto emitDim = lp.GetEmitDim();
+  vector<vector<float> > pc = lp.Getpc();
+  ASSERT_EQ(3, emitDim.first);
+  ASSERT_EQ(4 * 513, emitDim.second);
+
+  // test emit
+  // test first scaffold site, site 7 in gls
+  vector<char> sampPhase = { 1, 1, 0 };
+  size_t siteNum = 12;
+  for (size_t sampNum = 0; sampNum != 3; ++sampNum)
+    for (size_t i = 0; i != 4; ++i)
+      EXPECT_FLOAT_EQ(pc.at(i).at(sampPhase.at(sampNum)),
+                      emit.at(sampNum * emitDim.second + 4 * siteNum + i));
+
+  // next site
+  siteNum = 60;
+  for (size_t sampNum = 0; sampNum != 3; ++sampNum)
+    for (size_t i = 0; i != 4; ++i)
+      EXPECT_FLOAT_EQ(pc.at(i).at(sampPhase.at(sampNum)),
+                      emit.at(sampNum * emitDim.second + 4 * siteNum + i));
+
+  // test triallelic site
+  siteNum = 386;
+  sampPhase[0] = 2;
+  sampPhase[1] = 1;
+  sampPhase[2] = 2;
+  for (size_t sampNum = 0; sampNum != 3; ++sampNum)
+    for (size_t i = 0; i != 4; ++i)
+      EXPECT_FLOAT_EQ(pc.at(i).at(sampPhase.at(sampNum)),
+                      emit.at(sampNum * emitDim.second + 4 * siteNum + i));
+
+  // test triallelic site
+  siteNum = 387;
+  sampPhase[0] = 0;
+  sampPhase[1] = 2;
+  sampPhase[2] = 2;
+  for (size_t sampNum = 0; sampNum != 3; ++sampNum)
+    for (size_t i = 0; i != 4; ++i)
+      EXPECT_FLOAT_EQ(pc.at(i).at(sampPhase.at(sampNum)),
+                      emit.at(sampNum * emitDim.second + 4 * siteNum + i));
+}
+
+TEST(Insti, fixEmitOneTriallelicOutOfOrderExit) {
+
+  InstiHelper::Init init;
+  init.geneticMap = geneticMap;
+  init.inputGLFile = sampleBinSubsetOneTriallelic;
+  init.fixPhaseFromScaffold = true;
+  init.scaffoldFiles["h"] = scaffoldOneTriallelicOutOfOrderHaps;
+  init.scaffoldFiles["s"] = scaffHapsSampSample;
+
+  Insti lp(init);
+
+  lp.initialize();
+
+  std::vector<float> emit = lp.GetEmit();
+  auto emitDim = lp.GetEmitDim();
+  vector<vector<float> > pc = lp.Getpc();
+  ASSERT_EQ(3, emitDim.first);
+  ASSERT_EQ(4 * 513, emitDim.second);
+
+  // test emit
+  // test first scaffold site, site 7 in gls
+  vector<char> sampPhase = { 1, 1, 0 };
+  size_t siteNum = 12;
+  for (size_t sampNum = 0; sampNum != 3; ++sampNum)
+    for (size_t i = 0; i != 4; ++i)
+      EXPECT_FLOAT_EQ(pc.at(i).at(sampPhase.at(sampNum)),
+                      emit.at(sampNum * emitDim.second + 4 * siteNum + i));
+
+  // next site
+  siteNum = 60;
+  for (size_t sampNum = 0; sampNum != 3; ++sampNum)
+    for (size_t i = 0; i != 4; ++i)
+      EXPECT_FLOAT_EQ(pc.at(i).at(sampPhase.at(sampNum)),
+                      emit.at(sampNum * emitDim.second + 4 * siteNum + i));
+
+  // test triallelic site
+  siteNum = 386;
+  sampPhase[0] = 2;
+  sampPhase[1] = 1;
+  sampPhase[2] = 2;
+  for (size_t sampNum = 0; sampNum != 3; ++sampNum)
+    for (size_t i = 0; i != 4; ++i)
+      EXPECT_FLOAT_EQ(pc.at(i).at(sampPhase.at(sampNum)),
+                      emit.at(sampNum * emitDim.second + 4 * siteNum + i));
+
+  // test triallelic site
+  siteNum = 387;
+  sampPhase[0] = 0;
+  sampPhase[1] = 2;
+  sampPhase[2] = 2;
+  for (size_t sampNum = 0; sampNum != 3; ++sampNum)
+    for (size_t i = 0; i != 4; ++i)
+      EXPECT_FLOAT_EQ(pc.at(i).at(sampPhase.at(sampNum)),
+                      emit.at(sampNum * emitDim.second + 4 * siteNum + i));
 }

@@ -410,6 +410,7 @@ void Insti::LoadHaps(vector<string> inFiles, HapPanelHelper::Init init,
                     "WORDMOD global is not greater or equal to 0");
       init.keepAllSitesInRegion = true;
       init.keepSampleIDs = name;
+      init.allowReorderOfSitesAtPos = true;
       m_scaffold = HapPanel(inFiles, std::move(init));
 
       cout << "Scaffold haplotypes\t" << m_scaffold.NumHaps() << endl;
@@ -1570,6 +1571,7 @@ void Insti::FixEmitAccordingToScaffold() {
   HapPanelHelper::Init init;
   init.keepSites = m_glSites;
   init.keepSampleIDs = name;
+  init.allowReorderOfSitesAtPos = true;
   vector<string> inFiles;
 
   // assume vcfgz
