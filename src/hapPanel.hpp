@@ -60,6 +60,11 @@ struct Init {
   // keep all sites that were found within region
   bool keepAllSitesInRegion = false;
 
+  // allow input haplotypes to have random order at sites with equal position
+  // sites are reordered to order in keepSites (only matters if keepSites is
+  // specified).  Exception is thrown otherwise
+  bool allowReorderOfSitesAtPos = false;
+
   // filter on region
   Bio::Region keepRegion;
   // or filter on site list

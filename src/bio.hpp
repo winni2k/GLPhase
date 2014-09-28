@@ -41,6 +41,8 @@ public:
   unsigned pos;
   std::string chr, ref, alt;
 
+  snp() : pos{ 0 }, chr{ "" }, ref{ "" }, alt{ "" } {};
+
   snp(std::string chr, int pos, std::string ref, std::string alt) {
     this->chr = chr;
     this->pos = pos;

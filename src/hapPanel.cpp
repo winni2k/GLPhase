@@ -672,7 +672,7 @@ void HapPanel::SubsetSamples(vector<string> &loadIDs,
 
   std::swap(tempIDs, loadIDs);
 
-  size_t numHaplotypesLoaded = 0;
+  size_t numSitesLoaded = 0;
   for (unsigned siteIdx = 0; siteIdx < loadHaps.size(); siteIdx++) {
 
     // subset haps
@@ -687,14 +687,13 @@ void HapPanel::SubsetSamples(vector<string> &loadIDs,
     assert(tempSite.size() == idIdxsToKeep.size() * 2);
     std::swap(tempSite, loadHaps[siteIdx]);
     assert(loadHaps[siteIdx].size() == idIdxsToKeep.size() * 2);
-    ++numHaplotypesLoaded;
+    ++numSitesLoaded;
   }
 
   if (!loadHaps.empty())
     assert(loadIDs.size() * 2 == loadHaps[0].size());
 
-  cout << "[HapPanel] Number of loaded haplotypes: " << numHaplotypesLoaded
-       << endl;
+  cout << "[HapPanel] Number of loaded haplotypes: " << numSitesLoaded << endl;
   cout << "[HapPanel] Number of haplotypes left after filtering: "
        << loadHaps[0].size() << endl;
 }
@@ -707,36 +706,43 @@ void HapPanel::FilterSites(vector<vector<char> > &loadHaps,
   assert(loadSites.size() == loadHaps.size());
   assert(loadHaps[0].size() > 0);
 
-  vector<vector<char> > filtHaps;
-  vector<snp> filtSites;
-
   // initializing filtHaps
   //    for(auto & iter  : filtHaps)
   //      iter.resize(loadSites.size());
 
   // now keep all sites that are in the keepSites
   unsigned previousIdx = 0;
-  unsigned matchSites = 0;
+  vector<std::unordered_map<Bio::snp, size_t,
+                            Bio::snpKeyHasher>::const_iterator> keepSiteIdxs;
   for (unsigned loadSiteIdx = 0; loadSiteIdx < loadSites.size();
        ++loadSiteIdx) {
 
     auto got = m_keepSites.find(loadSites[loadSiteIdx]);
     if (got == m_keepSites.end())
       continue;
-
-    // match
-    if (matchSites > 0) {
+    if (!keepSiteIdxs.empty()) {
       if (got->second <= previousIdx)
-        throw std::runtime_error(
-            "Haplotypes file is not ordered in same order as site list");
+        if (got->first.pos != loadSites[loadSiteIdx].pos ||
+            !m_init.allowReorderOfSitesAtPos)
+          throw std::runtime_error(
+              "Haplotypes file is not ordered in same order as site list");
       previousIdx = got->second;
     }
+    keepSiteIdxs.push_back(got);
+  }
 
-    ++matchSites;
+  vector<vector<char> > filtHaps(keepSiteIdxs.size(), vector<char>());
+  vector<snp> filtSites(keepSiteIdxs.size(), Bio::snp());
+  for (size_t keepSiteIdxIdx = 0; keepSiteIdxIdx < keepSiteIdxs.size();
+       ++keepSiteIdxIdx) {
+
+    assert(loadSites[keepSiteIdxIdx] == keepSiteIdxs[keepSiteIdxIdx]->first);
 
     // keep the site because it matches
-    filtSites.push_back(got->first);
-    filtHaps.push_back(move(loadHaps[loadSiteIdx]));
+    filtSites[keepSiteIdxs[keepSiteIdxIdx]->second] =
+        std::move(loadSites[keepSiteIdxIdx]);
+    filtHaps[keepSiteIdxs[keepSiteIdxIdx]->second] =
+        std::move(loadHaps[keepSiteIdxIdx]);
   }
 
   cout << "[HapPanel] Number of candidate sites: " << loadSites.size() << endl;
@@ -746,13 +752,13 @@ void HapPanel::FilterSites(vector<vector<char> > &loadHaps,
 
   cout << "[HapPanel] Number of sites kept: " << loadSites.size() << endl;
 
-  if (matchSites == 0)
+  if (keepSiteIdxs.empty())
     throw std::runtime_error(
         "Error: No sites in loaded panel matched already loaded sites. Is your "
         "input file sorted?");
 
   // we always want to find at most as many matches as are in GL sites
-  if (matchSites > m_keepSites.size())
+  if (keepSiteIdxs.size() > m_keepSites.size())
     throw std::runtime_error("[HapPanel] too many matching sites found. There "
                              "are duplicate sites in input.");
 }
