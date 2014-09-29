@@ -30,6 +30,9 @@ std::vector<uint64_t> Char2BitVec(const std::vector<std::vector<char> > &inHaps,
 void set1(uint64_t *P, unsigned I);
 void set0(uint64_t *P, unsigned I);
 
+void MatchSamples(const std::vector<std::string> &canonicalIDs,
+                  const std::vector<std::string> &IDs, unsigned numHaps);
+
 // HAPS/SAMPLE format
 std::vector<std::string> OpenSample(const std::string &sampleFile);
 void OpenHaps(const std::string &hapsFile, const Bio::Region &region,
@@ -67,11 +70,20 @@ struct Init {
 
   // filter on region
   Bio::Region keepRegion;
+
   // or filter on site list
   std::vector<Bio::snp> keepSites;
 
+  // always include sites file
+  std::string alwaysKeepVariantsFile = "";
+
   // keep only specific samples
   std::vector<std::string> keepSampleIDs;
+};
+
+struct siteMeta {
+  size_t index = 0;
+  bool alwaysKeep = false;
 };
 }
 
@@ -82,8 +94,10 @@ private:
   std::vector<std::string> m_keepSampIDsList;
 
   std::unordered_map<std::string, size_t> m_keepSampIDsUnorderedMap;
-  std::unordered_map<Bio::snp, size_t, Bio::snpKeyHasher> m_keepSites;
+  std::unordered_map<Bio::snp, HapPanelHelper::siteMeta, Bio::snpKeyHasher>
+  m_keepSites;
   Bio::Region m_keepRegion;
+  std::unordered_set<Bio::snp, Bio::snpKeyHasher> m_alwaysKeepSites;
 
   HapPanelHelper::Init m_init;
   unsigned m_wordSize = WORDSIZE;
@@ -94,6 +108,7 @@ private:
   std::vector<std::string> m_sampleIDs;
   std::unordered_map<Bio::snp, size_t, Bio::snpKeyHasher> m_sitesUnorderedMap;
 
+  void LoadKeepSites(const std::vector<Bio::snp> &keepSites);
   void OrderSamples(std::vector<std::string> &loadIDs,
                     std::vector<std::vector<char> > &loadHaps);
   void SubsetSamples(std::vector<std::string> &loadIDs,
@@ -101,7 +116,7 @@ private:
   void FilterSites(std::vector<std::vector<char> > &loadHaps,
                    std::vector<Bio::snp> &loadSites);
 
-  void CheckPanel();
+  void CheckPanel() const;
 
 public:
   explicit HapPanel() {};
@@ -113,8 +128,9 @@ public:
         ceil(static_cast<double>(m_haps.size()) / m_wordSize));
   }
 
+  void LoadAlwaysKeepVariantsFile(std::string alwaysKeepVariantsFile);
   void FilterSitesOnAlleleFrequency(double lowerBound, double upperBound,
-                                    bool useReferenceAlleleFrequency);
+                                    bool useAlternateAlleleFrequency);
 
   std::vector<uint64_t> Haplotypes_uint64_t() const {
     return HapPanelHelper::Char2BitVec(m_haps, NumWordsPerHap(), m_wordSize);

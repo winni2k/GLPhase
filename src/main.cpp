@@ -45,7 +45,7 @@ int main(int ac, char **av) {
     int opt;
     bool optMSet = false;
     while ((opt = getopt(ac, av, "V:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:Q:S:"
-                                 "fo:DTr:P:ag:F:R:O:u:w:W:A")) >= 0) {
+                                 "fo:DTr:P:ag:F:R:O:u:w:W:AI:")) >= 0) {
       switch (opt) {
 
       /*      case 'd':
@@ -174,6 +174,13 @@ int main(int ac, char **av) {
       case 'S':
         init.inputSamplesKeep = optarg;
         break;
+      case 'u':
+        init.reclusterStage = optarg;
+        if (init.reclusterStage.size() != 1) {
+          cerr << "-u needs to be a single char" << endl;
+          exit(1);
+        }
+        break;
       case 'w':
         init.fixPhaseFromScaffold = true;
         init.fixPhaseFrequencyLowerBound = stod(optarg);
@@ -186,12 +193,9 @@ int main(int ac, char **av) {
         init.fixPhaseFromScaffold = true;
         init.fixPhaseReferenceAlleleFrequency = false;
         break;
-      case 'u':
-        init.reclusterStage = optarg;
-        if (init.reclusterStage.size() != 1) {
-          cerr << "-u needs to be a single char" << endl;
-          exit(1);
-        }
+      case 'I':
+        init.fixPhaseFromScaffold = true;
+        init.fixPhaseAlwaysKeepVariantsFile = optarg;
         break;
       default:
         Insti::document();

@@ -67,6 +67,7 @@ struct Init {
   double fixPhaseFrequencyUpperBound = 1;
   double fixPhaseFrequencyLowerBound = 0;
   bool fixPhaseReferenceAlleleFrequency = true;
+  std::string fixPhaseAlwaysKeepVariantsFile = "";
 
   size_t reclusterEveryNGen = 0; // 0 means don't recluster
   std::string reclusterStage{ 's' };

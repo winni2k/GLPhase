@@ -568,26 +568,16 @@ HapPanel::HapPanel(const vector<string> &inFiles, HapPanelHelper::Init init)
     throw runtime_error(
         "Please only specify site list or region for filtering");
 
+  if (!m_init.alwaysKeepVariantsFile.empty())
+    LoadAlwaysKeepVariantsFile(m_init.alwaysKeepVariantsFile);
+
   // handle region/sites to keep
-  if (!m_init.keepSites.empty()) {
-
-    // make sure keep sites are sorted on position
-    if (!is_sorted(m_init.keepSites.begin(), m_init.keepSites.end(),
-                   Bio::snpPosComp()))
-      throw runtime_error("[HapPanel] input sites are not sorted by position");
-
-    // set region to extract
-    m_keepRegion =
-        Region(string(m_init.keepSites.front().chr),
-               m_init.keepSites.front().pos, m_init.keepSites.back().pos);
-
-    // create unordered map from keepsites
-    m_keepSites.reserve(m_init.keepSites.size());
-    for (size_t siteIdx = 0; siteIdx < m_init.keepSites.size(); ++siteIdx)
-      m_keepSites.insert(std::make_pair(m_init.keepSites[siteIdx], siteIdx));
-  } else {
+  if (!m_init.keepSites.empty())
+    LoadKeepSites(m_init.keepSites);
+  else {
     assert(!m_init.matchAllSites);
     assert(m_init.keepAllSitesInRegion);
+    assert(m_init.alwaysKeepVariantsFile.empty());
     m_keepRegion = m_init.keepRegion;
   }
 
@@ -712,9 +702,9 @@ void HapPanel::FilterSites(vector<vector<char> > &loadHaps,
 
   // now keep all sites that are in the keepSites
   unsigned previousIdx = 0;
-  typedef pair<
-      std::unordered_map<Bio::snp, size_t, Bio::snpKeyHasher>::const_iterator,
-      size_t> snpIterator_index_pair;
+  typedef pair<std::unordered_map<Bio::snp, HapPanelHelper::siteMeta,
+                                  Bio::snpKeyHasher>::const_iterator,
+               size_t> snpIterator_index_pair;
   vector<snpIterator_index_pair> keepSitesIterators;
   for (unsigned loadSiteIdx = 0; loadSiteIdx < loadSites.size();
        ++loadSiteIdx) {
@@ -723,7 +713,7 @@ void HapPanel::FilterSites(vector<vector<char> > &loadHaps,
     if (got == m_keepSites.end())
       continue;
     if (!keepSitesIterators.empty()) {
-      if (got->second <= previousIdx)
+      if (got->second.index <= previousIdx)
         if (got->first.pos != loadSites[loadSiteIdx].pos ||
             !m_init.allowReorderOfSitesAtPos) {
           Bio::snp &site = loadSites[loadSiteIdx];
@@ -732,7 +722,7 @@ void HapPanel::FilterSites(vector<vector<char> > &loadHaps,
                                    site.chr + ":" + to_string(site.pos) + " " +
                                    site.ref + " " + site.alt);
         }
-      previousIdx = got->second;
+      previousIdx = got->second.index;
     }
     keepSitesIterators.push_back(make_pair(got, loadSiteIdx));
   }
@@ -741,7 +731,7 @@ void HapPanel::FilterSites(vector<vector<char> > &loadHaps,
   // m_keepSites
   sort(keepSitesIterators.begin(), keepSitesIterators.end(),
        [](const snpIterator_index_pair &a, const snpIterator_index_pair &b) {
-    return a.first->second < b.first->second;
+    return a.first->second.index < b.first->second.index;
   });
 
   // move sites to keep from load sites into filtered sites
@@ -833,7 +823,7 @@ void HapPanel::OrderSamples(vector<string> &loadIDs,
     assert(loadIDs.size() * 2 == loadHaps[0].size());
 }
 
-void HapPanel::CheckPanel() {
+void HapPanel::CheckPanel() const {
 
   if (m_init.matchAllSites)
     if (m_sites.size() != m_keepSites.size())
@@ -849,8 +839,12 @@ void HapPanel::CheckPanel() {
 
 void HapPanel::FilterSitesOnAlleleFrequency(double lowerBound,
                                             double upperBound,
-                                            bool useReferenceAlleleFrequency) {
+                                            bool useAlternateAlleleFrequency) {
 
+  clog << "[HapPanel] Filtering on allele frequency [" + to_string(lowerBound) +
+              "," + to_string(upperBound) + "]" << endl
+       << "\tuse alternate allele frequency = " << useAlternateAlleleFrequency
+       << endl;
   assert(lowerBound >= 0);
   assert(upperBound <= 1);
   assert(lowerBound <= upperBound);
@@ -861,21 +855,40 @@ void HapPanel::FilterSitesOnAlleleFrequency(double lowerBound,
   for (auto siteAlleles : m_haps)
     alleleFrequencies.push_back(
         std::count(siteAlleles.begin(), siteAlleles.end(), 1) /
-        static_cast<double>(m_haps.size()));
+        static_cast<double>(siteAlleles.size()));
 
   // convert allele frequencies to the correct scale
-  if (!useReferenceAlleleFrequency)
+  if (!useAlternateAlleleFrequency)
     for (auto &af : alleleFrequencies)
       af = abs(af - 0.5) * -1 + 0.5;
 
+  // move sites that have correct allele frequency or are marked as
+  // "alwaysKeep==true" to new filtered list of sites and haplotypes
   vector<vector<char> > filteredHaps;
   vector<snp> filteredSites;
-  for (size_t i = 0; i < alleleFrequencies.size(); ++i)
-    if (alleleFrequencies[i] >= lowerBound &&
-        alleleFrequencies[i] <= upperBound) {
-      filteredHaps.push_back(m_haps[i]);
-      filteredSites.push_back(m_sites[i]);
+  {
+    auto got = m_alwaysKeepSites.end();
+    for (size_t i = 0; i < alleleFrequencies.size(); ++i) {
+
+      // logic for figuring out if site is in the always keep list
+      bool alwaysKeep = false;
+      if (!m_alwaysKeepSites.empty()) {
+        got = m_alwaysKeepSites.find(m_sites[i]);
+        if (got != m_alwaysKeepSites.end())
+          alwaysKeep = true;
+      }
+
+      // move site across if it is to be kept
+      if (alwaysKeep == true || (alleleFrequencies[i] >= lowerBound &&
+                                 alleleFrequencies[i] <= upperBound)) {
+        filteredHaps.push_back(m_haps[i]);
+        filteredSites.push_back(m_sites[i]);
+      }
     }
+  }
+
+  clog << "[HapPanel] Number of sites kept: " << filteredSites.size() << "/"
+       << m_sites.size() << endl;
 
   if (filteredSites.empty())
     throw runtime_error(
@@ -890,4 +903,71 @@ void HapPanel::FilterSitesOnAlleleFrequency(double lowerBound,
   std::swap(m_haps, filteredHaps);
   std::swap(m_sites, filteredSites);
   std::swap(m_sitesUnorderedMap, sitesUnorderedMap);
+}
+
+void HapPanel::LoadAlwaysKeepVariantsFile(std::string alwaysKeepVariantsFile) {
+
+  string varFile = "[" + alwaysKeepVariantsFile + "]";
+  clog << "[HapPanel] Loading variants to always keep file " << varFile << endl;
+  assert(!alwaysKeepVariantsFile.empty());
+
+  ifile variantsFD(alwaysKeepVariantsFile);
+
+  if (!variantsFD.isGood())
+    throw runtime_error("[HapPanel] Could not open variants file " + varFile);
+
+  string buffer;
+  // read header
+  getline(variantsFD, buffer, '\n');
+  if (buffer != "CHROM\tPOS\tREF\tALT")
+    throw runtime_error(
+        "[HapPanel] First line in variants file " + varFile +
+        " does not match expected header 'CHROM\tPOS\tREF\tALT'");
+
+  // read body
+  vector<string> tokens;
+  int lineNum = 0;
+  while (getline(variantsFD, buffer, '\n')) {
+    ++lineNum;
+    boost::split(tokens, buffer, boost::is_any_of("\t"));
+    if (tokens.size() != 4)
+      throw runtime_error("[HapPanel] Line " + to_string(lineNum) +
+                          " of variants file " + varFile +
+                          " does not contain 4 columns");
+
+    m_alwaysKeepSites.insert(
+        Bio::snp(tokens[0], stoul(tokens[1]), tokens[2], tokens[3]));
+  }
+
+  // now set the always keep flags at the appropriate positions if possible
+  if (!m_keepSites.empty())
+    for (auto aks : m_alwaysKeepSites) {
+      auto got = m_keepSites.find(aks);
+      if (got != m_keepSites.end())
+        got->second.alwaysKeep = true;
+    }
+}
+
+void HapPanel::LoadKeepSites(const std::vector<Bio::snp> &keepSites) {
+
+  assert(!keepSites.empty());
+  // make sure keep sites are sorted on position
+  if (!is_sorted(keepSites.begin(), keepSites.end(), Bio::snpPosComp()))
+    throw runtime_error("[HapPanel] input sites are not sorted by position");
+
+  // set region to extract
+  m_keepRegion = Region(string(keepSites.front().chr), keepSites.front().pos,
+                        keepSites.back().pos);
+
+  // create unordered map from keepsites
+  // store some meta information as well
+  m_keepSites.reserve(keepSites.size());
+  for (size_t siteIdx = 0; siteIdx < keepSites.size(); ++siteIdx) {
+    HapPanelHelper::siteMeta sMeta;
+    sMeta.index = siteIdx;
+    if (!m_alwaysKeepSites.empty() &&
+        m_alwaysKeepSites.find(keepSites[siteIdx]) != m_alwaysKeepSites.end())
+      sMeta.alwaysKeep = true;
+    m_keepSites.insert(std::make_pair(keepSites[siteIdx], std::move(sMeta)));
+  }
 }
