@@ -1737,7 +1737,8 @@ void Insti::document() {
           "fix ([0-1], default 1).";
   cerr << "\n\t-A              Use minor allele frequency instead of variant "
           "allele frequency for applying -w and -W";
-  cerr << "\n\t-I <file>       Site include list (format: 'CHROM\tPOS\tREF\tALT')";
+  cerr << "\n\t-I <file>       Site include list (format: "
+          "'CHROM\tPOS\tREF\tALT')";
   cerr << "\n\n";
   exit(1);
 }

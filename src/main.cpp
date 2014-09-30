@@ -204,6 +204,12 @@ int main(int ac, char **av) {
 
     cerr << "Call: " << commandLine.str() << endl;
 
+    // set number of parallel threads using omp
+    if(init.numThreads < 1)
+        omp_set_num_threads(omp_get_num_procs());
+    else
+        omp_set_num_threads(init.numThreads);
+    
     // need to specify burnin generations as sum of SA and non-SA gens
     Impute::bn = Insti::s_uSABurninGen + Insti::s_uNonSABurninGen;
     if (optMSet == false)
