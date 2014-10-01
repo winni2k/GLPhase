@@ -4,7 +4,12 @@
 #ifndef _BIO_HPP
 #define _BIO_HPP 1
 
+#include <algorithm>
+#include <exception>
+#include <stdexcept>
 #include <string>
+#include <vector>
+
 #include <boost/functional/hash.hpp>
 
 // this was written with c++11 in mind
@@ -34,6 +39,37 @@ public:
   unsigned GetStartBP() const { return m_startBP; }
   unsigned GetEndBP() const { return m_endBP; }
   bool empty() const { return m_chrom.empty(); }
+};
+
+struct complementBasesLowerBoundComp {
+  bool operator()(const std::pair<char, char> &a, const char &b) {
+    return a.first < b;
+  }
+};
+
+class ChipSite {
+private:
+  std::string m_chr;
+  unsigned m_pos = 0;
+  char m_a0, m_a1;
+
+public:
+  static std::vector<std::pair<char, char> > s_complementBases;
+  ChipSite();
+  ChipSite(std::string c, unsigned p, char ina0, char ina1, char strand);
+  unsigned pos() const {
+    return m_pos;
+  };
+  std::string chr() const {
+    return m_chr;
+  };
+  char a0() const {
+    return m_a0;
+  };
+  char a1() const {
+    return m_a1;
+  };
+  bool operator<(const Bio::ChipSite &rhs) const;
 };
 
 class snp {
@@ -114,5 +150,17 @@ struct snpNoChr_eq {
   }
 };
 }
+
+struct snpChipSite_eq {
+  bool operator()(const Bio::snp &snp, const Bio::ChipSite &chip) {
+    if (snp.ref.size() != 1 || snp.alt.size() != 1)
+      return false;
+    if ((snp.ref[0] == chip.a0() && snp.alt[0] == chip.a1()) ||
+        (snp.ref[0] == chip.a1() && snp.alt[0] == chip.a0()))
+      return true;
+    else
+      return false;
+  };
+};
 
 #endif /* _BIO_HPP */

@@ -568,18 +568,18 @@ HapPanel::HapPanel(const vector<string> &inFiles, HapPanelHelper::Init init)
     throw runtime_error(
         "Please only specify site list or region for filtering");
 
-  if (!m_init.alwaysKeepVariantsFile.empty())
-    LoadAlwaysKeepVariantsFile(m_init.alwaysKeepVariantsFile);
-
   // handle region/sites to keep
   if (!m_init.keepSites.empty())
     LoadKeepSites(m_init.keepSites);
   else {
     assert(!m_init.matchAllSites);
     assert(m_init.keepAllSitesInRegion);
-    assert(m_init.alwaysKeepVariantsFile.empty());
+    assert(m_init.alwaysKeepStrandFile.empty());
     m_keepRegion = m_init.keepRegion;
   }
+
+  if (!m_init.alwaysKeepStrandFile.empty())
+    LoadAlwaysKeepStrandFile(m_init.alwaysKeepStrandFile);
 
   // load haplotypes and samples
   vector<vector<char> > loadHaps;
@@ -867,15 +867,17 @@ void HapPanel::FilterSitesOnAlleleFrequency(double lowerBound,
   vector<vector<char> > filteredHaps;
   vector<snp> filteredSites;
   {
-    auto got = m_alwaysKeepSites.end();
     for (size_t i = 0; i < alleleFrequencies.size(); ++i) {
 
       // logic for figuring out if site is in the always keep list
       bool alwaysKeep = false;
-      if (!m_alwaysKeepSites.empty()) {
-        got = m_alwaysKeepSites.find(m_sites[i]);
-        if (got != m_alwaysKeepSites.end())
-          alwaysKeep = true;
+      if (!m_alwaysKeepChipSites.empty()) {
+        if (m_sites[i].ref.size() == 1 && m_sites[i].alt.size() == 1)
+          if (binary_search(
+                  m_alwaysKeepChipSites.begin(), m_alwaysKeepChipSites.end(),
+                  Bio::ChipSite(m_sites[i].chr, m_sites[i].pos,
+                                m_sites[i].ref[0], m_sites[i].alt[0], '+')))
+            alwaysKeep = true;
       }
 
       // move site across if it is to be kept
@@ -905,6 +907,7 @@ void HapPanel::FilterSitesOnAlleleFrequency(double lowerBound,
   std::swap(m_sitesUnorderedMap, sitesUnorderedMap);
 }
 
+/*
 void HapPanel::LoadAlwaysKeepVariantsFile(std::string alwaysKeepVariantsFile) {
 
   string varFile = "[" + alwaysKeepVariantsFile + "]";
@@ -947,6 +950,60 @@ void HapPanel::LoadAlwaysKeepVariantsFile(std::string alwaysKeepVariantsFile) {
         got->second.alwaysKeep = true;
     }
 }
+*/
+
+void HapPanel::LoadAlwaysKeepStrandFile(std::string alwaysKeepStrandFile) {
+
+  string strandFile = "[" + alwaysKeepStrandFile + "]";
+  clog << "[HapPanel] Loading variants to always keep file " << strandFile
+       << endl;
+  assert(!alwaysKeepStrandFile.empty());
+  assert(!m_keepRegion.empty());
+
+  ifile strandFD(alwaysKeepStrandFile);
+
+  if (!strandFD.isGood())
+    throw runtime_error("[HapPanel] Could not open variants file " +
+                        strandFile);
+
+  // read body
+  string buffer;
+  string keepChrom = m_keepRegion.GetChrom();
+  vector<string> tokens;
+  int lineNum = 0;
+  while (getline(strandFD, buffer, '\n')) {
+    ++lineNum;
+    boost::split(tokens, buffer, boost::is_any_of("\t"));
+    if (tokens.size() != 6)
+      throw runtime_error("[HapPanel] Line " + to_string(lineNum) +
+                          " of strand file " + strandFile +
+                          " does not contain 6 columns");
+
+    if (tokens[1] != keepChrom)
+      continue;
+    m_alwaysKeepChipSites.push_back(
+        Bio::ChipSite(tokens[1], stoul(tokens[2]), tokens[5].at(0),
+                      tokens[5].at(1), tokens[4].at(0)));
+  }
+  sort(m_alwaysKeepChipSites.begin(), m_alwaysKeepChipSites.end());
+
+  // now set the always keep flags at the appropriate positions if possible
+  if (!m_keepSites.empty())
+    for (auto aks : m_alwaysKeepChipSites) {
+      string a0 = string(1, aks.a0());
+      string a1 = string(1, aks.a1());
+      auto got = m_keepSites.find(Bio::snp(aks.chr(), aks.pos(), a0, a1));
+      if (got != m_keepSites.end()) {
+        got->second.alwaysKeep = true;
+        continue;
+      }
+      got = m_keepSites.find(Bio::snp(aks.chr(), aks.pos(), a1, a0));
+      if (got != m_keepSites.end()) {
+        got->second.alwaysKeep = true;
+        continue;
+      }
+    }
+}
 
 void HapPanel::LoadKeepSites(const std::vector<Bio::snp> &keepSites) {
 
@@ -965,9 +1022,6 @@ void HapPanel::LoadKeepSites(const std::vector<Bio::snp> &keepSites) {
   for (size_t siteIdx = 0; siteIdx < keepSites.size(); ++siteIdx) {
     HapPanelHelper::siteMeta sMeta;
     sMeta.index = siteIdx;
-    if (!m_alwaysKeepSites.empty() &&
-        m_alwaysKeepSites.find(keepSites[siteIdx]) != m_alwaysKeepSites.end())
-      sMeta.alwaysKeep = true;
     m_keepSites.insert(std::make_pair(keepSites[siteIdx], std::move(sMeta)));
   }
 }

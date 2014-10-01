@@ -75,7 +75,7 @@ struct Init {
   std::vector<Bio::snp> keepSites;
 
   // always include sites file
-  std::string alwaysKeepVariantsFile = "";
+  std::string alwaysKeepStrandFile = "";
 
   // keep only specific samples
   std::vector<std::string> keepSampleIDs;
@@ -97,7 +97,7 @@ private:
   std::unordered_map<Bio::snp, HapPanelHelper::siteMeta, Bio::snpKeyHasher>
   m_keepSites;
   Bio::Region m_keepRegion;
-  std::unordered_set<Bio::snp, Bio::snpKeyHasher> m_alwaysKeepSites;
+  std::vector<Bio::ChipSite> m_alwaysKeepChipSites;
 
   HapPanelHelper::Init m_init;
   unsigned m_wordSize = WORDSIZE;
@@ -128,7 +128,7 @@ public:
         ceil(static_cast<double>(m_haps.size()) / m_wordSize));
   }
 
-  void LoadAlwaysKeepVariantsFile(std::string alwaysKeepVariantsFile);
+  void LoadAlwaysKeepStrandFile(std::string alwaysKeepStrandFile);
   void FilterSitesOnAlleleFrequency(double lowerBound, double upperBound,
                                     bool useAlternateAlleleFrequency);
 

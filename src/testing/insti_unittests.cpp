@@ -58,6 +58,9 @@ string scaffoldOneTriallelicOutOfOrderHaps =
 string scaffoldOneTriallelicOutOfOrderIncludeSiteMap =
     sampleDir + "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted."
                 "oneTriallelicOutOfOrder.include.siteMap";
+string scaffoldOneTriallelicOutOfOrderIncludeStrand =
+    sampleDir + "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted."
+                "oneTriallelicOutOfOrder.include.strand";
 string scaffoldTabHaps =
     sampleDir +
     "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted.tabhaps.gz";
@@ -1001,6 +1004,7 @@ TEST(Insti, fixEmitOneTriallelicOutOfOrder_filterAF) {
   }
 }
 
+/*
 TEST(Insti, fixEmitOneTriallelicOutOfOrder_filterAF_recoverSite) {
 
   InstiHelper::Init init;
@@ -1010,6 +1014,67 @@ TEST(Insti, fixEmitOneTriallelicOutOfOrder_filterAF_recoverSite) {
   init.scaffoldFiles["h"] = scaffoldOneTriallelicOutOfOrderHaps;
   init.scaffoldFiles["s"] = scaffHapsSampSample;
   init.fixPhaseAlwaysKeepVariantsFile = scaffoldOneTriallelicOutOfOrderIncludeSiteMap;
+
+  // this should remove all sites after position 12102094
+  init.fixPhaseFrequencyLowerBound = 0.4;
+
+  Insti lp(init);
+
+  lp.initialize();
+
+  std::vector<float> emit = lp.GetEmit();
+  auto emitDim = lp.GetEmitDim();
+  vector<vector<float> > pc = lp.Getpc();
+  ASSERT_EQ(3, emitDim.first);
+  ASSERT_EQ(4 * 513, emitDim.second);
+
+  // test emit
+  // test first scaffold site, site 7 in gls
+  // this should be the same as the previous site
+  size_t siteNum = 12;
+  for (size_t sampNum = 0; sampNum != 3; ++sampNum)
+    for (size_t i = 0; i != 4; ++i)
+      EXPECT_FLOAT_EQ(emit.at(sampNum * emitDim.second + 4 * (siteNum - 1) + i),
+                      emit.at(sampNum * emitDim.second + 4 * siteNum + i));
+
+  // next site
+  siteNum = 60;
+  for (size_t sampNum = 0; sampNum != 3; ++sampNum)
+    for (size_t i = 0; i != 4; ++i)
+      EXPECT_FLOAT_EQ(emit.at(sampNum * emitDim.second + 4 * (siteNum - 1) + i),
+                      emit.at(sampNum * emitDim.second + 4 * siteNum + i));
+
+  // test triallelic site
+  siteNum = 386;
+  vector<char> sampPhase = { 2, 1, 2 };
+  for (size_t sampNum = 0; sampNum != 3; ++sampNum)
+    for (size_t i = 0; i != 4; ++i)
+      EXPECT_FLOAT_EQ(pc.at(i).at(sampPhase.at(sampNum)),
+                      emit.at(sampNum * emitDim.second + 4 * siteNum + i));
+
+    // test triallelic site
+  // and this site should be back even though its AF is off
+  siteNum = 387;
+  sampPhase[0] = 0;
+  sampPhase[1] = 2;
+  sampPhase[2] = 2;
+  for (size_t sampNum = 0; sampNum != 3; ++sampNum)
+    for (size_t i = 0; i != 4; ++i)
+      EXPECT_FLOAT_EQ(pc.at(i).at(sampPhase.at(sampNum)),
+                      emit.at(sampNum * emitDim.second + 4 * siteNum + i));
+
+}
+*/
+
+TEST(Insti, fixEmitOneTriallelicOutOfOrder_filterAF_recoverSiteStrand) {
+
+  InstiHelper::Init init;
+  init.geneticMap = geneticMap;
+  init.inputGLFile = sampleBinSubsetOneTriallelic;
+  init.fixPhaseFromScaffold = true;
+  init.scaffoldFiles["h"] = scaffoldOneTriallelicOutOfOrderHaps;
+  init.scaffoldFiles["s"] = scaffHapsSampSample;
+  init.fixPhaseAlwaysKeepStrandFile = scaffoldOneTriallelicOutOfOrderIncludeStrand;
 
   // this should remove all sites after position 12102094
   init.fixPhaseFrequencyLowerBound = 0.4;

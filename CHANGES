@@ -1,3 +1,7 @@
+1.5.3   Wed Oct 01 15:05:47 BST 2014
+        Switched from accepting site map to accepting strand file for
+        always keep sites option (-I) 
+
 1.5.2   Mon Sep 29 16:13:13 BST 2014
         Added option to include a list of sites (map) that will never
         be filtered for determining the sites at which to fix phase

@@ -195,7 +195,7 @@ int main(int ac, char **av) {
         break;
       case 'I':
         init.fixPhaseFromScaffold = true;
-        init.fixPhaseAlwaysKeepVariantsFile = optarg;
+        init.fixPhaseAlwaysKeepStrandFile = optarg;
         break;
       default:
         Insti::document();

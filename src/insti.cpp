@@ -1605,8 +1605,8 @@ void Insti::FixEmitAccordingToScaffold() {
   }
 
   // set include variants
-  if (!m_init.fixPhaseAlwaysKeepVariantsFile.empty())
-    init.alwaysKeepVariantsFile = m_init.fixPhaseAlwaysKeepVariantsFile;
+  if (!m_init.fixPhaseAlwaysKeepStrandFile.empty())
+    init.alwaysKeepStrandFile = m_init.fixPhaseAlwaysKeepStrandFile;
 
   // load scaffold and filter sites
   HapPanel haplotypes(move(inFiles), move(init));
@@ -1737,8 +1737,9 @@ void Insti::document() {
           "fix ([0-1], default 1).";
   cerr << "\n\t-A              Use minor allele frequency instead of variant "
           "allele frequency for applying -w and -W";
-  cerr << "\n\t-I <file>       Site include list (format: "
-          "'CHROM\tPOS\tREF\tALT')";
+  cerr << "\n\t-I <file>       Strand file of sites to always keep";
+  //  cerr << "\n\t-I <file>       Site include list (format: "
+  //          "'CHROM\tPOS\tREF\tALT')";
   cerr << "\n\n";
   exit(1);
 }
