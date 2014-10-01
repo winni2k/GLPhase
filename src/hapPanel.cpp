@@ -981,6 +981,12 @@ void HapPanel::LoadAlwaysKeepStrandFile(std::string alwaysKeepStrandFile) {
 
     if (tokens[1] != keepChrom)
       continue;
+    if (tokens[5].size() != 2)
+      throw runtime_error("[HapPanel] Input strand file " + strandFile +
+                          " does not have two alleles in column 6");
+    if (tokens[4].size() != 1)
+      throw runtime_error("[HapPanel] Input strand file " + strandFile +
+                          " does not have 1 strand indicator in column 5");
     m_alwaysKeepChipSites.push_back(
         Bio::ChipSite(tokens[1], stoul(tokens[2]), tokens[5].at(0),
                       tokens[5].at(1), tokens[4].at(0)));
