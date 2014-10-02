@@ -128,10 +128,14 @@ private:
   // holds chrom, start and end position, etc.
   Bio::Region m_runRegion;
 
+  // sites at which phase is fixed
+  std::vector<uint64_t> m_sitesAtWhichPhaseIsFixed;
+
   // Insti redefinition of hmm_like
   // so far it only adds logging
   virtual fast hmm_like(unsigned I, unsigned *P) override;
-
+  virtual void hmm_work(unsigned I, unsigned *P, fast S);
+    
   fast solve(unsigned I, unsigned N, fast pen,
              std::shared_ptr<Sampler> &sampler);
 #ifndef NCUDA
@@ -166,6 +170,7 @@ private:
   // expects scaffold to have been initialized
   void SetHapsAccordingToScaffold();
   void FixEmitAccordingToScaffold();
+  void SetHapsAccordingToHapPanel(const HapPanel &hapPanel);
 
 public:
   // uuid

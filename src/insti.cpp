@@ -136,6 +136,134 @@ Insti::Insti(InstiHelper::Init init)
 // call Impute::hmm_like and print out result
 fast Insti::hmm_like(unsigned I, uint *P) { return Impute::hmm_like(I, P); }
 
+// take an individual number I, a set of four haplotype indices P, and
+// penalty S to update haplotypes of individual I
+// All our tests are with the penalty set to 1
+void Insti::hmm_work(unsigned I, unsigned *P, fast S) {
+
+  // set up pointers to the beginning of four hapltoypes
+  // m0 is "mother haplotype 0", m1 is "mother haplotype 1"
+  // f0 is "father haplotype 0", f1 is "father haplotype 1"
+
+  // wn stands for "word number".  This is the number of unsigned
+  // integers that a haplotype is stored in
+
+  uint64_t *f0 = &haps[P[0] * wn], *f1 = &haps[P[1] * wn],
+           *m0 = &haps[P[2] * wn], *m1 = &haps[P[3] * wn];
+
+  //	backward recursion
+  // mn is the number of sites in the chunk being phased
+  // fast is a typedef for float (not my choice)
+  vector<fast> beta(mn * 4);
+
+  // create pointers that point to last set of elements of emit, tran and beta
+  // en is the number of emission matrix elements per sample
+  fast *e = &emit[(I + 1) * en - 4], *t = &tran[(mn - 1) * 3], sum,
+       *b = &beta[(mn - 1) * 4];
+  fast l00 = 0, l01 = 0, l10 = 0, l11 = 0;
+  fast b00, b01, b10, b11;
+
+  // initial state of backward sampler
+  b[0] = b[1] = b[2] = b[3] = 1;
+
+  // fill b with the forward probabilites
+  // test(f0, m) returns 1 if haplotype f0 is 1 at site m and 0 otherwise
+  for (unsigned m = mn - 1; m; m--, e -= 4, t -= 3) {
+
+    b00 = b[0] * e[(test(f0, m) << 1) | test(m0, m)];
+    b01 = b[1] * e[(test(f0, m) << 1) | test(m1, m)];
+    b10 = b[2] * e[(test(f1, m) << 1) | test(m0, m)];
+    b11 = b[3] * e[(test(f1, m) << 1) | test(m1, m)];
+    b -= 4;
+    b[0] = b00 * t[0] + (b01 + b10) * t[1] + b11 * t[2];
+    b[1] = b01 * t[0] + (b00 + b11) * t[1] + b10 * t[2];
+    b[2] = b10 * t[0] + (b00 + b11) * t[1] + b01 * t[2];
+    b[3] = b11 * t[0] + (b01 + b10) * t[1] + b00 * t[2];
+    sum = (b[0] + b[1] + b[2] + b[3]);
+    if (sum == 0)
+      throw runtime_error(
+          "Chosen haplotypes are incompatible with emission matrix");
+    sum = 1.0f / sum;
+    b[0] *= sum;
+    b[1] *= sum;
+    b[2] *= sum;
+    b[3] *= sum;
+  }
+
+  //	forward sampling
+  // walk through b
+  uint64_t *ha = &hnew[I * 2 * wn], *hb = ha + wn;
+  fast *p = &prob[I * pn];
+  e = &emit[I * en];
+  t = &tran[0];
+  b = &beta[0];
+  unsigned s00, s01, s10, s11;
+  for (unsigned m = 0; m < mn; m++, e += 4, t += 3, p += 3, b += 4) {
+    s00 = (test(f0, m) << 1) | test(m0, m);
+    s01 = (test(f0, m) << 1) | test(m1, m);
+    s10 = (test(f1, m) << 1) | test(m0, m);
+    s11 = (test(f1, m) << 1) | test(m1, m);
+    if (m) {
+      b00 = l00 * t[0] + l01 * t[1] + l10 * t[1] + l11 * t[2],
+      b01 = l00 * t[1] + l01 * t[0] + l10 * t[2] + l11 * t[1];
+      b10 = l00 * t[1] + l01 * t[2] + l10 * t[0] + l11 * t[1],
+      b11 = l00 * t[2] + l01 * t[1] + l10 * t[1] + l11 * t[0];
+      l00 = b00 * e[s00];
+      l01 = b01 * e[s01];
+      l10 = b10 * e[s10];
+      l11 = b11 * e[s11];
+    } else {
+      l00 = 0.25f * e[s00];
+      l01 = 0.25f * e[s01];
+      l10 = 0.25f * e[s10];
+      l11 = 0.25f * e[s11];
+    }
+    sum = 1.0f / (l00 + l01 + l10 + l11);
+    l00 *= sum;
+    l01 *= sum;
+    l10 *= sum;
+    l11 *= sum;
+
+    if (m_sitesAtWhichPhaseIsFixed.empty() ||
+        test(m_sitesAtWhichPhaseIsFixed.data(), m) == 0) {
+
+      fast p00 = l00 * b[0], p01 = l01 * b[1], p10 = l10 * b[2],
+           p11 = l11 * b[3];
+
+      // powf effectively inflates the importance of small numbers
+      // while S is < 1 (first bn/2 iterations)
+      fast c00 = powf(p[0] * (p00 * pc[s00][0] + p01 * pc[s01][0] +
+                              p10 * pc[s10][0] + p11 * pc[s11][0]),
+                      S);
+      fast c01 = powf(p[1] * (p00 * pc[s00][1] + p01 * pc[s01][1] +
+                              p10 * pc[s10][1] + p11 * pc[s11][1]),
+                      S);
+      fast c10 = powf(p[1] * (p00 * pc[s00][2] + p01 * pc[s01][2] +
+                              p10 * pc[s10][2] + p11 * pc[s11][2]),
+                      S);
+      fast c11 = powf(p[2] * (p00 * pc[s00][3] + p01 * pc[s01][3] +
+                              p10 * pc[s10][3] + p11 * pc[s11][3]),
+                      S);
+
+      // randomly choose new haplotypes at this site weighted by c
+      sum = gsl_rng_uniform(rng) * (c00 + c01 + c10 + c11);
+      if (sum < c00) {
+        set0(ha, m);
+        set0(hb, m);
+      } else if (sum < c00 + c01) {
+        set0(ha, m);
+        set1(hb, m);
+      } else if (sum < c00 + c01 + c10) {
+        set1(ha, m);
+        set0(hb, m);
+      } else {
+        set1(ha, m);
+        set1(hb, m);
+      }
+    }
+  }
+}
+
 void Insti::SetLog(const string &sLogFile) {
 
   s_bIsLogging = true;
@@ -1481,48 +1609,52 @@ void Insti::save_vcf(const char *F, string commandLine) {
 
 void Insti::SetHapsAccordingToScaffold() {
 
-  assert(!m_scaffold.empty());
-
   if (m_scaffold.NumHaps() == 0)
     return;
 
-  assert(m_scaffold.NumHaps() == hn);
+  SetHapsAccordingToHapPanel(m_scaffold);
+}
+
+void Insti::SetHapsAccordingToHapPanel(const HapPanel &hapPanel) {
+
+  assert(!hapPanel.empty());
+  assert(hapPanel.NumHaps() == hn);
 
   // pull out each hap and change it to match information contained in the
-  // scaffold
-  vector<uint64_t> scaffHaps = m_scaffold.Haplotypes_uint64_t();
-  size_t nwph = m_scaffold.NumWordsPerHap();
-  assert(2 * in == m_scaffold.NumHaps());
+  // hapPanel
+  vector<uint64_t> hapPanelHaps = hapPanel.Haplotypes_uint64_t();
+  size_t nwph = hapPanel.NumWordsPerHap();
+  assert(2 * in == hapPanel.NumHaps());
   for (unsigned hapNum = 0; hapNum < 2 * in; hapNum++) {
 
     // define pointers to an individual's two haplotype hap
     uint64_t *hap = &haps[hapNum * wn];
-    uint64_t *scaffHap = &scaffHaps[hapNum * nwph];
+    uint64_t *hapPanelHap = &hapPanelHaps[hapNum * nwph];
 
     // check each site if it needs to be replaced
-    unsigned scaffoldSiteIdx = 0;
+    unsigned hapPanelSiteIdx = 0;
 
     unsigned siteIdx = 0;
-    for (unsigned scaffoldPositionIdx = 0;
-         scaffoldPositionIdx < m_scaffold.NumSites(); scaffoldPositionIdx++) {
+    for (unsigned hapPanelPositionIdx = 0;
+         hapPanelPositionIdx < hapPanel.NumSites(); hapPanelPositionIdx++) {
 
-      // find the site in site that matches the scaffold position
+      // find the site in site that matches the hapPanel position
       for (; siteIdx < m_glSites.size(); siteIdx++) {
-        if (m_scaffold.snp_is_equal(m_glSites[siteIdx], scaffoldPositionIdx))
+        if (hapPanel.snp_is_equal(m_glSites[siteIdx], hapPanelPositionIdx))
           break;
       }
 
-      // if this is not true, then the scaffold position could not be found in
+      // if this is not true, then the hapPanel position could not be found in
       // site
       assert(siteIdx < m_glSites.size());
 
-      // set the site to what is in the scaffold
-      if (test(scaffHap, scaffoldSiteIdx))
+      // set the site to what is in the hapPanel
+      if (test(hapPanelHap, hapPanelSiteIdx))
         set1(hap, siteIdx);
       else
         set0(hap, siteIdx);
 
-      ++scaffoldSiteIdx;
+      ++hapPanelSiteIdx;
     }
   }
 }
@@ -1615,6 +1747,9 @@ void Insti::FixEmitAccordingToScaffold() {
       m_init.fixPhaseReferenceAlleleFrequency);
 
   // fix emit according to scaffold
+  // and build indicator vector of which sites are fixed
+  assert(m_sitesAtWhichPhaseIsFixed.empty());
+  m_sitesAtWhichPhaseIsFixed.resize(wn);
   for (unsigned i = 0; i < in; i++) {
     fast *e = &emit[i * en];
 
@@ -1629,9 +1764,15 @@ void Insti::FixEmitAccordingToScaffold() {
         assert(phase < 4);
         for (unsigned j = 0; j < 4; j++)
           e[j] = pc[j][phase];
+
+        // mark this site as fixed
+        set1(m_sitesAtWhichPhaseIsFixed.data(), m);
       }
     }
   }
+
+  // and now initialize haps at sites that are fixed to pre-existing haplotype phase
+  SetHapsAccordingToHapPanel(haplotypes);
 }
 
 void Insti::document() {

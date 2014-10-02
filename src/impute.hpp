@@ -70,7 +70,7 @@ protected:
 
   fast hmm(unsigned I, unsigned *P, fast S);
 
-  void hmm_work(unsigned I, unsigned *P, fast S);
+  virtual void hmm_work(unsigned I, unsigned *P, fast S);
 
   virtual fast solve(unsigned I, unsigned &N, fast S);
 

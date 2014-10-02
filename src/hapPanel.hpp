@@ -159,11 +159,11 @@ public:
   return &m_haps[hapNum * m_numWordsPerHap];
 }
   */
-  bool snp_is_equal(const Bio::snp &lhs, size_t siteIdx) {
+  bool snp_is_equal(const Bio::snp &lhs, size_t siteIdx) const {
     return lhs == m_sites.at(siteIdx);
   }
 
-  int FindSiteIndex(const Bio::snp &test) {
+  int FindSiteIndex(const Bio::snp &test) const {
     auto got = m_sitesUnorderedMap.find(test);
     if (got == m_sitesUnorderedMap.end())
       return -1;
@@ -171,7 +171,7 @@ public:
       return got->second;
   }
 
-  char GetAllele(size_t siteIdx, size_t haplotypeIdx) {
+  char GetAllele(size_t siteIdx, size_t haplotypeIdx) const {
     return m_haps.at(siteIdx).at(haplotypeIdx);
   }
 };
