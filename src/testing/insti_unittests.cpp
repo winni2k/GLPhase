@@ -12,6 +12,7 @@ string sampleLegend =
     sampleDir + "/20_011976121_012173018.bin.onlyThree.legend";
 string sampleHap = sampleDir + "/20_011976121_012173018.bin.onlyThree.hap";
 string sampleBin = sampleDir + "/20_011976121_012173018.bin.onlyThree.bin";
+string sampleRandBin = sampleDir + "/20_011976121_012173018.bin.onlyThree.randomGLs.bin";
 string sampleBinSubsetOneTriallelic =
     sampleDir + "/20_12026201_12125640.bin.onlyThree.oneTriAllelic.bin";
 string sampleBinSubsetSites =
@@ -1004,6 +1005,7 @@ TEST(Insti, fixEmitOneTriallelicOutOfOrder_filterAF) {
   }
 }
 
+
 /*
 TEST(Insti, fixEmitOneTriallelicOutOfOrder_filterAF_recoverSite) {
 
@@ -1013,7 +1015,8 @@ TEST(Insti, fixEmitOneTriallelicOutOfOrder_filterAF_recoverSite) {
   init.fixPhaseFromScaffold = true;
   init.scaffoldFiles["h"] = scaffoldOneTriallelicOutOfOrderHaps;
   init.scaffoldFiles["s"] = scaffHapsSampSample;
-  init.fixPhaseAlwaysKeepVariantsFile = scaffoldOneTriallelicOutOfOrderIncludeSiteMap;
+  init.fixPhaseAlwaysKeepVariantsFile =
+scaffoldOneTriallelicOutOfOrderIncludeSiteMap;
 
   // this should remove all sites after position 12102094
   init.fixPhaseFrequencyLowerBound = 0.4;
@@ -1074,7 +1077,8 @@ TEST(Insti, fixEmitOneTriallelicOutOfOrder_filterAF_recoverSiteStrand) {
   init.fixPhaseFromScaffold = true;
   init.scaffoldFiles["h"] = scaffoldOneTriallelicOutOfOrderHaps;
   init.scaffoldFiles["s"] = scaffHapsSampSample;
-  init.fixPhaseAlwaysKeepStrandFile = scaffoldOneTriallelicOutOfOrderIncludeStrand;
+  init.fixPhaseAlwaysKeepStrandFile =
+      scaffoldOneTriallelicOutOfOrderIncludeStrand;
 
   // this should remove all sites after position 12102094
   init.fixPhaseFrequencyLowerBound = 0.4;
@@ -1113,7 +1117,7 @@ TEST(Insti, fixEmitOneTriallelicOutOfOrder_filterAF_recoverSiteStrand) {
       EXPECT_FLOAT_EQ(pc.at(i).at(sampPhase.at(sampNum)),
                       emit.at(sampNum * emitDim.second + 4 * siteNum + i));
 
-    // test triallelic site
+  // test triallelic site
   // and this site should be back even though its AF is off
   siteNum = 387;
   sampPhase[0] = 0;
@@ -1123,5 +1127,105 @@ TEST(Insti, fixEmitOneTriallelicOutOfOrder_filterAF_recoverSiteStrand) {
     for (size_t i = 0; i != 4; ++i)
       EXPECT_FLOAT_EQ(pc.at(i).at(sampPhase.at(sampNum)),
                       emit.at(sampNum * emitDim.second + 4 * siteNum + i));
+}
 
+
+TEST(Insti, fixPhaseFromScaffold) {
+  Impute::sn = 200;
+  Impute::nn = 2;
+  Impute::density = 1.0; // this is not used anymore
+  Impute::conf = 0.9998;
+  Impute::is_x = false;
+  Impute::is_y = false;
+
+  InstiHelper::Init init;
+  init.geneticMap = geneticMap;
+  init.scaffoldFiles["h"] = scaffoldHaps;
+  init.scaffoldFiles["s"] = scaffHapsSampSample;
+  init.fixPhaseFromScaffold = true;
+  init.fixPhaseFrequencyLowerBound = 0;
+  init.inputGLFile = sampleRandBin;
+  Insti lp(init);
+
+  // test the scaffold loading
+  lp.initialize();
+
+  // test to see if main haps were initialized correctly
+  vector<unsigned> siteIdxs = { 6, 316, 576 };
+  for (auto i : siteIdxs) {
+    EXPECT_EQ(0, lp.TestMainHap_(0, i));
+    EXPECT_EQ(1, lp.TestMainHap_(1, i));
+    EXPECT_EQ(0, lp.TestMainHap_(2, i));
+    EXPECT_EQ(1, lp.TestMainHap_(3, i));
+    EXPECT_EQ(0, lp.TestMainHap_(4, i));
+    EXPECT_EQ(0, lp.TestMainHap_(5, i));
+  }
+
+  siteIdxs = { 635, 739, 1021 };
+  for (auto i : siteIdxs) {
+    EXPECT_EQ(1, lp.TestMainHap_(0, i));
+    EXPECT_EQ(0, lp.TestMainHap_(1, i));
+    EXPECT_EQ(0, lp.TestMainHap_(2, i));
+    EXPECT_EQ(1, lp.TestMainHap_(3, i));
+    EXPECT_EQ(1, lp.TestMainHap_(4, i));
+    EXPECT_EQ(0, lp.TestMainHap_(5, i));
+  }
+
+  lp.estimate();
+  // test to see if main haps were initialized correctly
+  siteIdxs = { 6, 316, 576 };
+  for (auto i : siteIdxs) {
+    EXPECT_EQ(0, lp.TestMainHap_(0, i));
+    EXPECT_EQ(1, lp.TestMainHap_(1, i));
+    EXPECT_EQ(0, lp.TestMainHap_(2, i));
+    EXPECT_EQ(1, lp.TestMainHap_(3, i));
+    EXPECT_EQ(0, lp.TestMainHap_(4, i));
+    EXPECT_EQ(0, lp.TestMainHap_(5, i));
+  }
+
+  siteIdxs = { 635, 739, 1021 };
+  for (auto i : siteIdxs) {
+    EXPECT_EQ(1, lp.TestMainHap_(0, i));
+    EXPECT_EQ(0, lp.TestMainHap_(1, i));
+    EXPECT_EQ(0, lp.TestMainHap_(2, i));
+    EXPECT_EQ(1, lp.TestMainHap_(3, i));
+    EXPECT_EQ(1, lp.TestMainHap_(4, i));
+    EXPECT_EQ(0, lp.TestMainHap_(5, i));
+  }
+}
+
+TEST(Insti, fixPhaseFromScaffold_lowerBound) {
+  InstiHelper::Init init;
+  init.geneticMap = geneticMap;
+  init.scaffoldFiles["h"] = scaffoldHaps;
+  init.scaffoldFiles["s"] = scaffHapsSampSample;
+  init.fixPhaseFromScaffold = true;
+  init.fixPhaseFrequencyLowerBound = 0.4;
+  init.inputGLFile = sampleBin;
+  Insti lp(init);
+
+  // test the scaffold loading
+  lp.initialize();
+
+  // test to see if main haps were initialized correctly
+  vector<unsigned> siteIdxs = { 6, 316, 576 };
+  /*
+  for (auto i : siteIdxs) {
+    EXPECT_EQ(0, lp.TestMainHap_(0, i));
+    EXPECT_EQ(1, lp.TestMainHap_(1, i));
+    EXPECT_EQ(0, lp.TestMainHap_(2, i));
+    EXPECT_EQ(1, lp.TestMainHap_(3, i));
+    EXPECT_EQ(0, lp.TestMainHap_(4, i));
+    EXPECT_EQ(0, lp.TestMainHap_(5, i));
+    } */
+
+  siteIdxs = { 635, 739, 1021 };
+  for (auto i : siteIdxs) {
+    EXPECT_EQ(1, lp.TestMainHap_(0, i));
+    EXPECT_EQ(0, lp.TestMainHap_(1, i));
+    EXPECT_EQ(0, lp.TestMainHap_(2, i));
+    EXPECT_EQ(1, lp.TestMainHap_(3, i));
+    EXPECT_EQ(1, lp.TestMainHap_(4, i));
+    EXPECT_EQ(0, lp.TestMainHap_(5, i));
+  }
 }
