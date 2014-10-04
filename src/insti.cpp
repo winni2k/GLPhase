@@ -261,6 +261,17 @@ void Insti::hmm_work(unsigned I, unsigned *P, fast S) {
         set1(hb, m);
       }
     }
+    // just copy over phase from current haplotype estimates for this individual
+    else {
+      if (test(&haps[I * 2 * wn], m))
+        set1(ha, m);
+      else
+        set0(ha, m);
+      if (test(&haps[I * 2 * wn + wn], m))
+        set1(hb, m);
+      else
+        set0(hb, m);
+    }
   }
 }
 
@@ -1771,7 +1782,8 @@ void Insti::FixEmitAccordingToScaffold() {
     }
   }
 
-  // and now initialize haps at sites that are fixed to pre-existing haplotype phase
+  // and now initialize haps at sites that are fixed to pre-existing haplotype
+  // phase
   SetHapsAccordingToHapPanel(haplotypes);
 }
 
