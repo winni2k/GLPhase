@@ -397,7 +397,7 @@ void Insti::LoadGLBCF(const unordered_set<string> &keepSamples) {
 
   string bcfFile = m_init.inputGLFile;
 
-  clog << "Reading " + bcfFile << endl;
+  clog << m_tag << ": Reading " + bcfFile << endl;
 
   // first clear all the data that will be filled
   name.clear();
@@ -441,7 +441,7 @@ void Insti::LoadGLBCF(const unordered_set<string> &keepSamples) {
           to_string(NUMSITES) + ". If the extra sites were dropped, then more "
                                 "than 5% of the chunk size would be dropped.");
     else {
-      clog << "[Insti] Chunk contains too many sites.  Dropping the last " +
+      clog << m_tag << ": [Insti] Chunk contains too many sites.  Dropping the last " +
                   to_string(mn - NUMSITES) + " sites.\n";
       m_glSites.erase(m_glSites.begin() + NUMSITES, m_glSites.end());
       mn = NUMSITES;
@@ -466,8 +466,8 @@ void Insti::LoadGLBCF(const unordered_set<string> &keepSamples) {
 
   // clean up
   in = name.size();
-  clog << "sites\t" << mn << endl;
-  clog << "sample\t" << in << endl; // which sample
+  clog << m_tag << ": [Insti] sites\t" << mn << endl;
+  clog << m_tag << ": [Insti] sample\t" << in << endl; // which sample
 }
 
 void Insti::LoadVCFGZ(string vcf, InstiPanelType panel_t,
@@ -704,7 +704,7 @@ void Insti::initialize() {
     }
     // use old estimate of recombination rate if map does not exist
     catch (GeneticMapHelper::GenomPosOutsideMap &e) {
-      clog << "[GeneticMap] " << e.what() << endl;
+      clog << m_tag << ": [GeneticMap] " << e.what() << endl;
       // replaced ad-hoc genetic distance estimate by genetic map
       unsigned genomDist = (posi[m] - posi[m - 1]) * rho;
       r = genomDist / (genomDist + hn);
@@ -1082,7 +1082,7 @@ void Insti::estimate() {
       m_sampler->Save(m_sLogFile, name);
     }
     catch (exception &e) {
-      clog << e.what() << endl;
+      clog << m_tag << ": " << e.what() << endl;
     }
   }
 
@@ -1702,7 +1702,8 @@ void Insti::LoadScaffold() {
 
 void Insti::FixEmitAccordingToScaffold() {
 
-  clog << "[insti] Fixing emission matrix according to scaffold" << endl;
+  clog << m_tag << ": [insti] Fixing emission matrix according to scaffold"
+       << endl;
   const unordered_map<string, string> &files = m_init.scaffoldFiles;
 
   // figure out how to what type of scaffold we are loading
@@ -1719,13 +1720,15 @@ void Insti::FixEmitAccordingToScaffold() {
 
   // assume vcfgz
   if (files.at("s").empty()) {
-    clog << "[insti] Loading haplotypes in GZVCF for fixing of phase" << endl;
+    clog << m_tag << ": [insti] Loading haplotypes in GZVCF for fixing of phase"
+         << endl;
     inFiles.push_back(files.at("h"));
     init.hapFileType = HapPanelHelper::HapFileType::VCF;
   }
   // assume WTCCC
   else if (files.at("l").empty()) {
-    clog << "[insti] Loading haplotypes in WTCCC format fixing of phase"
+    clog << m_tag
+         << ": [insti] Loading haplotypes in WTCCC format fixing of phase"
          << endl;
     inFiles.push_back(files.at("h"));
     inFiles.push_back(files.at("s"));
@@ -1739,7 +1742,8 @@ void Insti::FixEmitAccordingToScaffold() {
 
   // assume IMPUTE2
   else {
-    clog << "[insti] Loading haplotypes in IMPUTE2 format fixing of phase"
+    clog << m_tag
+         << ": [insti] Loading haplotypes in IMPUTE2 format fixing of phase"
          << endl;
     inFiles.push_back(files.at("h"));
     inFiles.push_back(files.at("s"));

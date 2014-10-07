@@ -202,20 +202,16 @@ int main(int ac, char **av) {
       }
     }
 
-    cerr << "Call: " << commandLine.str() << endl;
-
     // set number of parallel threads using omp
-    if(init.numThreads < 1)
-        omp_set_num_threads(omp_get_num_procs());
+    if (init.numThreads < 1)
+      omp_set_num_threads(omp_get_num_procs());
     else
-        omp_set_num_threads(init.numThreads);
-    
+      omp_set_num_threads(init.numThreads);
+
     // need to specify burnin generations as sum of SA and non-SA gens
     Impute::bn = Insti::s_uSABurninGen + Insti::s_uNonSABurninGen;
     if (optMSet == false)
       Insti::s_uStartClusterGen = Insti::s_uSABurninGen;
-    clog << "Clustering will start at generation " << Insti::s_uStartClusterGen
-         << endl;
 
     // need to specify ref panel if kickstarting
     if (Insti::s_bKickStartFromRef) {
@@ -240,6 +236,9 @@ int main(int ac, char **av) {
 
     // create an Insti instance!
     Insti lp(init);
+    clog << lp.m_tag << ": Call: " << commandLine.str() << endl;
+    clog << lp.m_tag << ": Clustering will start at generation "
+         << Insti::s_uStartClusterGen << endl;
 
     if (Insti::s_bIsLogging)
       lp.SetLog(sLogFile);
@@ -250,17 +249,17 @@ int main(int ac, char **av) {
     stringstream log;
     log << "##" << ctime(&tt) << endl;
     lp.WriteToLog(log.str());
-
+    clog << lp.m_tag << ": Start time " << ctime(&tt) << endl;
     /*
     impute::load_vcf needs to be reimplemented
   for (uint j = 0; j < Impute::vcf_file.size(); j++)
     cerr << Impute::vcf_file[j] << '\t'
          << lp.load_vcf(Impute::vcf_file[j].c_str()) << endl;
   */
-    cerr << lp.m_tag << ": initializing..\n";
+    clog << lp.m_tag << ": initializing..\n";
 
     lp.initialize();
-    cerr << lp.m_tag << ": estimating..\n";
+    clog << lp.m_tag << ": estimating..\n";
 
     // choose which estimation method to use
     lp.estimate();
@@ -275,12 +274,12 @@ int main(int ac, char **av) {
       lp.save_relationship_graph(outBase);
     }
     catch (exception &e) {
-      cerr << e.what() << endl;
+      cerr << lp.m_tag << e.what() << endl;
     }
 
     // printing out run time
     gettimeofday(&end, NULL);
-    cerr << lp.m_tag << ": time\t"
+    cerr << lp.m_tag << ": Run time\t"
          << end.tv_sec - sta.tv_sec + 1e-6 * (end.tv_usec - sta.tv_usec) << endl
          << endl;
   }
