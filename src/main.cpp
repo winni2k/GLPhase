@@ -45,7 +45,7 @@ int main(int ac, char **av) {
     int opt;
     bool optMSet = false;
     while ((opt = getopt(ac, av, "V:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:Q:S:"
-                                 "fo:DTr:P:ag:F:R:O:u:w:W:AI:")) >= 0) {
+                                 "fo:DTr:P:ag:F:R:O:u:w:W:AI:z")) >= 0) {
       switch (opt) {
 
       /*      case 'd':
@@ -196,6 +196,9 @@ int main(int ac, char **av) {
       case 'I':
         init.fixPhaseFromScaffold = true;
         init.fixPhaseAlwaysKeepStrandFile = optarg;
+        break;
+      case 'z':
+        init.serializeHapUpdate = true;
         break;
       default:
         Insti::document();

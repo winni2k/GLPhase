@@ -192,7 +192,13 @@ void Insti::hmm_work(unsigned I, unsigned *P, fast S) {
 
   //	forward sampling
   // walk through b
-  uint64_t *ha = &hnew[I * 2 * wn], *hb = ha + wn;
+  uint64_t *ha = nullptr;
+  if (m_init.serializeHapUpdate)
+    ha = &haps[I * 2 * wn];
+  else
+    ha = &hnew[I * 2 * wn];
+  uint64_t *hb = ha + wn;
+
   fast *p = &prob[I * pn];
   e = &emit[I * en];
   t = &tran[0];
@@ -263,14 +269,16 @@ void Insti::hmm_work(unsigned I, unsigned *P, fast S) {
     }
     // just copy over phase from current haplotype estimates for this individual
     else {
-      if (test(&haps[I * 2 * wn], m))
-        set1(ha, m);
-      else
-        set0(ha, m);
-      if (test(&haps[I * 2 * wn + wn], m))
-        set1(hb, m);
-      else
-        set0(hb, m);
+      if (!m_init.serializeHapUpdate) {
+        if (test(&haps[I * 2 * wn], m))
+          set1(ha, m);
+        else
+          set0(ha, m);
+        if (test(&haps[I * 2 * wn + wn], m))
+          set1(hb, m);
+        else
+          set0(hb, m);
+      }
     }
   }
 }
@@ -441,7 +449,8 @@ void Insti::LoadGLBCF(const unordered_set<string> &keepSamples) {
           to_string(NUMSITES) + ". If the extra sites were dropped, then more "
                                 "than 5% of the chunk size would be dropped.");
     else {
-      clog << m_tag << ": [Insti] Chunk contains too many sites.  Dropping the last " +
+      clog << m_tag
+           << ": [Insti] Chunk contains too many sites.  Dropping the last " +
                   to_string(mn - NUMSITES) + " sites.\n";
       m_glSites.erase(m_glSites.begin() + NUMSITES, m_glSites.end());
       mn = NUMSITES;
@@ -631,9 +640,10 @@ void Insti::initialize() {
   // shifter to right....
   // we define a minimum block size of 64.
   wn = (mn & WORDMOD) ? (mn >> WORDSHIFT) + 1 : (mn >> WORDSHIFT);
-  hn = in * 2;             // number of haps
-  haps.resize(hn * wn);    // space to store all haplotypes
-  hnew.resize(hn * wn);    // number of haplotypes = 2 * number of samples  ...
+  hn = in * 2;          // number of haps
+  haps.resize(hn * wn); // space to store all haplotypes
+  if (!m_init.serializeHapUpdate)
+    hnew.resize(hn * wn);  // number of haplotypes = 2 * number of samples  ...
                            // haps mn is # of sites,
   hsum.assign(hn * mn, 0); // one unsigned for every hap's site - what for?  To
                            // estimate allele probs
@@ -834,7 +844,8 @@ void Insti::initialize() {
 
     // enlarge hnew so haps and hnew can be swapped
     // the ref haps are never updated, so they'll stick around forever
-    hnew.insert(hnew.end(), m_vRefHaps.begin(), m_vRefHaps.end());
+    if (!m_init.serializeHapUpdate)
+      hnew.insert(hnew.end(), m_vRefHaps.begin(), m_vRefHaps.end());
   }
 
   // load the scaffold
@@ -868,8 +879,9 @@ fast Insti::cudaSolve(HMMLike &hapSampler, unsigned sampleStride, fast pen) {
   assert(firstSampIdx == 0);
   assert(lastSampIdx == sampleStride - 1);
 
-// do a final round of haplotype estimation
-// this could be parallelized using threads perhaps? or an openmp pragma
+  // do a final round of haplotype estimation
+  // this could be parallelized using threads perhaps? or an openmp pragma
+  assert(m_init.serializeHapUpdate == false);
 #pragma omp parallel for
   for (unsigned sampNum = firstSampIdx; sampNum <= lastSampIdx; ++sampNum)
     hmm_work(sampNum, &propHaps[sampNum * 4], pen);
@@ -1148,14 +1160,32 @@ void Insti::estimate() {
     cudaHapSampler.UpdateSampler(iterationSampler);
     sum = cudaSolve(cudaHapSampler, sampleStride, pen);
 #else
-    for (unsigned i = 0; i < in; i++) {
+    if (m_init.serializeHapUpdate) {
 
-      // re-update graph based on current haplotypes
-      sum += solve(i, m_uCycles, pen, iterationSampler);
-      iter += m_uCycles;
+        // need to update samples in random order
+      std::vector<size_t> sampIndices;
+      sampIndices.reserve(in);
+      for (size_t i = 0; i < in; ++i)
+        sampIndices.push_back(i);
+      std::random_shuffle(sampIndices.begin(), sampIndices.end());
+
+      // update samples one at a time
+      for (unsigned i = 0; i < in; i++) {
+
+        // re-update graph based on current haplotypes
+        sum += solve(sampIndices.at(i), m_uCycles, pen, iterationSampler);
+        iter += m_uCycles;
+      }
+    } else {
+#pragma omp parallel for
+      for (unsigned i = 0; i < in; i++) {
+
+        // re-update graph based on current haplotypes
+        sum += solve(i, m_uCycles, pen, iterationSampler);
+        iter += m_uCycles;
+      }
+      swap(hnew, haps);
     }
-
-    swap(hnew, haps);
 #endif
 
     if (m_nIteration >= bn)
@@ -1475,7 +1505,8 @@ void Insti::estimate_EMC() {
       iter += m_uCycles;
     }
 
-    swap(hnew, haps);
+    if (!m_init.serializeHapUpdate)
+      swap(hnew, haps);
 
     if (n >= bn)
       for (unsigned i = 0; i < in; i++)
@@ -1522,7 +1553,8 @@ void Insti::estimate_AMH() {
       iter += m_uCycles;
     }
 
-    swap(hnew, haps);
+    if (!m_init.serializeHapUpdate)
+      swap(hnew, haps);
 
     if (n >= bn)
       for (unsigned i = 0; i < in; i++)

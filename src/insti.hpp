@@ -84,6 +84,8 @@ struct Init {
   std::string inputGLFileType = "bin"; // default is snptools binary
   std::string inputGLRegion = "";      // e.g. 20:1-50000
   std::string inputSamplesKeep = "";   // file with list of sample names to keep
+
+  bool serializeHapUpdate = false;
 };
 std::unordered_set<string> LoadSamplesUOSet(const string &sampleFile);
 }
