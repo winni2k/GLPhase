@@ -405,7 +405,7 @@ void Insti::LoadGLBCF(const unordered_set<string> &keepSamples) {
 
   string bcfFile = m_init.inputGLFile;
 
-  clog << m_tag << ": Reading " + bcfFile << endl;
+  clog << m_tag << ": Reading " + bcfFile << "\n";
 
   // first clear all the data that will be filled
   name.clear();
@@ -475,8 +475,8 @@ void Insti::LoadGLBCF(const unordered_set<string> &keepSamples) {
 
   // clean up
   in = name.size();
-  clog << m_tag << ": [Insti] sites\t" << mn << endl;
-  clog << m_tag << ": [Insti] sample\t" << in << endl; // which sample
+  clog << m_tag << ": [Insti] sites\t" << mn << "\n";
+  clog << m_tag << ": [Insti] sample\t" << in << "\n"; // which sample
 }
 
 void Insti::LoadVCFGZ(string vcf, InstiPanelType panel_t,
@@ -714,7 +714,7 @@ void Insti::initialize() {
     }
     // use old estimate of recombination rate if map does not exist
     catch (GeneticMapHelper::GenomPosOutsideMap &e) {
-      clog << m_tag << ": [GeneticMap] " << e.what() << endl;
+      clog << m_tag << ": [GeneticMap] " << e.what() << "\n";
       // replaced ad-hoc genetic distance estimate by genetic map
       unsigned genomDist = (posi[m] - posi[m - 1]) * rho;
       r = genomDist / (genomDist + hn);
@@ -1094,7 +1094,7 @@ void Insti::estimate() {
       m_sampler->Save(m_sLogFile, name);
     }
     catch (exception &e) {
-      clog << m_tag << ": " << e.what() << endl;
+      clog << m_tag << ": " << e.what() << "\n";
     }
   }
 
@@ -1735,7 +1735,7 @@ void Insti::LoadScaffold() {
 void Insti::FixEmitAccordingToScaffold() {
 
   clog << m_tag << ": [insti] Fixing emission matrix according to scaffold"
-       << endl;
+       << "\n";
   const unordered_map<string, string> &files = m_init.scaffoldFiles;
 
   // figure out how to what type of scaffold we are loading
@@ -1753,7 +1753,7 @@ void Insti::FixEmitAccordingToScaffold() {
   // assume vcfgz
   if (files.at("s").empty()) {
     clog << m_tag << ": [insti] Loading haplotypes in GZVCF for fixing of phase"
-         << endl;
+         << "\n";
     inFiles.push_back(files.at("h"));
     init.hapFileType = HapPanelHelper::HapFileType::VCF;
   }
@@ -1761,7 +1761,7 @@ void Insti::FixEmitAccordingToScaffold() {
   else if (files.at("l").empty()) {
     clog << m_tag
          << ": [insti] Loading haplotypes in WTCCC format fixing of phase"
-         << endl;
+         << "\n";
     inFiles.push_back(files.at("h"));
     inFiles.push_back(files.at("s"));
     if (inFiles[0].size() > 11 &&
@@ -1776,7 +1776,7 @@ void Insti::FixEmitAccordingToScaffold() {
   else {
     clog << m_tag
          << ": [insti] Loading haplotypes in IMPUTE2 format fixing of phase"
-         << endl;
+         << "\n";
     inFiles.push_back(files.at("h"));
     inFiles.push_back(files.at("s"));
     inFiles.push_back(files.at("l"));

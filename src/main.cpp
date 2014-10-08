@@ -239,9 +239,9 @@ int main(int ac, char **av) {
 
     // create an Insti instance!
     Insti lp(init);
-    clog << lp.m_tag << ": Call: " << commandLine.str() << endl;
+    clog << lp.m_tag << ": Call: " << commandLine.str() << "\n";
     clog << lp.m_tag << ": Clustering will start at generation "
-         << Insti::s_uStartClusterGen << endl;
+         << Insti::s_uStartClusterGen << "\n";
 
     if (Insti::s_bIsLogging)
       lp.SetLog(sLogFile);
@@ -252,7 +252,7 @@ int main(int ac, char **av) {
     stringstream log;
     log << "##" << ctime(&tt) << endl;
     lp.WriteToLog(log.str());
-    clog << lp.m_tag << ": Start time " << ctime(&tt) << endl;
+    clog << lp.m_tag << ": Start time " << ctime(&tt) << "\n";
     /*
     impute::load_vcf needs to be reimplemented
   for (uint j = 0; j < Impute::vcf_file.size(); j++)
