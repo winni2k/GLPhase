@@ -86,6 +86,10 @@ struct Init {
   std::string inputSamplesKeep = "";   // file with list of sample names to keep
 
   bool serializeHapUpdate = false;
+
+  // input reference panel
+  std::string refPanelFiles = "";
+  std::string refPanelFilesType = "";
 };
 std::unordered_set<string> LoadSamplesUOSet(const string &sampleFile);
 }
@@ -137,7 +141,7 @@ private:
   // so far it only adds logging
   virtual fast hmm_like(unsigned I, unsigned *P) override;
   virtual void hmm_work(unsigned I, unsigned *P, fast S);
-    
+
   fast solve(unsigned I, unsigned N, fast pen,
              std::shared_ptr<Sampler> &sampler);
 #ifndef NCUDA
@@ -196,14 +200,14 @@ public:
   unsigned GetScaffoldNumSites() { return m_scaffold.NumSites(); }
 
   // data loading
+  void LoadRefPanel(std::string commaSeparatedRefPanelFiles,
+                    std::string fileType, Bio::Region loadRegion);
+
   // haps/sample
   void LoadHapsSamp(std::string hapsFile, std::string sampleFile,
                     InstiPanelType panelType, Bio::Region loadRegion);
 
   // hap/leg/samp
-  bool LoadHapLegSamp(std::string legendFile, std::string hapFile,
-                      std::string sampleFile, InstiPanelType panelType,
-                      Bio::Region loadRegion);
 
   // vcf.gz file
   void LoadVCFGZ(std::string vcf, InstiPanelType panel_t,

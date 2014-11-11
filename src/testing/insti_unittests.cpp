@@ -12,7 +12,8 @@ string sampleLegend =
     sampleDir + "/20_011976121_012173018.bin.onlyThree.legend";
 string sampleHap = sampleDir + "/20_011976121_012173018.bin.onlyThree.hap";
 string sampleBin = sampleDir + "/20_011976121_012173018.bin.onlyThree.bin";
-string sampleRandBin = sampleDir + "/20_011976121_012173018.bin.onlyThree.randomGLs.bin";
+string sampleRandBin =
+    sampleDir + "/20_011976121_012173018.bin.onlyThree.randomGLs.bin";
 string sampleBinSubsetOneTriallelic =
     sampleDir + "/20_12026201_12125640.bin.onlyThree.oneTriAllelic.bin";
 string sampleBinSubsetSites =
@@ -155,8 +156,8 @@ TEST(Insti, loadBin) {
 
   //  cerr << "BLOINC2\n";
   // now test refpanel loading
-  lp.LoadHapLegSamp(refLegend, refHap, refSamp, InstiPanelType::REFERENCE,
-                    Bio::Region());
+  lp.LoadRefPanel(refHap + "," + refLegend + "," + refSamp, "IMPUTE2",
+                  Bio::Region());
 
   for (unsigned i = 0; i != 601; i++) {
     EXPECT_EQ(0, lp.TestRefHap(0, i));
@@ -170,10 +171,6 @@ TEST(Insti, loadBin) {
     EXPECT_EQ(0, lp.TestRefHap(2, i));
     EXPECT_EQ(1, lp.TestRefHap(3, i));
   }
-
-  // test the scaffold loading not implemented yet
-  //    lp.LoadHapLegSamp(refLegend, refHap, scaffHapLegSampSample,
-  // InstiPanelType::SCAFFOLD);
 }
 
 TEST(Insti, loadGLVCF) {
@@ -246,8 +243,8 @@ TEST(Insti, loadGLVCF) {
 
   //  cerr << "BLOINC2\n";
   // now test refpanel loading
-  lp.LoadHapLegSamp(refLegend, refHap, refSamp, InstiPanelType::REFERENCE,
-                    Bio::Region());
+  lp.LoadRefPanel(refHap + "," + refLegend + "," + refSamp, "IMPUTE2",
+                  Bio::Region());
 
   for (unsigned i = 0; i != 601; i++) {
     EXPECT_EQ(0, lp.TestRefHap(0, i));
@@ -261,10 +258,6 @@ TEST(Insti, loadGLVCF) {
     EXPECT_EQ(0, lp.TestRefHap(2, i));
     EXPECT_EQ(1, lp.TestRefHap(3, i));
   }
-
-  // test the scaffold loading not implemented yet
-  //    lp.LoadHapLegSamp(refLegend, refHap, scaffHapLegSampSample,
-  // InstiPanelType::SCAFFOLD);
 }
 
 TEST(Insti, loadGLVCFExtraSites) {
@@ -338,8 +331,8 @@ TEST(Insti, loadGLVCFExtraSites) {
 
   //  cerr << "BLOINC2\n";
   // now test refpanel loading
-  lp.LoadHapLegSamp(refLegend, refHap, refSamp, InstiPanelType::REFERENCE,
-                    Bio::Region());
+  lp.LoadRefPanel(refHap + "," + refLegend + "," + refSamp, "IMPUTE2",
+                  Bio::Region());
 
   for (unsigned i = 0; i != 601; i++) {
     EXPECT_EQ(0, lp.TestRefHap(0, i));
@@ -353,10 +346,6 @@ TEST(Insti, loadGLVCFExtraSites) {
     EXPECT_EQ(0, lp.TestRefHap(2, i));
     EXPECT_EQ(1, lp.TestRefHap(3, i));
   }
-
-  // test the scaffold loading not implemented yet
-  //    lp.LoadHapLegSamp(refLegend, refHap, scaffHapLegSampSample,
-  // InstiPanelType::SCAFFOLD);
 }
 
 TEST(Insti, loadHapsSamp) {
@@ -497,14 +486,11 @@ TEST(Insti, loadHapLegSampErrors) {
   lp.initialize();
 
   //    cerr << "BLOINC1\n";
-  ASSERT_EXIT(lp.LoadHapLegSamp("", sampleHap, "", InstiPanelType::REFERENCE,
-                                Bio::Region()),
-              ::testing::ExitedWithCode(1),
-              "Need to define a legend file if defining a hap file");
-  ASSERT_EXIT(lp.LoadHapLegSamp(sampleLegend, "", "", InstiPanelType::REFERENCE,
-                                Bio::Region()),
-              ::testing::ExitedWithCode(1),
-              "Need to define a hap file if defining a legend file");
+  ASSERT_THROW(lp.LoadRefPanel(refSamp, "IMPUTE2", Bio::Region()),
+               std::runtime_error);
+  ASSERT_THROW(lp.LoadRefPanel(sampleLegend, "IMPUTE2", Bio::Region()),
+              std::runtime_error);
+  
   ASSERT_EXIT(lp.LoadHapsSamp(refHaps, brokenHapsSampSample,
                               InstiPanelType::SCAFFOLD, refRegion),
               ::testing::ExitedWithCode(2), "Error in sample file "
@@ -1005,7 +991,6 @@ TEST(Insti, fixEmitOneTriallelicOutOfOrder_filterAF) {
   }
 }
 
-
 /*
 TEST(Insti, fixEmitOneTriallelicOutOfOrder_filterAF_recoverSite) {
 
@@ -1128,7 +1113,6 @@ TEST(Insti, fixEmitOneTriallelicOutOfOrder_filterAF_recoverSiteStrand) {
       EXPECT_FLOAT_EQ(pc.at(i).at(sampPhase.at(sampNum)),
                       emit.at(sampNum * emitDim.second + 4 * siteNum + i));
 }
-
 
 TEST(Insti, fixPhaseFromScaffold) {
   Impute::sn = 200;

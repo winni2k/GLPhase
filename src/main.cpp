@@ -99,10 +99,10 @@ int main(int ac, char **av) {
         Insti::s_uCycles = stoul(optarg);
         break;
       case 'L':
-        Insti::s_sRefLegendFile = optarg;
+        init.refPanelFilesType = optarg;
         break;
       case 'H':
-        Insti::s_sRefHapFile = optarg;
+        init.refPanelFiles = optarg;
         break;
       case 'k':
         Insti::s_bKickStartFromRef = true;
@@ -215,15 +215,6 @@ int main(int ac, char **av) {
     Impute::bn = Insti::s_uSABurninGen + Insti::s_uNonSABurninGen;
     if (optMSet == false)
       Insti::s_uStartClusterGen = Insti::s_uSABurninGen;
-
-    // need to specify ref panel if kickstarting
-    if (Insti::s_bKickStartFromRef) {
-      if (Insti::s_sRefLegendFile.size() == 0) {
-        cerr << endl << "error: Need to specify ref panel if kickstarting."
-             << endl;
-        Insti::document();
-      }
-    }
 
     // Die if more than one file was specified on command line
     if (ac - optind != 1) {

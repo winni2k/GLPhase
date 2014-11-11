@@ -1,3 +1,12 @@
+1.5.8   Tue Nov 11 10:36:36 GMT 2014
+        Changed behavior of -H and -L to accept more formats
+
+1.5.7
+        Added serialize MCMC option
+
+1.5.6  
+        Added fixing of phase option
+
 1.5.3   Wed Oct 01 15:05:47 BST 2014
         Switched from accepting site map to accepting strand file for
         always keep sites option (-I) 

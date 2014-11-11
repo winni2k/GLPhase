@@ -56,8 +56,6 @@ unsigned Insti::s_uParallelChains = 5;
 unsigned Insti::s_uCycles = 0;
 bool Insti::s_bIsLogging = false;
 bool Insti::s_bKickStartFromRef = false;
-string Insti::s_sRefLegendFile = "";
-string Insti::s_sRefHapFile = "";
 unsigned Insti::s_uNumClusters = 0;
 unsigned Insti::s_uClusterType = 0;
 kNNDistT Insti::s_clusterDistanceMetric = kNNDistT::hamming;
@@ -598,32 +596,45 @@ void Insti::CheckPanelPrereqs(InstiPanelType panelType) {
   }
 }
 
-bool Insti::LoadHapLegSamp(string legendFile, string hapFile, string sampleFile,
-                           InstiPanelType panelType, Bio::Region loadRegion) {
+void Insti::LoadRefPanel(string commaSeparatedRefPanelFiles, string fileType,
+                         Bio::Region loadRegion) {
 
   // make sure required files are defined
-  if (legendFile.size() == 0) {
-    cerr << "Need to define a legend file if defining a hap file\n";
-    document();
-  }
-
-  if (hapFile.size() == 0) {
-    cerr << "Need to define a hap file if defining a legend file\n";
-    document();
-  }
-
-  if (sampleFile.size() == 0) {
-    cerr << "Need to define a sample file if using scaffold\n";
-    document();
-  }
+  vector<string> inFiles;
+  boost::split(inFiles, commaSeparatedRefPanelFiles, boost::is_any_of(","));
 
   HapPanelHelper::Init init;
-  init.hapFileType = HapPanelHelper::HapFileType::IMPUTE2;
-  init.keepRegion = std::move(loadRegion);
-  vector<string> inFiles{ hapFile, legendFile, sampleFile };
-  LoadHaps(move(inFiles), move(init), panelType);
 
-  return true;
+  if (inFiles.size() == 0)
+    throw runtime_error("Could not read input file [" +
+                        commaSeparatedRefPanelFiles + "]");
+
+  if (fileType == "VCF") {
+    if (inFiles.size() != 1)
+      throw runtime_error("Unexpected number of files given in input: [" +
+                          commaSeparatedRefPanelFiles + "]");
+    init.hapFileType = HPH::HapFileType::VCF;
+  } else if (fileType == "WTCCC") {
+    if (inFiles.size() != 2)
+      throw runtime_error("Number of input files given is not 2: [" +
+                          commaSeparatedRefPanelFiles + "]");
+
+    if (inFiles[0].size() > 11 &&
+        inFiles[0].compare(inFiles[0].size() - 11, 11, ".tabhaps.gz") == 0)
+      init.hapFileType = HPH::HapFileType::WTCCC_TBX;
+    else
+      init.hapFileType = HPH::HapFileType::WTCCC;
+  } else if (fileType == "IMPUTE2") {
+    if (inFiles.size() != 3)
+      throw runtime_error("Number of input files given is not 3: [" +
+                          commaSeparatedRefPanelFiles + "]");
+
+    init.hapFileType = HPH::HapFileType::IMPUTE2;
+  } else
+    throw runtime_error("Unknown ref panel input file type: " + fileType);
+
+  init.keepRegion = std::move(loadRegion);
+  LoadHaps(move(inFiles), move(init), InstiPanelType::REFERENCE);
 }
 
 /* CHANGES from impute.cpp
@@ -833,9 +844,8 @@ void Insti::initialize() {
 
   // end of copy from SNPTools Impute
   // load ref haps
-  if (s_sRefLegendFile.size() > 0 || s_sRefHapFile.size() > 0)
-    LoadHapLegSamp(s_sRefLegendFile, s_sRefHapFile, "",
-                   InstiPanelType::REFERENCE, Region());
+  if (!m_init.refPanelFiles.empty())
+    LoadRefPanel(m_init.refPanelFiles, m_init.refPanelFilesType, Region());
 
   if (m_bUsingRefHaps) {
 
@@ -1162,7 +1172,7 @@ void Insti::estimate() {
 #else
     if (m_init.serializeHapUpdate) {
 
-        // need to update samples in random order
+      // need to update samples in random order
       std::vector<size_t> sampIndices;
       sampIndices.reserve(in);
       for (size_t i = 0; i < in; ++i)
@@ -1890,8 +1900,10 @@ void Insti::document() {
           "'s'.";
 
   cerr << "\n\n    REFERENCE PANEL OPTIONS";
-  cerr << "\n\t-H <file>       IMPUTE2 style HAP file";
-  cerr << "\n\t-L <file>       IMPUTE2 style LEGEND file";
+  cerr << "\n\t-H <file>       Comma separated haplotype files "
+          "(VCF,HAP/SAMP,HAP/LEG/SAMP)";
+  cerr << "\n\t-L <file>       haplotype format of -H (one of "
+          "VCF,WTCCC,IMPUTE2)";
   cerr << "\n\t-k              Kickstart phasing by using only ref panel in "
           "first iteration";
   cerr << "\n\n    SCAFFOLD OPTIONS";
