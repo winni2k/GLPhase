@@ -139,8 +139,8 @@ private:
 
   // Insti redefinition of hmm_like
   // so far it only adds logging
-  virtual fast hmm_like(unsigned I, unsigned *P) override;
-  virtual void hmm_work(unsigned I, unsigned *P, fast S);
+  fast hmm_like(unsigned I, unsigned *P) override;
+  void hmm_work(unsigned I, unsigned *P, fast S) override;
 
   fast solve(unsigned I, unsigned N, fast pen,
              std::shared_ptr<Sampler> &sampler);
