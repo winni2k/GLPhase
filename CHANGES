@@ -1,3 +1,6 @@
+1.5.10  Mon Nov 17 13:45:12 GMT 2014
+        insti now runs with scaffold if -h is given
+
 1.5.9   Mon Nov 17 13:14:30 GMT 2014
         Fixed bug in reclustering call. Bug caused insti to segfault
         if input SNP number was not equal to NUMSITES 
