@@ -127,6 +127,7 @@ int main(int ac, char **av) {
         optMSet = true;
         break;
       case 'h':
+        init.fixPhaseFromScaffold = true;
         init.scaffoldFiles["h"] = optarg;
         break;
       case 's':
