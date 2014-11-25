@@ -61,9 +61,8 @@ endif
 
 # path variables
 CPLUS_INCLUDE_PATH += :olivier:tabixpp:vcfPhasedBreakMulti/src
-LIBRARY_PATH += ::tabixpp
-LD_LIBRARY_PATH += $(LIBRARY_PATH)
-
+LIBRARY_PATH := tabixpp:$(LIBRARY_PATH)
+LD_LIBRARY_PATH := $(LIBRARY_PATH):$(LD_LIBRARY_PATH)
 
 
 # perform all exporting here
