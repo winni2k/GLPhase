@@ -1,0 +1,4 @@
+chr	pos	allele	samp1	samp2	samp3
+20	101362	TC	0 1	0 1	0 1
+20	101905	TC	1 0	0 1	1 0
+20	102181	TC	0 1	1 0	1 0
