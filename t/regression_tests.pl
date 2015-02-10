@@ -16,11 +16,14 @@ my %defines;
 map { my @l = split( /\s+/, $_ ); $defines{ $l[1] } = $l[2] }
   grep { m/\#define/ } read_file("$Bin/../src/version.hpp");
 
+my $insti = shift @ARGV;
+$insti = "$Bin/$insti";
+
 my $harness = TAP::Harness->new(
     {
         test_args => [
             $defines{VERSION_MAJOR}, $defines{VERSION_MINOR},
-            $defines{VERSION_REVISION}
+            $defines{VERSION_REVISION}, $insti,
         ]
     }
 );

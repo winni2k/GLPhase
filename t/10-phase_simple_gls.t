@@ -21,7 +21,7 @@ use lib $Bin;
 use VCFComp ':all';
 
 my @version_nums = splice( @ARGV, 0,3);
-my $insti     = "$Bin/../bin/insti";
+my $insti     = shift @ARGV;
 my $simpleDir = "$Bin/../samples/simple_gls";
 my $resDir    = "$Bin/results/" . basename( $0, '.t' );
 

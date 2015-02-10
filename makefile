@@ -9,7 +9,6 @@ debug:
 
 test:
 	$(MAKE) -C src test
-	t/regression_tests.pl
 
 oxford:
 	$(MAKE) -C src oxford
