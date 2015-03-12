@@ -33,6 +33,7 @@ debug: $(BIN).debug
 test: debug
 test: $(OBJECT_FILES) $(HEADER_FILES)
 	$(MAKE) -C testing
+	../t/regression_tests.pl $(BIN).debug
 
 # define CXXFLAGS
 all: CXXFLAGS += -O3
