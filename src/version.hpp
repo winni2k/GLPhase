@@ -9,8 +9,8 @@
 #define VERSION_STR(s) #s
 
 #define VERSION_MAJOR 1
-#define VERSION_MINOR 4
-#define VERSION_REVISION 13b
+#define VERSION_MINOR 6
+#define VERSION_REVISION 0
 
 #endif /* _VERSION_H */
 
