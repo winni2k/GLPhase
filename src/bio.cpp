@@ -20,6 +20,7 @@ std::vector<std::string> tokenize_partial(const std::string &str,
       p_curr = str.find_first_of(search, p_last);
     }
 
+  tokens.push_back(str.substr(p_last, p_curr - p_last));
   return tokens;
 }
 }

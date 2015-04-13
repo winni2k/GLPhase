@@ -198,7 +198,7 @@ void Insti::load_bin(const string &binFile) {
   inputFD.push(boost::iostreams::gzip_decompressor());
   inputFD.push(file);
 
-  //Convert streambuf to istream
+  // Convert streambuf to istream
   std::istream instream(&inputFD);
 
   // parse header
@@ -218,9 +218,11 @@ void Insti::load_bin(const string &binFile) {
   while (getline(instream, buffer)) {
     ++lineNum;
     boost::split(tokens, buffer, boost::is_any_of("\t"));
-    if (tokens.size() != 3 + name.size() * 2)
-      throw std::runtime_error("Input line " + to_string(lineNum) +
-                               "does not have the correct number of columns");
+    if (tokens.size() != 3 + name.size())
+      throw std::runtime_error(
+          "Input line " + to_string(lineNum) +
+          " does not have the correct number of columns [" +
+          to_string(3 + name.size()) + "]");
 
     // allow split on space for non snps
     string ref, alt;
@@ -231,6 +233,9 @@ void Insti::load_bin(const string &binFile) {
 
       ref = tokens[2].substr(0, space);
       alt = tokens[2].substr(space + 1, string::npos);
+    } else {
+      ref = tokens[2][0];
+      alt = tokens[2][1];
     }
 
     // save site
@@ -244,10 +249,11 @@ void Insti::load_bin(const string &binFile) {
       prob.push_back(stof(tokens[3 + sampNum].substr(idx)));
     }
   }
-  mn = site.size();
-  cerr << "GLs"
-       << "Loaded " << mn << " sites\n"
-       << "Loaded " << in << " samples\n";
+  in = name.size();
+  mn = m_sites.size();
+  cerr << "GLs\n"
+       << "\tLoaded " << mn << " sites\n"
+       << "\tLoaded " << in << " samples\n";
 
   // setting range object based on load bin
   if (m_sites.empty())
@@ -1067,7 +1073,7 @@ vector<snp> Insti::OpenLegend(string legendFile) {
 
     // add each site to loadLeg
     loadLeg.push_back(
-        snp("", strtoul(tokens[1].c_str(), NULL, 0), tokens[2], tokens[3]));
+        snp(move(m_sites.chrom()), stoul(tokens[1]), tokens[2], tokens[3]));
   }
 
   return loadLeg;
@@ -1233,17 +1239,21 @@ void Insti::initialize() {
   // move away from vector of bools to vector of chars
   vector<bool> is_par(mn);
 
-  if (posi.size() == mn) {
-    for (unsigned m = 0; m < mn; m++)
-      is_par[m] = (posi[m] >= 60001 && posi[m] <= 2699520) ||
-                  (posi[m] >= 154931044 && posi[m] <= 155270560);
+  if (m_sites.size() == mn) {
+    for (unsigned m = 0; m < mn; m++) {
+      auto pos = m_sites.at(m)->pos;
+      is_par[m] = (pos >= 60001 && pos <= 2699520) ||
+                  (pos >= 154931044 && pos <= 155270560);
+    }
   }
 
-  if (posi.size() != mn) {
-    posi.resize(mn);
+  if (m_sites.size() != mn) {
+    snp newSite(".", 0, "A", "T");
 
-    for (unsigned m = 0; m < mn; m++)
-      posi[m] = m;
+    for (unsigned m = 0; m < mn; m++) {
+      newSite.pos = m;
+      m_sites.push_back(newSite);
+    }
   } // if sites not stored
 
   // initialize the mutation rate mu:
@@ -1273,7 +1283,8 @@ void Insti::initialize() {
     // replaced ad-hoc genetic distance estimate by genetic map
     //    posi[m] = (posi[m] - posi[m - 1]) * rho;
     //    fast r = posi[m] / (posi[m] + hn);
-    float r = m_geneticMap.GeneticDistance(posi[m - 1], posi[m]);
+    float r = m_geneticMap.GeneticDistance(m_sites.at(m - 1)->pos,
+                                           m_sites.at(m)->pos);
 
     // threshold genetic map to max value of 1
     r = r > 1 ? 1 : r;

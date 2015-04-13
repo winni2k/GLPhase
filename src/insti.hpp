@@ -91,9 +91,6 @@ private:
   // keep track of relationship graph
   std::shared_ptr<Sampler> m_sampler;
 
-  // keep track of GL sites, names as unordered map of snps
-  Bio::snp_storage_ordered m_sites;
-
   // name -> name index in global variable "name"
   std::unordered_map<std::string, unsigned> m_namesUnordered;
 
@@ -166,6 +163,9 @@ private:
   void SetHapsAccordingToScaffold();
 
 public:
+  // keep track of GL sites, names as unordered map of snps
+  Bio::snp_storage_ordered m_sites;
+
   // uuid
   const boost::uuids::uuid m_tag;
 

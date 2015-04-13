@@ -71,23 +71,27 @@ TEST(Insti, loadBin) {
   ASSERT_EQ(3, lp.in);
 
   // testing sites
-  EXPECT_EQ(1024, lp.site.size());
+  EXPECT_EQ(1024, lp.m_sites.size());
 
   // chr
-  EXPECT_EQ("20", lp.site[0].chr);
-  EXPECT_EQ("20", lp.site[5].chr);
-  EXPECT_EQ("20", lp.site[1023].chr);
-  EXPECT_NE("16", lp.site[1023].chr);
+  EXPECT_EQ("20", lp.m_sites.chrom());
+  EXPECT_EQ("20", lp.m_sites.at(0)->chr);
+  EXPECT_EQ("20", lp.m_sites.at(5)->chr);
+  EXPECT_EQ("20", lp.m_sites.at(1023)->chr);
+  EXPECT_NE("16", lp.m_sites.at(1023)->chr);
 
   // posi
-  EXPECT_EQ(11976121, lp.site[0].pos);
-  EXPECT_EQ(11977230, lp.site[5].pos);
-  EXPECT_EQ(12173018, lp.site[1023].pos);
+  EXPECT_EQ(11976121, lp.m_sites.at(0)->pos);
+  EXPECT_EQ(11977230, lp.m_sites.at(5)->pos);
+  EXPECT_EQ(12173018, lp.m_sites.at(1023)->pos);
 
   // all
-  EXPECT_EQ("TC", lp.site[0].all);
-  EXPECT_EQ("AG", lp.site[5].all);
-  EXPECT_EQ("GT", lp.site[1023].all);
+  EXPECT_EQ("T", lp.m_sites.at(0)->ref);
+  EXPECT_EQ("C", lp.m_sites.at(0)->alt);
+  EXPECT_EQ("A", lp.m_sites.at(5)->ref);
+  EXPECT_EQ("G", lp.m_sites.at(5)->alt);
+  EXPECT_EQ("G", lp.m_sites.at(1023)->ref);
+  EXPECT_EQ("T", lp.m_sites.at(1023)->alt);
 
   // prob
   // making sure prob size is correct
@@ -311,7 +315,7 @@ TEST(Insti, initializingHapsFromScaffold) {
   lp.initialize();
 
   // test to see if main haps were initialized correctly
-  vector<unsigned> siteIdxs = { 6, 316, 576 };
+  vector<unsigned> siteIdxs = {6, 316, 576};
   for (auto i : siteIdxs) {
     EXPECT_EQ(0, lp.TestMainHap_(0, i));
     EXPECT_EQ(1, lp.TestMainHap_(1, i));
@@ -321,7 +325,7 @@ TEST(Insti, initializingHapsFromScaffold) {
     EXPECT_EQ(0, lp.TestMainHap_(5, i));
   }
 
-  siteIdxs = { 635, 739, 1021 };
+  siteIdxs = {635, 739, 1021};
   for (auto i : siteIdxs) {
     EXPECT_EQ(1, lp.TestMainHap_(0, i));
     EXPECT_EQ(0, lp.TestMainHap_(1, i));
