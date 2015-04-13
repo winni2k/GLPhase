@@ -192,16 +192,19 @@ void Insti::load_bin(const string &binFile) {
   prob.clear();
 
   ifstream file(binFile, ios_base::in | ios_base::binary);
-  filtering_streambuf<input> inputFD;
-  inputFD.push(gzip_decompressor());
-  inputFD.push(file);
-  if (!inputFD.good())
+  if (!file.good())
     throw std::runtime_error("Could not open file [" + binFile + "]");
+  boost::iostreams::filtering_streambuf<boost::iostreams::input> inputFD;
+  inputFD.push(boost::iostreams::gzip_decompressor());
+  inputFD.push(file);
+
+  //Convert streambuf to istream
+  std::istream instream(&inputFD);
 
   // parse header
   string buffer;
   vector<string> tokens;
-  getline(inputFD, buffer);
+  getline(instream, buffer);
   boost::split(tokens, buffer, boost::is_any_of("\t"));
   if (tokens.size() < 4)
     throw std::runtime_error("Input bin file [" + binFile +
@@ -212,7 +215,7 @@ void Insti::load_bin(const string &binFile) {
 
   // parse body
   size_t lineNum = 1;
-  while (getline(inputFD, buffer)) {
+  while (getline(instream, buffer)) {
     ++lineNum;
     boost::split(tokens, buffer, boost::is_any_of("\t"));
     if (tokens.size() != 3 + name.size() * 2)
