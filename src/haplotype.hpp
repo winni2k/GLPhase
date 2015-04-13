@@ -17,10 +17,11 @@ static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
 class Haplotype {
 public:
-  static constexpr unsigned s_wordSize = std::pow(2, WORDSHIFT);
+  // 2 to the power wordshift
+  static constexpr unsigned s_wordSize = 1 << WORDSHIFT;
 
 private:
-  std::vector<std::bitset<s_wordSize> > m_hap;
+  std::vector<std::bitset<s_wordSize>> m_hap;
 
 public:
   unsigned m_uNumAlleles;

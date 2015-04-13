@@ -194,11 +194,12 @@ void Insti::load_bin(const string &binFile) {
                              string(binFile));
 
   // setting range object based on load bin
-  if (site.empty())
+  if (m_sites.empty())
     throw std::runtime_error(
         "[insti] Loaded data seems to contain no sites in file: " +
         string(binFile));
-  m_runRegion = Region(site[0].chr, site[0].pos, site.back().pos);
+  m_runRegion = Region(std::move(m_sites.chrom), m_sites.range.first,
+                       m_sites.range.second);
 
   // setting number of cycles to use
   // here is best place to do it because in is defined in load_bin()
@@ -270,17 +271,15 @@ void Insti::OpenSample(const string &sampleFile,
   }
 }
 
-void Insti::OpenTabHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
+void Insti::OpenTabHaps(const string &hapsFile, vector<vector<char>> &loadHaps,
                         vector<snp> &loadSites) {
   cout << m_tag << ": [insti] Loading tabixed haps file: " << hapsFile << endl;
 
   // clear all the containers that are going to be filled up
   vector<snp> fillSites;
-  vector<vector<char> > fillHaps;
-  fillSites.reserve(site.size());
-  fillHaps.reserve(site.size());
-
-  assert(m_sitesUnordered.size() == site.size());
+  vector<vector<char>> fillHaps;
+  fillSites.reserve(m_sites.size());
+  fillHaps.reserve(m_sites.size());
 
   string file(hapsFile);
   Tabix tabix(file);
@@ -294,15 +293,15 @@ void Insti::OpenTabHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
   unsigned matchSites = 0;
   unsigned glSiteIdx =
       0; // used for checking sites against already loaded glSites
-  while (tabix.getNextLine(buffer) && glSiteIdx != site.size()) {
+  while (tabix.getNextLine(buffer) && glSiteIdx != m_sites.size()) {
 
     // split on tab
     vector<string> tokens;
     boost::split(tokens, buffer, boost::is_any_of("\t"));
-    if (tokens[0] != site[glSiteIdx].chr)
+    if (!m_sites.eq_chrom(tokens[0]))
       throw std::runtime_error("[insti] Found site on chromosome '" +
-                               tokens[0] + "' when chromosome '" + site[0].chr +
-                               "' was expected");
+                               tokens[0] + "' when chromosome '" +
+                               m_sites.chrom() + "' was expected");
     if (tokens.size() < 6)
       throw std::runtime_error("[insti] Site has no haplotypes at site: " +
                                buffer.substr(0, 50));
@@ -315,26 +314,11 @@ void Insti::OpenTabHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
           "[insti] Malformed site: could not parse position: " +
           buffer.substr(0, 50));
 
+    Bio::snp newSite(std::move(tokens[0]), pos, std::move(tokens[3]),
+                     std::move(tokens[4]));
+
     // check to see if this site exists in our gl panel
-    auto canSiteR = m_sitesUnordered.equal_range(pos);
-
-    // the load site is not in the GL sites
-    if (distance(canSiteR.first, canSiteR.second) == 0)
-      continue;
-
-    Bio::snp newSite(tokens[0], pos, tokens[3], tokens[4]);
-    // test each of the sites to see if it matches
-    bool match = false;
-    for (auto candidateSite = canSiteR.first; candidateSite != canSiteR.second;
-         ++candidateSite) {
-      const snp &cSite = candidateSite->second;
-      if ((newSite.pos == cSite.pos) && (newSite.chr == cSite.chr) &&
-          (newSite.ref == cSite.ref) && newSite.alt == cSite.alt) {
-        match = true;
-        break;
-      }
-    }
-    if (!match)
+    if (!m_sites.exists(newSite))
       continue;
 
     if (pos == previousPos)
@@ -377,7 +361,7 @@ void Insti::OpenTabHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
 
 // read in the haps file
 // store haps and sites
-void Insti::OpenHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
+void Insti::OpenHaps(const string &hapsFile, vector<vector<char>> &loadHaps,
                      vector<snp> &sites) {
 
   cout << m_tag << ": [insti] Loading haps file: " << hapsFile << endl;
@@ -392,13 +376,12 @@ void Insti::OpenHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
   unsigned numHaps = 0;
   sites.clear();
   loadHaps.clear();
-  assert(m_sitesUnordered.size() == site.size());
 
   // for making sure input file is sorted by position
   unsigned previousPos = 0;
   // create a map of site positions
   while (getline(hapsFD, buffer, '\n')) {
-    if (keptSites == m_sitesUnordered.size())
+    if (keptSites == m_sites.size())
       break;
 
     //    if (lineNum % 1000 == 0)
@@ -408,38 +391,25 @@ void Insti::OpenHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
 
     //// only read position
     // figure out where the first three spaces are located
-    vector<size_t> spaceIdxs;
-    size_t nextStartIdx = 0;
-    for (unsigned i = 0; i < 3; ++i) {
-      if (i == 0)
-        spaceIdxs.push_back(buffer.find_first_of(" "));
-      else
-        spaceIdxs.push_back(buffer.find_first_of(" ", nextStartIdx));
-      if (spaceIdxs[i] == string::npos)
-        throw myException("Space in Haps file not found where expected");
-      nextStartIdx = spaceIdxs[i] + 1;
-    }
+    vector<string> tokens = Bio::tokenize_partial(buffer, 5, " ");
+    if (tokens.size() != 5)
+      throw std::runtime_error(
+          "Could not find first five columns in haps file");
 
     // load chrom and check input haps is correct chrom
-    string chr = buffer.substr(0, spaceIdxs[0]);
-    if (chr != site[0].chr)
-      throw myException("Found site on chromosome '" + chr +
-                        "' when chromosome '" + site[0].chr + "' was expected");
+    string chr = std::move(tokens[0]);
+    if (!m_sites.eq_chrom(chr))
+      throw std::runtime_error("Found site on chromosome '" + chr +
+                               "' when chromosome '" + m_sites.chrom() +
+                               "' was expected");
 
     // move ahead and extract position from third field
     size_t endReadIdx = 0;
-    unsigned pos = stoul(
-        buffer.substr(spaceIdxs[1] + 1, spaceIdxs[2] - (spaceIdxs[1] + 1)),
-        &endReadIdx, 0);
+    unsigned pos = stoul(tokens[2], endReadIdx, 0);
 
     // make sure the whole field was parsed!
-    if (endReadIdx != spaceIdxs[2] - (spaceIdxs[1] + 1))
-      throw myException("Input haplotypes line field three was read as " +
-                        sutils::uint2str(pos) +
-                        " and does not seem to be an unsigned integer.\n" +
-                        "Read was " + sutils::uint2str(endReadIdx) +
-                        " char(s) long" + "\nThe field was actually " +
-                        sutils::uint2str(spaceIdxs[2]) + " char(s) long");
+    if (endReadIdx != tokens[2].size())
+      throw std::runtime_error("Could not parse position: [" + tokens[2] + "]");
 
     // make sure input sites are sorted by position
     if (pos < previousPos)
@@ -448,18 +418,20 @@ void Insti::OpenHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
     previousPos = pos;
 
     // start loading only once we hit the first site
-    if (pos < site[0].pos)
+    auto posRange = m_sites.range();
+    if (pos < posRange.first)
       continue;
 
     // stop loading sites if the current site is past the last site position in
     // the GLs
-    if (pos > site.back().pos)
+    if (pos > posRange.second)
       break;
 
     // only keep sites that we know of
-    auto foundSite = m_sitesUnordered.find(pos);
+    Bio::snp newSite(std::move(chr), pos, std::move(tokens[3]),
+                     std::move(tokens[4]));
 
-    if (foundSite == m_sitesUnordered.end())
+    if (!m_sites.exists(newSite))
       continue;
 
     // split entire line for processing
@@ -469,22 +441,22 @@ void Insti::OpenHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
     // make sure header start is correct
     if (numHaps == 0) {
       if (tokens.size() <= 5)
-        throw myException("haps file " + hapsFile +
-                          " contains too few columns (" +
-                          sutils::uint2str(tokens.size()) + ")");
+        throw std::runtime_error("haps file " + hapsFile +
+                                 " contains too few columns (" +
+                                 sutils::uint2str(tokens.size()) + ")");
 
       // count number of haps
       numHaps = tokens.size() - 5;
 
     } else {
       if (tokens.size() - 5 != numHaps)
-        throw myException(
+        throw std::runtime_error(
             "Every row of haplotypes file must have the same number of "
             "columns");
     }
 
     // store site of haplotype
-    sites.push_back(snp(chr, pos, tokens[3], tokens[4]));
+    sites.push_back(std::move(newSite));
     vector<char> loadSite;
     loadSite.reserve(numHaps);
 
@@ -519,7 +491,7 @@ void Insti::OpenHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
 }
 
 void Insti::OpenVCFGZ(const string &vcf, const string &region,
-                      vector<vector<char> > &loadHaps, vector<snp> &loadSites,
+                      vector<vector<char>> &loadHaps, vector<snp> &loadSites,
                       vector<string> &ids) {
   loadHaps.clear();
   loadSites.clear();
@@ -640,7 +612,7 @@ void Insti::LoadVCFGZ(const string &vcf, InstiPanelType panel_t,
   // load haps file
   CheckPanelPrereqs(panel_t);
 
-  vector<vector<char> > loadHaps;
+  vector<vector<char>> loadHaps;
   vector<snp> loadSites;
   vector<string> scaffoldSampleIDs;
 
@@ -660,7 +632,7 @@ void Insti::LoadVCFGZ(const string &vcf, InstiPanelType panel_t,
   }
 
   assert(!loadHaps.empty());
-  vector<vector<char> > filtHaps;
+  vector<vector<char>> filtHaps;
   vector<snp> filtSites;
 
   FilterSites(loadHaps, loadSites, filtHaps, filtSites, panel_t);
@@ -683,7 +655,7 @@ void Insti::LoadHapsSamp(const string &hapsFile, const string &sampleFile,
   // load haps file
   CheckPanelPrereqs(panelType);
 
-  vector<vector<char> > loadHaps;
+  vector<vector<char>> loadHaps;
   vector<snp> loadSites;
 
   // read the haps and sites from a haps file
@@ -708,7 +680,7 @@ void Insti::LoadHapsSamp(const string &hapsFile, const string &sampleFile,
   }
 
   assert(!loadHaps.empty());
-  vector<vector<char> > filtHaps;
+  vector<vector<char>> filtHaps;
   vector<snp> filtSites;
 
   FilterSites(loadHaps, loadSites, filtHaps, filtSites, panelType);
@@ -718,7 +690,7 @@ void Insti::LoadHapsSamp(const string &hapsFile, const string &sampleFile,
 }
 
 void Insti::OrderSamples(vector<string> &loadIDs,
-                         vector<vector<char> > &loadHaps) {
+                         vector<vector<char>> &loadHaps) {
 
   assert(loadIDs.size() == m_namesUnordered.size());
 
@@ -770,7 +742,7 @@ void Insti::OrderSamples(vector<string> &loadIDs,
     assert(loadIDs.size() * 2 == loadHaps[0].size());
 }
 void Insti::SubsetSamples(vector<string> &loadIDs,
-                          vector<vector<char> > &loadHaps) {
+                          vector<vector<char>> &loadHaps) {
 
   assert(loadIDs.size() >= m_namesUnordered.size());
 
@@ -823,8 +795,8 @@ void Insti::SubsetSamples(vector<string> &loadIDs,
 }
 
 // only keep sites in main gl set
-void Insti::FilterSites(vector<vector<char> > &loadHaps, vector<snp> &loadSites,
-                        vector<vector<char> > &filtHaps, vector<snp> &filtSites,
+void Insti::FilterSites(vector<vector<char>> &loadHaps, vector<snp> &loadSites,
+                        vector<vector<char>> &filtHaps, vector<snp> &filtSites,
                         InstiPanelType panelType) {
 
   assert(loadSites.size() > 0);
@@ -842,8 +814,8 @@ void Insti::FilterSites(vector<vector<char> > &loadHaps, vector<snp> &loadSites,
   if (panelType == InstiPanelType::REFERENCE) {
 
     // the reference panel may not have less sites than the GLs
-    assert(site.size() <= loadSites.size());
-    filtHaps.reserve(site.size());
+    assert(m_sites.size() <= loadSites.size());
+    filtHaps.reserve(m_sites.size());
   } else if (panelType == InstiPanelType::SCAFFOLD) {
 
     // the scaffold may have less or more sites than the GLs
@@ -857,38 +829,22 @@ void Insti::FilterSites(vector<vector<char> > &loadHaps, vector<snp> &loadSites,
   for (unsigned loadSiteIdx = 0; loadSiteIdx < loadSites.size();
        ++loadSiteIdx) {
     const snp &loadSite = loadSites[loadSiteIdx];
-    auto canSiteR = m_sitesUnordered.equal_range(loadSite.pos);
-
-    // the load site is not in the GL sites
-    if (distance(canSiteR.first, canSiteR.second) == 0)
+    if (!m_sites.exists(loadSite))
       continue;
 
     // test each of the sites to see if it matches
-    bool match = false;
-    for (auto candidateSite = canSiteR.first; candidateSite != canSiteR.second;
-         ++candidateSite) {
-      const snp &cSite = candidateSite->second;
-      if ((loadSite.pos == cSite.pos) &&
-          (loadSite.chr.empty() ? true : loadSite.chr == cSite.chr) &&
-          (loadSite.ref == cSite.ref) && loadSite.alt == cSite.alt) {
-        match = true;
-        break;
-      }
-    }
-    if (match) {
-      if (loadSite.pos < previousPos)
-        throw std::runtime_error(
-            "[insti] Haplotypes file is not ordered by position: ");
-      if (loadSite.pos == previousPos)
-        throw std::runtime_error("[insti] Multiple variants at the same "
-                                 "position are not implemented yet");
-      previousPos = loadSite.pos;
-      ++matchSites;
+    if (loadSite.pos < previousPos)
+      throw std::runtime_error(
+          "[insti] Haplotypes file is not ordered by position: ");
+    if (loadSite.pos == previousPos)
+      throw std::runtime_error("[insti] Multiple variants at the same "
+                               "position are not implemented yet");
+    previousPos = loadSite.pos;
+    ++matchSites;
 
-      // keep the site because it matches
-      filtSites.push_back(loadSite);
-      filtHaps.push_back(move(loadHaps[loadSiteIdx]));
-    }
+    // keep the site because it matches
+    filtSites.push_back(loadSite);
+    filtHaps.push_back(move(loadHaps[loadSiteIdx]));
   }
 
   cout << "[insti] Number of loaded haplotypes: " << numHaplotypesLoaded
@@ -904,13 +860,13 @@ void Insti::FilterSites(vector<vector<char> > &loadHaps, vector<snp> &loadSites,
         "input file sorted?");
 
   // we always want to find at most as many matches as are in GL sites
-  if (matchSites > site.size())
+  if (matchSites > m_sites.size())
     throw std::runtime_error("[insti] too many matching sites found");
 
   assert(matchSites > 0);
 
   if (panelType == InstiPanelType::REFERENCE)
-    if (site.size() != matchSites)
+    if (m_sites.size() != matchSites)
       throw std::runtime_error(
           "[insti] Could not find all GL sites in loaded haplotype panel");
 }
@@ -954,7 +910,7 @@ void Insti::MatchSamples(const vector<std::string> &IDs, unsigned numHaps) {
 }
 
 // put the haplotypes in the right place in the program structure
-void Insti::LoadHaps(vector<vector<char> > &inHaps, vector<snp> &inSites,
+void Insti::LoadHaps(vector<vector<char>> &inHaps, vector<snp> &inSites,
                      vector<string> &inSampleIDs, InstiPanelType panelType) {
 
   assert(inHaps.size() == inSites.size());
@@ -984,8 +940,7 @@ void Insti::LoadHaps(vector<vector<char> > &inHaps, vector<snp> &inSites,
         throw myException(
             "Error while reading scaffold: Scaffold needs to have two "
             "haplotypes for every input sample");
-    }
-    catch (exception &e) {
+    } catch (exception &e) {
       cout << e.what() << endl;
       exit(1);
     };
@@ -1063,7 +1018,7 @@ vector<snp> Insti::OpenLegend(string legendFile) {
   return loadLeg;
 }
 
-vector<vector<char> > Insti::OpenHap(string hapFile) {
+vector<vector<char>> Insti::OpenHap(string hapFile) {
 
   // read in the hap file
   ifile hapFD(hapFile);
@@ -1074,7 +1029,7 @@ vector<vector<char> > Insti::OpenHap(string hapFile) {
   string buffer;
   int lineNum = -1;
   unsigned uNumHaps = 0;
-  vector<vector<char> > loadHaps;
+  vector<vector<char>> loadHaps;
 
   while (getline(hapFD, buffer, '\n')) {
     lineNum++;
@@ -1166,13 +1121,12 @@ bool Insti::LoadHapLegSamp(const string &legendFile, const string &hapFile,
     cout << "Loading hap file: " << hapFile << endl;
     auto loadHaps = OpenHap(hapFile);
 
-    vector<vector<char> > filtHaps;
+    vector<vector<char>> filtHaps;
     vector<snp> filtSites;
     FilterSites(loadHaps, legend, filtHaps, filtSites, panelType);
 
     LoadHaps(filtHaps, filtSites, sampleIDs, panelType);
-  }
-  catch (exception &e) {
+  } catch (exception &e) {
     cerr << "Error loading haplotypes file " << hapFile << ": " << e.what()
          << endl;
     exit(2);
@@ -1359,19 +1313,6 @@ void Insti::initialize() {
 
   swap(temp, prob); // swap the assignments to each vector
 
-  // create an unordered map version of site
-  assert(m_sitesUnordered.size() == 0);
-
-  for (auto oneSite : site)
-    m_sitesUnordered.insert(std::make_pair(
-        oneSite.pos, snp(oneSite.chr, oneSite.pos, oneSite.all.substr(0, 1),
-                         oneSite.all.substr(1, 1))));
-
-  assert(m_sitesUnordered.size() == site.size());
-
-  // create unordered map version of names
-  assert(m_namesUnordered.size() == 0);
-
   for (unsigned nameIdx = 0; nameIdx < name.size(); nameIdx++)
     m_namesUnordered.insert(std::make_pair(name[nameIdx], nameIdx));
 
@@ -1426,7 +1367,7 @@ fast Insti::cudaSolve(HMMLike &hapSampler, unsigned sampleStride, fast pen) {
   assert(sampleStride == in);
 
   // sample four haps for N samples
-  unsigned firstSampIdx{ 0 }, lastSampIdx{ 0 };
+  unsigned firstSampIdx{0}, lastSampIdx{0};
   vector<unsigned> propHaps =
       hapSampler.RunHMMOnSamples(firstSampIdx, lastSampIdx);
 
@@ -1646,8 +1587,7 @@ void Insti::estimate() {
     assert(!m_sLogFile.empty());
     try {
       m_sampler->Save(m_sLogFile, name);
-    }
-    catch (exception &e) {
+    } catch (exception &e) {
       cerr << e.what() << endl;
     }
   }
@@ -1744,7 +1684,7 @@ fast Insti::solve_EMC(unsigned I, unsigned N, fast S) {
   // initialize emc chains with increasing temperatures
   vector<EMCChain> vcChains;
   vector<uint>
-  vuChainTempHierarchy; // index of Chains sorted by temperature, ascending
+      vuChainTempHierarchy; // index of Chains sorted by temperature, ascending
 
   for (unsigned i = 0; i < Insti::s_uParallelChains; i++) {
     vcChains.push_back(EMCChain((i + 1) * fMaxTemp / Insti::s_uParallelChains,
@@ -2107,9 +2047,9 @@ void Insti::save_vcf(const char *F, string commandLine) {
     vcfFD << "\t" << name[i];
 
   for (unsigned m = 0; m < mn; m++) {
-    vcfFD << "\n" << site[m].chr << "\t" << site[m].pos << "\t.\t"
-          << site[m].all[0] << "\t" << site[m].all[1]
-          << "\t100\tPASS\t.\tGT:GP:APP";
+    auto site = m_sites.at(m);
+    vcfFD << "\n" << site->chr << "\t" << site->pos << "\t.\t" << site->all[0]
+          << "\t" << site->all[1] << "\t100\tPASS\t.\tGT:GP:APP";
 
     fast *p = &prob[m * hn];
 
@@ -2128,7 +2068,7 @@ void Insti::save_vcf(const char *F, string commandLine) {
         vcfFD << "\t1|1";
 
       // test for any p being zero
-      vector<fast> vfProb = { prr, pra, paa, p[0], p[1] };
+      vector<fast> vfProb = {prr, pra, paa, p[0], p[1]};
 
       for (auto &phred : vfProb) {
         if (phred == 0)
@@ -2182,14 +2122,15 @@ void Insti::SetHapsAccordingToScaffold() {
          scaffoldPositionIdx < m_scaffold.NumSites(); scaffoldPositionIdx++) {
 
       // find the site in site that matches the scaffold position
-      for (; siteIdx < site.size(); siteIdx++) {
-        if (site[siteIdx].pos == m_scaffold.Position(scaffoldPositionIdx))
+      for (; siteIdx < m_sites.size(); siteIdx++) {
+        auto site = m_sites.at(siteIdx);
+        if (site->pos == m_scaffold.Position(scaffoldPositionIdx))
           break;
       }
 
       // if this is not true, then the scaffold position could not be found in
       // site
-      assert(siteIdx < site.size());
+      assert(siteIdx < m_sites.size());
 
       // set the site to what is in the scaffold
       if (test(scaffHap, scaffoldSiteIdx))
