@@ -4,11 +4,10 @@
 #ifndef _INSTI_H
 #define _INSTI_H 1
 
-/*
-  #include <string>
-  #include <fstream>
-  #include <iostream>
-*/
+#include <string>
+#include <fstream>
+#include <iostream>
+
 #include <memory>
 #include <limits>
 #include <cassert>
@@ -40,6 +39,9 @@
 #ifndef NCUDA
 #include "hmmLike.hpp"
 #endif
+
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
 
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/phoenix_core.hpp>
