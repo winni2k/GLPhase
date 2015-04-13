@@ -191,7 +191,10 @@ void Insti::load_bin(const string &binFile) {
   name.clear();
   prob.clear();
 
-  ifile inputFD(binFile);
+  ifstream file(binFile, ios_base::in | ios_base::binary);
+  filtering_streambuf<input> inputFD;
+  inputFD.push(gzip_decompressor());
+  inputFD.push(file);
   if (!inputFD.good())
     throw std::runtime_error("Could not open file [" + binFile + "]");
 
