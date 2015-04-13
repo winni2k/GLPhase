@@ -187,11 +187,61 @@ int Insti::RWSelection(const vector<EMCChain> &rvcChains) {
 }
 
 void Insti::load_bin(const string &binFile) {
-  bool bRetVal = Impute::load_bin(binFile.c_str());
+  m_sites.clear();
+  name.clear();
+  prob.clear();
 
-  if (bRetVal == false)
-    throw std::runtime_error("[insti] Unable to load input .bin file: " +
-                             string(binFile));
+  ifile inputFD(binFile);
+  if (!inputFD.good())
+    throw std::runtime_error("Could not open file [" + binFile + "]");
+
+  // parse header
+  string buffer;
+  vector<string> tokens;
+  getline(inputFD, buffer);
+  boost::split(tokens, buffer, boost::is_any_of("\t"));
+  if (tokens.size() < 4)
+    throw std::runtime_error("Input bin file [" + binFile +
+                             "] does not contain any sample information");
+  name.reserve(tokens.size() - 3);
+  for (auto it = tokens.begin() + 3; it != tokens.end(); ++it)
+    name.push_back(std::move(*it));
+
+  // parse body
+  size_t lineNum = 1;
+  while (getline(inputFD, buffer)) {
+    ++lineNum;
+    boost::split(tokens, buffer, boost::is_any_of("\t"));
+    if (tokens.size() != 3 + name.size() * 2)
+      throw std::runtime_error("Input line " + lineNum +
+                               "does not have the correct number of columns");
+
+    // allow split on space for non snps
+    string ref, alt;
+    if (tokens[2].size() > 2) {
+      size_t space = tokens[2].find_first_of(" ");
+      if (space == string::npos)
+        throw std::runtime_error("Could not parse alleles [" + tokens[2] + "]");
+
+      ref = tokens[2].substr(0, space);
+      alt = tokens[2].substr(space + 1, string::npos);
+    }
+
+    // save site
+    m_sites.push_back(
+        snp(move(tokens[0]), stoi(tokens[1]), move(ref), move(alt)));
+
+    // parse two likelihoods in each column
+    size_t idx = 0;
+    for (size_t sampNum = 0; sampNum != name.size(); ++sampNum) {
+      prob.push_back(tokens[3 + sampNum], &idx);
+      prob.push_back(tokens[3 + sampNum].substr(idx));
+    }
+  }
+  mn = site.size();
+  cerr << "GLs"
+       << "Loaded " << mn << " sites\n"
+       << "Loaded " << in << " samples\n";
 
   // setting range object based on load bin
   if (m_sites.empty())

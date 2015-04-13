@@ -98,6 +98,10 @@ public:
   bool exists(const Bio::snp &search) const {
     return m_site_set.find(search.to_string()) != m_site_set.end();
   }
+  void clear() {
+    m_sites.clear();
+    m_site_set.clear();
+  }
   std::vector<Bio::snp>::const_iterator at(size_t idx) const {
     if (m_sites.size() <= idx)
       throw std::range_error("Idx [" + std::to_string(idx) + "]out of range");
@@ -111,6 +115,10 @@ private:
   std::string m_chrom;
 
 public:
+  void clear() {
+    m_chrom.clear();
+    Bio::snp_storage::clear();
+  }
   void push_back(Bio::snp input) {
     if (!m_sites.empty() && input.pos < m_sites.back().pos)
       throw std::range_error("Tried to insert position [" +
