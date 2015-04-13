@@ -213,7 +213,7 @@ void Insti::load_bin(const string &binFile) {
     ++lineNum;
     boost::split(tokens, buffer, boost::is_any_of("\t"));
     if (tokens.size() != 3 + name.size() * 2)
-      throw std::runtime_error("Input line " + lineNum +
+      throw std::runtime_error("Input line " + to_string(lineNum) +
                                "does not have the correct number of columns");
 
     // allow split on space for non snps
@@ -234,8 +234,8 @@ void Insti::load_bin(const string &binFile) {
     // parse two likelihoods in each column
     size_t idx = 0;
     for (size_t sampNum = 0; sampNum != name.size(); ++sampNum) {
-      prob.push_back(tokens[3 + sampNum], &idx);
-      prob.push_back(tokens[3 + sampNum].substr(idx));
+      prob.push_back(stof(tokens[3 + sampNum], &idx));
+      prob.push_back(stof(tokens[3 + sampNum].substr(idx)));
     }
   }
   mn = site.size();
@@ -248,8 +248,8 @@ void Insti::load_bin(const string &binFile) {
     throw std::runtime_error(
         "[insti] Loaded data seems to contain no sites in file: " +
         string(binFile));
-  m_runRegion = Region(std::move(m_sites.chrom), m_sites.range.first,
-                       m_sites.range.second);
+  auto range = m_sites.pos_range();
+  m_runRegion = Region(std::move(m_sites.chrom()), range.first, range.second);
 
   // setting number of cycles to use
   // here is best place to do it because in is defined in load_bin()
@@ -455,7 +455,7 @@ void Insti::OpenHaps(const string &hapsFile, vector<vector<char>> &loadHaps,
 
     // move ahead and extract position from third field
     size_t endReadIdx = 0;
-    unsigned pos = stoul(tokens[2], endReadIdx, 0);
+    unsigned pos = stoul(tokens[2], &endReadIdx);
 
     // make sure the whole field was parsed!
     if (endReadIdx != tokens[2].size())
@@ -468,7 +468,7 @@ void Insti::OpenHaps(const string &hapsFile, vector<vector<char>> &loadHaps,
     previousPos = pos;
 
     // start loading only once we hit the first site
-    auto posRange = m_sites.range();
+    auto posRange = m_sites.pos_range();
     if (pos < posRange.first)
       continue;
 
@@ -485,7 +485,6 @@ void Insti::OpenHaps(const string &hapsFile, vector<vector<char>> &loadHaps,
       continue;
 
     // split entire line for processing
-    vector<string> tokens;
     boost::split(tokens, buffer, boost::is_any_of(" "));
 
     // make sure header start is correct
@@ -2098,8 +2097,8 @@ void Insti::save_vcf(const char *F, string commandLine) {
 
   for (unsigned m = 0; m < mn; m++) {
     auto site = m_sites.at(m);
-    vcfFD << "\n" << site->chr << "\t" << site->pos << "\t.\t" << site->all[0]
-          << "\t" << site->all[1] << "\t100\tPASS\t.\tGT:GP:APP";
+    vcfFD << "\n" << site->chr << "\t" << site->pos << "\t.\t" << site->ref
+          << "\t" << site->alt << "\t100\tPASS\t.\tGT:GP:APP";
 
     fast *p = &prob[m * hn];
 

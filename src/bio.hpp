@@ -21,8 +21,8 @@ private:
 
 public:
   Region(){};
-  Region(std::string &chrom, unsigned startBP, unsigned endBP)
-      : m_chrom(chrom), m_startBP(startBP), m_endBP(endBP) {}
+  Region(std::string chrom, unsigned startBP, unsigned endBP)
+      : m_chrom(std::move(chrom)), m_startBP(startBP), m_endBP(endBP) {}
 
   // returns region as tabix compatible region specifier of the form
   // chr:start-end
@@ -108,7 +108,6 @@ public:
     return m_sites.cbegin() + idx;
   }
 };
-}
 
 class snp_storage_ordered : public Bio::snp_storage {
 private:
@@ -141,5 +140,6 @@ public:
   std::string chrom() const { return m_chrom; }
   bool eq_chrom(const std::string chrom) { return chrom == m_chrom; }
 };
+}
 
 #endif /* _BIO_HPP */

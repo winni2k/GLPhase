@@ -81,7 +81,7 @@ export NVCC
 endif
 
 static: KERNEL := $(shell uname -r)
-static: SLIBS := u-wkretzsch-snptools/samtools-0.1.16/libbam.a u-wkretzsch-snptools/tabix-0.2.5/libtabix.a /usr/lib64/libm.a ~/lib/libz.a ~/li
+static: SLIBS := u-wkretzsch-snptools/samtools-0.1.16/libbam.a u-wkretzsch-snptools/tabix-0.2.5/libtabix.a /usr/lib64/libm.a ~/lib/libz.a
 
 # I'm deprecating this
 #testDebug: $(OBJECT_FILES) $(HEADER_FILES) debug
