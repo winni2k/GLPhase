@@ -191,20 +191,14 @@ void Insti::load_bin(const string &binFile) {
   name.clear();
   prob.clear();
 
-  ifstream file(binFile, ios_base::in | ios_base::binary);
-  if (!file.good())
-    throw std::runtime_error("Could not open file [" + binFile + "]");
-  boost::iostreams::filtering_streambuf<boost::iostreams::input> inputFD;
-  inputFD.push(boost::iostreams::gzip_decompressor());
-  inputFD.push(file);
-
-  // Convert streambuf to istream
-  std::istream instream(&inputFD);
+  ifile inputFD(binFile, false, "gz");
 
   // parse header
   string buffer;
   vector<string> tokens;
-  getline(instream, buffer);
+  if (!inputFD.isGood())
+    throw std::runtime_error("Error opening file [" + binFile + "]");
+  getline(inputFD, buffer);
   boost::split(tokens, buffer, boost::is_any_of("\t"));
   if (tokens.size() < 4)
     throw std::runtime_error("Input bin file [" + binFile +
@@ -214,8 +208,10 @@ void Insti::load_bin(const string &binFile) {
     name.push_back(std::move(*it));
 
   // parse body
+  if (!inputFD.isGood())
+    throw std::runtime_error("Error error continuing to read from file [" + binFile + "]");
   size_t lineNum = 1;
-  while (getline(instream, buffer)) {
+  while (getline(inputFD, buffer)) {
     ++lineNum;
     boost::split(tokens, buffer, boost::is_any_of("\t"));
     if (tokens.size() != 3 + name.size())

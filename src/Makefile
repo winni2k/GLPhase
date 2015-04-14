@@ -45,7 +45,7 @@ test: CXXFLAGS += -O0 -ggdb
 # gcc
 CXX := g++-4.7+
 CXXFLAGS += -Wall -Wextra -std=c++11 -mpopcnt -fopenmp
-BOOSTLIB := -lboost_iostreams-mt #alternatively: /opt/boost/boost-1.54.0-intel/lib/libboost_iostreams.a
+BOOSTLIB := -lboost_iostreams #alternatively: /opt/boost/boost-1.54.0-intel/lib/libboost_iostreams.a
 LIBS += -lgsl -lgslcblas -lhts -lbz2 $(BOOSTLIB) -lm -lstdc++ -lz
 
 # nvcc

@@ -83,8 +83,8 @@ namespace autils {
 int max(std::vector<double> &v);
 int max(std::vector<int> &v);
 void findUniqueSet(std::vector<bool> &B, std::vector<int> &U); // ?
-void decompose(int min, std::vector<std::vector<int> > &B,
-               std::vector<std::vector<std::vector<int> > > &BB); //?
+void decompose(int min, std::vector<std::vector<int>> &B,
+               std::vector<std::vector<std::vector<int>>> &BB); //?
 int checkDuo(int pa1, int pa2, int ca1, int ca2);
 int checkTrio(int fa1, int fa2, int ma1, int ma2, int ca1, int ca2);
 };
@@ -136,21 +136,20 @@ private:
 /******************************************************/
 class ifile : public bio::filtering_istream {
 private:
+  std::string m_ext;
   std::string file;
   std::ifstream fd;
   bool m_isGood = false;
 
 public:
   ifile();
-  ifile(std::string filename, bool binary = false);
+  ifile(std::string filename, bool binary = false, std::string ext = "");
   ~ifile();
   std::string name();
-  bool open(std::string filename, bool binary = false);
+  bool open(std::string filename, bool binary = false, std::string ext = "");
   bool readString(std::string &);
   void close();
-  bool isGood() {
-    return m_isGood;
-  };
+  bool isGood() { return m_isGood; };
 };
 
 /******************************************************/
