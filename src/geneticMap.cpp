@@ -46,7 +46,8 @@ GeneticMap::GeneticMap(string &fileName) {
 double GeneticMap::GeneticLocation(unsigned genomLoc) {
 
   // test assumptions
-  assert(!m_sortedMap.empty());
+  if (m_sortedMap.empty())
+    return 0;
   if (genomLoc < m_sortedMap.front().first ||
       genomLoc > m_sortedMap.back().first)
     throw std::runtime_error("Genomic location " + to_string(genomLoc) +

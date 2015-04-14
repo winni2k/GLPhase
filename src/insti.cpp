@@ -73,9 +73,11 @@ Insti::Insti(InstiHelper::Init &init)
     : m_reclusterEveryNGen(init.reclusterEveryNGen),
       m_scaffoldHapsFile(init.scaffoldHapsFile),
       m_scaffoldSampleFile(init.scaffoldSampleFile),
-      m_initPhaseFromScaffold(init.initPhaseFromScaffold),
-      m_geneticMap(init.geneticMap), m_init(init),
+      m_initPhaseFromScaffold(init.initPhaseFromScaffold), m_init(init),
       m_tag(boost::uuids::random_generator()()) {
+
+  if (!m_init.geneticMap.empty())
+    m_geneticMap = GeneticMap(init.geneticMap);
 
 #ifndef NOMP
   omp_set_num_threads(init.numThreads);
@@ -1270,7 +1272,8 @@ void Insti::initialize() {
   // 0.5 / (posi[mn - 1] - posi[0]) / density looks like a correction for finite
   // sites
   mu = 1 / mu;
-  //  rho = 0.5 * mu * (mn - 1) / (posi[mn - 1] - posi[0]) / density;
+  float rho = 0.5 * mu * (mn - 1) /
+              (m_sites.at(mn - 1)->pos - m_sites.at(0)->pos) / density;
   mu = mu / (hn + mu); // rho is recombination rate?  mu is mutation rate
 
   // initialzie the site transition matrix tran
@@ -1281,13 +1284,16 @@ void Insti::initialize() {
   for (unsigned m = mn - 1; m; m--) {
 
     // replaced ad-hoc genetic distance estimate by genetic map
-    //    posi[m] = (posi[m] - posi[m - 1]) * rho;
-    //    fast r = posi[m] / (posi[m] + hn);
-    float r = m_geneticMap.GeneticDistance(m_sites.at(m - 1)->pos,
-                                           m_sites.at(m)->pos);
-
-    // threshold genetic map to max value of 1
-    r = r > 1 ? 1 : r;
+    float r = 0;
+    if (m_init.geneticMap.empty()) {
+      float tmp = (m_sites.at(m)->pos - m_sites.at(m - 1)->pos) * rho;
+      r = tmp / (tmp + hn);
+    } else {
+      r = m_geneticMap.GeneticDistance(m_sites.at(m - 1)->pos,
+                                       m_sites.at(m)->pos);
+      // threshold genetic map to max value of 1
+      r = r > 1 ? 1 : r;
+    }
 
     //  4 state HMM with three transitions at each position
     // for each position, transition.  r= recombination,

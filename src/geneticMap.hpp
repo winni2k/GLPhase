@@ -17,12 +17,14 @@ static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 class GeneticMap {
 
 private:
-  std::vector<std::pair<unsigned, double> > m_sortedMap;
+  std::vector<std::pair<unsigned, double>> m_sortedMap;
 
 public:
+  GeneticMap(){};
   GeneticMap(std::string &fileName);
   double GeneticLocation(unsigned genomLoc);
   double GeneticDistance(unsigned first, unsigned second);
+  bool empty();
 };
 
 #endif /* _GENETICMAP_HPP */
