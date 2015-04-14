@@ -33,11 +33,14 @@
 #include "vcf_parser.hpp"
 #include "bio.hpp"
 #include "globals.h"
-#include <omp.h>
 #include "geneticMap.hpp"
 
 #ifndef NCUDA
 #include "hmmLike.hpp"
+#endif
+
+#ifndef NOMP
+#include <omp.h>
 #endif
 
 #include <boost/iostreams/filtering_streambuf.hpp>

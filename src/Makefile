@@ -17,11 +17,18 @@ ifndef NCUDA
 HEADER_FILES += hmmLike.hpp.gch
 endif
 
-ifndef NCUDA
 BIN := $(BDIR)/insti.$(VERSION)
-else
-BIN :=  $(BDIR)/insti.$(VERSION).ncuda
+ifdef NCUDA
+BIN := $(BIN).ncuda
 CXXFLAGS += -DNCUDA
+endif
+
+# disables OMP
+ifndef NOMP
+CXXFLAGS += -fopenmp
+else
+BIN := $(BIN).nomp
+CXXFLAGS += -DNOMP
 endif
 
 release: BIN += .release
@@ -43,8 +50,8 @@ debug: CXXFLAGS += -O0 -ggdb
 test: CXXFLAGS += -O0 -ggdb
 
 # gcc
-CXX := g++-4.7+
-CXXFLAGS += -Wall -Wextra -std=c++11 -mpopcnt -fopenmp
+CXX := g++
+CXXFLAGS += -Wall -Wextra -std=c++11 -mpopcnt
 BOOSTLIB := -lboost_iostreams #alternatively: /opt/boost/boost-1.54.0-intel/lib/libboost_iostreams.a
 LIBS += -lgsl -lgslcblas -lhts -lbz2 $(BOOSTLIB) -lm -lstdc++ -lz
 

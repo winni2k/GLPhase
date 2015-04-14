@@ -14,8 +14,11 @@
 #include <utility>
 #include "haplotype.hpp"
 #include "sampler.hpp"
-#include <omp.h>
 #include <string>
+
+#ifndef NOMP
+#include <omp.h>
+#endif
 
 // require c++11
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");

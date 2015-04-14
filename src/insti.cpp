@@ -77,7 +77,10 @@ Insti::Insti(InstiHelper::Init &init)
       m_geneticMap(init.geneticMap), m_init(init),
       m_tag(boost::uuids::random_generator()()) {
 
+#ifndef NOMP
   omp_set_num_threads(init.numThreads);
+#endif
+
   // bounds check estimator input
   if (init.estimator < 4)
     m_estimator = init.estimator;
@@ -209,7 +212,8 @@ void Insti::load_bin(const string &binFile) {
 
   // parse body
   if (!inputFD.isGood())
-    throw std::runtime_error("Error error continuing to read from file [" + binFile + "]");
+    throw std::runtime_error("Error error continuing to read from file [" +
+                             binFile + "]");
   size_t lineNum = 1;
   while (getline(inputFD, buffer)) {
     ++lineNum;
@@ -1439,7 +1443,9 @@ fast Insti::cudaSolve(HMMLike &hapSampler, unsigned sampleStride, fast pen) {
 
 // do a final round of haplotype estimation
 // this could be parallelized using threads perhaps? or an openmp pragma
+#ifndef NOMP
 #pragma omp parallel for
+#endif
   for (unsigned sampNum = firstSampIdx; sampNum <= lastSampIdx; ++sampNum)
     hmm_work(sampNum, &propHaps[sampNum * 4], pen);
 

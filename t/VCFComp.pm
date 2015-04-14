@@ -39,7 +39,7 @@ our $VERSION = '0.01';
 
 sub GetFH{
     my $file = shift;
-    open(my $fh, $file =~ m/\.gz$/ ? "gzip -dc $file |" : "<$file") or die "could not open file $file";
+    open(my ($fh), $file =~ m/\.gz$/ ? "gzip -dc $file |" : "<$file") or die "could not open file $file";
     return $fh;
 }
 

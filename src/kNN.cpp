@@ -133,7 +133,9 @@ void KNN::ClusterHaps(const vector<uint64_t> &haplotypes) {
     vector<dist> distsHapA(m_numHaps - 2);
     vector<dist> distsHapB(m_numHaps - 2);
 
+#ifndef NOMP
 #pragma omp parallel for
+#endif
     for (unsigned hapNum = 0; hapNum < m_numHaps; hapNum++) {
       if (hapNum >> 1 == uSampNum)
         continue;

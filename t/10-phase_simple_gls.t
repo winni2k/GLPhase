@@ -33,7 +33,7 @@ copy( "$simpleDir/simple.gls.v1.bin", $simpleGLs );
 
 my $gMap = "$Bin/../samples/geneticMap/genetic_map_chr20_combined_b37.txt";
 
-ok(system("$insti $simpleGLs -g $gMap -C100 -m 100 -B0 -i10") == 0, "ran insti");
+ok(system("$insti -g $gMap -C100 -m 100 -B0 -i10 $simpleGLs") == 0, "ran insti");
 BGZIPandIndexSTBin("$simpleGLs.vcf.gz");
 
 my $code = VCFHapMatch("$simpleGLs.vcf.gz", "$simpleDir/simple.gls.v1.expected.bin.vcf", $resDir);
