@@ -250,10 +250,14 @@ int main(int ac, char **av) {
         outBase = file[i];
 
       lp.save_vcf(outBase.c_str(), commandLine.str());
-      try {
-        lp.save_relationship_graph(outBase);
-      } catch (exception &e) {
-        cerr << e.what() << endl;
+
+      // output relationship graph if applicable
+      if (init.estimator == 2 || init.estimator == 3) {
+        try {
+          lp.save_relationship_graph(outBase);
+        } catch (exception &e) {
+          cerr << e.what() << endl;
+        }
       }
 
       // printing out run time

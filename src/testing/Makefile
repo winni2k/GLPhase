@@ -27,6 +27,7 @@ ifndef NCUDA
 TESTS += cuda_tests
 endif
 RUNTESTS:=$(addprefix run_,$(TESTS))
+INSTILIB := $(SRC_DIR)/$(INSTILIB)
 O_FILES :=  $(addprefix $(SRC_DIR)/, $(OBJECT_FILES))
 
 # hmmLike.o contains some gpu code
@@ -79,7 +80,7 @@ gtest_main.a : gtest-all.o gtest_main.o
 insti_unittests.o : insti_unittests.cpp $(SRC_DIR)/*.hpp.gch $(GTEST_HEADERS)
 	$(CXX) $(CXXFLAGS) -c $<
 
-insti_unittests : insti_unittests.o gtest_main.a $(INSTI_O_FILES) 
+insti_unittests : insti_unittests.o gtest_main.a $(INSTILIB) 
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)
 
 run_insti_unittests: insti_unittests
@@ -88,7 +89,7 @@ run_insti_unittests: insti_unittests
 other_unittests.o : other_unittests.cpp $(SRC_DIR)/*.hpp.gch $(GTEST_HEADERS)
 	$(CXX) $(CXXFLAGS) -c $<
 
-other_unittests : other_unittests.o gtest_main.a $(INSTI_O_FILES)
+other_unittests : other_unittests.o gtest_main.a $(INSTILIB)
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)
 
 run_other_unittests: other_unittests

@@ -7,7 +7,7 @@ BDIR := ../bin
 VERSION := $(shell grep VERSION_MAJOR version.hpp | cut -f3 -d' ').$(shell grep VERSION_MINOR version.hpp | cut -f3 -d' ').$(shell grep VERSION_REVISION version.hpp | cut -f3 -d' ')
 
 # object and header files are defined here
-OBJECT_FILES := main.o impute.o insti.o emcchain.o olivier/utils.o haplotype.o kMedoids.o kNN.o hapPanel.o sampler.o glPack.o tabix.o glVQ.o geneticMap.o bio.o
+OBJECT_FILES := impute.o insti.o emcchain.o olivier/utils.o haplotype.o kMedoids.o kNN.o hapPanel.o sampler.o glPack.o tabix.o glVQ.o geneticMap.o bio.o
 ifndef NCUDA
 OBJECT_FILES += hmmLike.cu.o allCuda.link.o hmmLike.o
 endif
@@ -17,9 +17,9 @@ ifndef NCUDA
 HEADER_FILES += hmmLike.hpp.gch
 endif
 
-BIN := $(BDIR)/insti.$(VERSION)
+BINBASE := insti.$(VERSION)
 ifdef NCUDA
-BIN := $(BIN).ncuda
+BINBASE := $(BINBASE).ncuda
 CXXFLAGS += -DNCUDA
 endif
 
@@ -27,18 +27,22 @@ endif
 ifndef NOMP
 CXXFLAGS += -fopenmp
 else
-BIN := $(BIN).nomp
+BINBASE := $(BINBASE).nomp
 CXXFLAGS += -DNOMP
 endif
 
+BIN := $(BDIR)/$(BINBASE)
+INSTILIB=$(BINBASE).a
+
 release: BIN += .release
+
 
 # targets
 all: $(BIN)
 release: $(BIN)
 debug: $(BIN).debug
 test: debug
-test: $(OBJECT_FILES) $(HEADER_FILES)
+test: $(INSTILIB) $(BIN).debug $(HEADER_FILES)
 	$(MAKE) -C testing
 	../t/regression_tests.pl $(BIN).debug
 
@@ -81,6 +85,7 @@ export CXXFLAGS
 export CXX
 export LIBS
 export OBJECT_FILES
+export INSTILIB
 
 ifndef NCUDA
 export NVCCFLAGS
@@ -95,7 +100,7 @@ static: SLIBS := u-wkretzsch-snptools/samtools-0.1.16/libbam.a /usr/lib64/libm.a
 #	$(MAKE) -C testing debug
 
 clean:
-	rm -f *.o *.hpp.gch olivier/utils.hpp.gch
+	rm -f *.a *.o *.hpp.gch olivier/utils.hpp.gch
 
 
 .DELETE_ON_ERROR:
@@ -162,15 +167,19 @@ endif
 main.o: main.cpp version.hpp.gch impute.hpp.gch insti.hpp.gch
 	$(CXX) $(CXXFLAGS) -c $<
 
+## library
+$(INSTILIB): $(OBJECT_FILES)
+	 ar $(ARFLAGS) $@ $^
+
 ## binaries
-$(BIN): $(OBJECT_FILES)
-	$(CXX) $(CXXFLAGS) $(OBJECT_FILES) -o $@ $(LIBS)
+$(BIN): $(INSTILIB) main.o
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)
 	cd $(BDIR) && rm -f insti && ln -s $@ insti
 
-static: $(OBJECT_FILES)
-	$(CXX) $(CXXFLAGS) $(OBJECT_FILES) -o $(BDIR)/insti.$(VERSION).static-$(KERNEL) $(SLIBS)
+static: $(INSTILIB) main.o
+	$(CXX) $(CXXFLAGS) $^ -o $(BDIR)/insti.$(VERSION).static-$(KERNEL) $(SLIBS)
 
-$(BIN).debug: $(OBJECT_FILES)
+$(BIN).debug: $(INSTILIB) main.o
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)
 
 
