@@ -14,13 +14,13 @@
 #include	<cstring>
 #include	<fstream>
 #include	<sstream>
-#include	<tabix.h>
 #include	<cfloat>
 #include	<cstdio>
 #include	<cmath>
 #include	<vector>
 #include	<ctime>
 #include	<set>
+#include <zlib.h>
 #include "globals.h"
 
 #define    MaskHA    0x80
@@ -110,7 +110,7 @@ public:
 
     bool load_bin(const char *F);
 
-    unsigned load_vcf(const char *F);
+//    unsigned load_vcf(const char *F);
 
     void initialize(void);
 

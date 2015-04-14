@@ -88,6 +88,7 @@ bool Impute::load_bin(const char *F) {
   return true;
 }
 
+/*
 unsigned Impute::load_vcf(const char *F) { // this section loads known genotypes
   unsigned known = 0;
   if (!vcf_file.size())
@@ -179,6 +180,7 @@ unsigned Impute::load_vcf(const char *F) { // this section loads known genotypes
   ti_close(t);
   return known;
 }
+*/
 
 void Impute::initialize(void) {
 

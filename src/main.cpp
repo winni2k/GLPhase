@@ -225,16 +225,18 @@ int main(int ac, char **av) {
       // add a reserve of space
       try {
         lp.load_bin(file[i]);
-      }
-      catch (std::exception &e) {
+      } catch (std::exception &e) {
         cerr << "[main] While loading .bin file: " << file[i] << endl
              << e.what() << endl;
         exit(1);
       }
 
+      /*
+      load_vcf is broken
       for (uint j = 0; j < Impute::vcf_file.size(); j++)
         cerr << Impute::vcf_file[j] << '\t'
              << lp.load_vcf(Impute::vcf_file[j].c_str()) << endl;
+      */
       cerr << lp.m_tag << ": initializing..\n";
 
       lp.initialize();
@@ -250,8 +252,7 @@ int main(int ac, char **av) {
       lp.save_vcf(outBase.c_str(), commandLine.str());
       try {
         lp.save_relationship_graph(outBase);
-      }
-      catch (exception &e) {
+      } catch (exception &e) {
         cerr << e.what() << endl;
       }
 
@@ -261,8 +262,7 @@ int main(int ac, char **av) {
            << end.tv_sec - sta.tv_sec + 1e-6 * (end.tv_usec - sta.tv_usec)
            << endl << endl;
     }
-  }
-  catch (exception &e) {
+  } catch (exception &e) {
     cerr << e.what() << endl;
     exit(1);
   }

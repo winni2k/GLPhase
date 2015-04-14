@@ -7,12 +7,12 @@ BDIR := ../bin
 VERSION := $(shell grep VERSION_MAJOR version.hpp | cut -f3 -d' ').$(shell grep VERSION_MINOR version.hpp | cut -f3 -d' ').$(shell grep VERSION_REVISION version.hpp | cut -f3 -d' ')
 
 # object and header files are defined here
-OBJECT_FILES := main.o impute.o insti.o emcchain.o olivier/utils.o haplotype.o kMedoids.o kNN.o hapPanel.o sampler.o glPack.o tabixpp/tabix.o glVQ.o geneticMap.o bio.o
+OBJECT_FILES := main.o impute.o insti.o emcchain.o olivier/utils.o haplotype.o kMedoids.o kNN.o hapPanel.o sampler.o glPack.o tabix.o glVQ.o geneticMap.o bio.o
 ifndef NCUDA
 OBJECT_FILES += hmmLike.cu.o allCuda.link.o hmmLike.o
 endif
 
-HEADER_FILES := insti.hpp.gch impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch version.hpp.gch bio.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch sampler.hpp.gch tabixpp/tabix.hpp.gch globals.h glVQ.hpp geneticMap.hpp.gch
+HEADER_FILES := insti.hpp.gch impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch version.hpp.gch bio.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch sampler.hpp.gch tabix.hpp.gch globals.h glVQ.hpp geneticMap.hpp.gch
 ifndef NCUDA
 HEADER_FILES += hmmLike.hpp.gch
 endif
@@ -46,7 +46,7 @@ test: CXXFLAGS += -O0 -ggdb
 CXX := g++-4.7+
 CXXFLAGS += -Wall -Wextra -std=c++11 -mpopcnt -fopenmp
 BOOSTLIB := -lboost_iostreams-mt #alternatively: /opt/boost/boost-1.54.0-intel/lib/libboost_iostreams.a
-LIBS += -lgsl -lgslcblas -ltabix -lbz2 $(BOOSTLIB) -lm -lstdc++ -lz
+LIBS += -lgsl -lgslcblas -lhts -lbz2 $(BOOSTLIB) -lm -lstdc++ -lz
 
 # nvcc
 ifndef NCUDA
@@ -61,8 +61,8 @@ test: NVCCFLAGS += -g -G
 endif
 
 # path variables
-CPLUS_INCLUDE_PATH += :olivier:tabixpp:vcfPhasedBreakMulti/src
-LIBRARY_PATH := tabixpp:$(LIBRARY_PATH)
+CPLUS_INCLUDE_PATH += :olivier:vcfPhasedBreakMulti/src
+LIBRARY_PATH := $(LIBRARY_PATH)
 LD_LIBRARY_PATH := $(LIBRARY_PATH):$(LD_LIBRARY_PATH)
 
 
@@ -81,7 +81,7 @@ export NVCC
 endif
 
 static: KERNEL := $(shell uname -r)
-static: SLIBS := u-wkretzsch-snptools/samtools-0.1.16/libbam.a u-wkretzsch-snptools/tabix-0.2.5/libtabix.a /usr/lib64/libm.a ~/lib/libz.a
+static: SLIBS := u-wkretzsch-snptools/samtools-0.1.16/libbam.a /usr/lib64/libm.a ~/lib/libz.a
 
 # I'm deprecating this
 #testDebug: $(OBJECT_FILES) $(HEADER_FILES) debug
@@ -113,9 +113,6 @@ hapPanel.hpp.gch: hapPanel.hpp bio.hpp.gch
 olivier/utils.hpp.gch: olivier/utils.hpp
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
-tabixpp/tabix.hpp.gch: tabixpp/tabix.hpp
-	$(CXX) $(CXXFLAGS) -x c++-header $<
-
 kNN.hpp.gch: kNN.hpp haplotype.hpp.gch sampler.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
@@ -128,7 +125,7 @@ MHSampler.hpp.gch: MHSampler.hpp olivier/utils.hpp.gch
 geneticMap.hpp.gch: geneticMap.hpp olivier/utils.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
-INSTIHEADERPRE :=insti.hpp impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch sampler.hpp.gch version.hpp.gch bio.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch kNN.hpp.gch kMedoids.hpp.gch glPack.hpp.gch tabixpp/tabix.hpp.gch geneticMap.hpp.gch
+INSTIHEADERPRE :=insti.hpp impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch sampler.hpp.gch version.hpp.gch bio.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch kNN.hpp.gch kMedoids.hpp.gch glPack.hpp.gch tabix.hpp.gch geneticMap.hpp.gch
 
 ifndef NCUDA
 INSTIHEADERPRE += hmmLike.hpp.gch
@@ -143,9 +140,6 @@ insti.hpp.gch: $(INSTIHEADERPRE)
 
 olivier/utils.o: olivier/utils.cpp olivier/utils.hpp.gch
 	$(CXX) $(CXXFLAGS) -Wno-sign-compare -c $< -o $@
-
-tabixpp/tabix.o: 
-	$(MAKE) -C tabixpp
 
 hmmLike.o: hmmLike.cpp hmmLike.hpp.gch hmmLike.h
 	$(CXX) $(CXXFLAGS) -c $<
