@@ -7,12 +7,12 @@ BDIR := ../bin
 VERSION := $(shell grep VERSION_MAJOR version.hpp | cut -f3 -d' ').$(shell grep VERSION_MINOR version.hpp | cut -f3 -d' ').$(shell grep VERSION_REVISION version.hpp | cut -f3 -d' ')
 
 # object and header files are defined here
-OBJECT_FILES := impute.o insti.o emcchain.o olivier/utils.o haplotype.o kMedoids.o kNN.o hapPanel.o sampler.o glPack.o tabix.o glVQ.o geneticMap.o bio.o
+OBJECT_FILES := impute.o insti.o emcchain.o olivier/utils.o haplotype.o kMedoids.o kNN.o hapPanel.o sampler.o glPack.o tabix.o glVQ.o geneticMap.o bio.o glReader.o
 ifndef NCUDA
 OBJECT_FILES += hmmLike.cu.o allCuda.link.o hmmLike.o
 endif
 
-HEADER_FILES := insti.hpp.gch impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch version.hpp.gch bio.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch sampler.hpp.gch tabix.hpp.gch globals.h glVQ.hpp geneticMap.hpp.gch
+HEADER_FILES := insti.hpp.gch impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch version.hpp.gch bio.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch sampler.hpp.gch tabix.hpp.gch globals.h glVQ.hpp geneticMap.hpp.gch glReader.hpp.gch
 ifndef NCUDA
 HEADER_FILES += hmmLike.hpp.gch
 endif

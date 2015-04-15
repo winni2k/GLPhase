@@ -53,8 +53,4 @@ my $code = VCFHapMatch( "$nogmapBase.vcf.gz",
     "$simpleDir/simple.gls.v1.expected.bin.vcf", $resDir );
 ok( $code eq 0, "simple haps v1 ngmap exit code OK" ) or diag($code);
 
-#########################
-
-# Insert your test code below, the Test::More module is used here so read
-# its man page ( perldoc Test::More ) for help writing this test script.
 

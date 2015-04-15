@@ -11,6 +11,7 @@
 #include <memory>
 #include <limits>
 #include <cassert>
+#include <cfloat>
 #include <stdint.h>
 #include <utility>
 #include <unordered_map>
@@ -24,16 +25,12 @@
 #include "kMedoids.hpp"
 #include "kNN.hpp"
 #include "glPack.hpp"
-#include <boost/uuid/uuid.hpp>            // uuid class
-#include <boost/uuid/uuid_generators.hpp> // generators
-#include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
-#include <boost/algorithm/string.hpp>
-#include <cfloat>
 #include "tabix.hpp"
 #include "vcf_parser.hpp"
 #include "bio.hpp"
 #include "globals.h"
 #include "geneticMap.hpp"
+#include "glReader.hpp"
 
 #ifndef NCUDA
 #include "hmmLike.hpp"
@@ -42,6 +39,13 @@
 #ifndef NOMP
 #include <omp.h>
 #endif
+
+// boost includes
+
+#include <boost/uuid/uuid.hpp>            // uuid class
+#include <boost/uuid/uuid_generators.hpp> // generators
+#include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
+#include <boost/algorithm/string.hpp>
 
 #include <boost/iostreams/filtering_streambuf.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
@@ -282,6 +286,7 @@ public:
   void WriteToLog(const std::string &tInput);
   void WriteToLog(const EMCChain &rcChain, const bool bMutate);
 
+  void load_gls(Bio::GLReader reader);
   void load_bin(const std::string &binFile);
 
   void initialize();

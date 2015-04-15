@@ -192,76 +192,35 @@ int Insti::RWSelection(const vector<EMCChain> &rvcChains) {
 }
 
 void Insti::load_bin(const string &binFile) {
-  m_sites.clear();
-  name.clear();
-  prob.clear();
 
-  ifile inputFD(binFile, false, "gz");
+  Bio::GLHelper::init init;
+  init.glFile = binFile;
+  init.nameFile = binFile;
+  init.glType = GLHelper::gl_t::STBIN;
+  GLReader reader(move(init));
 
-  // parse header
-  string buffer;
-  vector<string> tokens;
-  if (!inputFD.isGood())
-    throw std::runtime_error("Error opening file [" + binFile + "]");
-  getline(inputFD, buffer);
-  boost::split(tokens, buffer, boost::is_any_of("\t"));
-  if (tokens.size() < 4)
-    throw std::runtime_error("Input bin file [" + binFile +
-                             "] does not contain any sample information");
-  name.reserve(tokens.size() - 3);
-  for (auto it = tokens.begin() + 3; it != tokens.end(); ++it)
-    name.push_back(std::move(*it));
+  load_gls(move(reader));
+}
 
-  // parse body
-  if (!inputFD.isGood())
-    throw std::runtime_error("Error error continuing to read from file [" +
-                             binFile + "]");
-  size_t lineNum = 1;
-  while (getline(inputFD, buffer)) {
-    ++lineNum;
-    boost::split(tokens, buffer, boost::is_any_of("\t"));
-    if (tokens.size() != 3 + name.size())
-      throw std::runtime_error(
-          "Input line " + to_string(lineNum) +
-          " does not have the correct number of columns [" +
-          to_string(3 + name.size()) + "]");
+void Insti::load_gls(GLReader reader) {
 
-    // allow split on space for non snps
-    string ref, alt;
-    if (tokens[2].size() > 2) {
-      size_t space = tokens[2].find_first_of(" ");
-      if (space == string::npos)
-        throw std::runtime_error("Could not parse alleles [" + tokens[2] + "]");
+  reader.SetRetGLType(GLHelper::gl_ret_t::ST_DROP_FIRST);
+  auto gls = reader.GetGLs();
+  prob = move(gls.first);
+  m_sites = move(gls.second);
+  name = move(reader.GetNames());
 
-      ref = tokens[2].substr(0, space);
-      alt = tokens[2].substr(space + 1, string::npos);
-    } else {
-      ref = tokens[2][0];
-      alt = tokens[2][1];
-    }
-
-    // save site
-    m_sites.push_back(
-        snp(move(tokens[0]), stoi(tokens[1]), move(ref), move(alt)));
-
-    // parse two likelihoods in each column
-    size_t idx = 0;
-    for (size_t sampNum = 0; sampNum != name.size(); ++sampNum) {
-      prob.push_back(stof(tokens[3 + sampNum], &idx));
-      prob.push_back(stof(tokens[3 + sampNum].substr(idx)));
-    }
-  }
   in = name.size();
   mn = m_sites.size();
   cerr << "GLs\n"
        << "\tLoaded " << mn << " sites\n"
        << "\tLoaded " << in << " samples\n";
 
-  // setting range object based on load bin
+  // setting range object based on gls
   if (m_sites.empty())
     throw std::runtime_error(
         "[insti] Loaded data seems to contain no sites in file: " +
-        string(binFile));
+        reader.GetGLFile());
   auto range = m_sites.pos_range();
   m_runRegion = Region(std::move(m_sites.chrom()), range.first, range.second);
 
