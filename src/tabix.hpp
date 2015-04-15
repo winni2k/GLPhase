@@ -30,7 +30,6 @@ class Tabix {
   tbx_t *tbx;
   hts_itr_t *iter;
   const tbx_conf_t *idxconf;
-  int tid, beg, end;
   std::string firstline;
   bool has_jumped;
   std::vector<std::string>::iterator current_chrom;

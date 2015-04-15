@@ -56,7 +56,7 @@ public:
     return false;
   }
 
-  bool operator==(const snp &rhs) {
+  bool operator==(const snp &rhs) const {
     if (pos == rhs.pos && chr == rhs.chr && ref == rhs.ref && alt == rhs.alt)
       return true;
     return false;

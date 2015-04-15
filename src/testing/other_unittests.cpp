@@ -4,6 +4,8 @@
 #include "kNN.hpp"
 #include "MHSampler.hpp"
 #include "geneticMap.hpp"
+#include "bio.hpp"
+#include "glReader.hpp"
 #include <algorithm>
 #include <gsl/gsl_rng.h>
 #include <utility>
@@ -429,4 +431,71 @@ TEST(GeneticMap, distanceOK) {
   EXPECT_NEAR((5.49294697413266 - 5.49291291069285) / 270 * 220 +
                   (5.49294973985857 - 5.49294697413266) / 22 * 5,
               gmap.GeneticDistance(1140507, 1140732), 1e-8);
+}
+
+TEST(GLReader, loadsSTBin) {
+
+  Bio::GLHelper::init init;
+  init.nameFile = sampleBin;
+  init.glFile = sampleBin;
+  init.glType = Bio::GLHelper::gl_t::STBIN;
+  init.glRetType = Bio::GLHelper::gl_ret_t::STANDARD;
+
+  Bio::GLReader reader(init);
+  // test names
+  auto names = reader.GetNames();
+  ASSERT_EQ(names.size(), 3);
+  EXPECT_EQ(names[0], "samp1");
+  EXPECT_EQ(names[1], "samp2");
+  EXPECT_EQ(names[2], "samp3");
+
+  // test GLs
+  // see if site exists
+  {
+    auto gls = reader.GetGLs();
+    Bio::snp searchSNP("20", 11977595, "G", "A");
+    EXPECT_TRUE(gls.second.exists(searchSNP));
+    EXPECT_TRUE(*(gls.second.at(7)) == searchSNP);
+
+    // check that site's GLs
+    EXPECT_FLOAT_EQ(gls.first.at(3 * 3 * 7), 0);
+    EXPECT_FLOAT_EQ(gls.first.at(3 * 3 * 7 + 1), 0);
+    EXPECT_FLOAT_EQ(gls.first.at(3 * 3 * 7 + 2), 1);
+
+    EXPECT_FLOAT_EQ(gls.first.at(3 * 3 * 7 + 3), 0);
+    EXPECT_FLOAT_EQ(gls.first.at(3 * 3 * 7 + 4), 1);
+    EXPECT_FLOAT_EQ(gls.first.at(3 * 3 * 7 + 5), 0);
+
+    EXPECT_FLOAT_EQ(gls.first.at(3 * 3 * 7 + 6), 1);
+    EXPECT_FLOAT_EQ(gls.first.at(3 * 3 * 7 + 7), 0);
+    EXPECT_FLOAT_EQ(gls.first.at(3 * 3 * 7 + 8), 0);
+
+    // check first site's GLs
+    EXPECT_FLOAT_EQ(gls.first.at(0), 0);
+    EXPECT_FLOAT_EQ(gls.first.at(1), 0);
+    EXPECT_FLOAT_EQ(gls.first.at(2), 1);
+
+    EXPECT_FLOAT_EQ(gls.first.at(3), 0.8);
+    EXPECT_FLOAT_EQ(gls.first.at(4), 0.2);
+    EXPECT_FLOAT_EQ(gls.first.at(5), 0);
+
+    EXPECT_FLOAT_EQ(gls.first.at(6), 1);
+    EXPECT_FLOAT_EQ(gls.first.at(7), 0);
+    EXPECT_FLOAT_EQ(gls.first.at(8), 0);
+  }
+  {
+    init.glRetType = Bio::GLHelper::gl_ret_t::ST_DROP_FIRST;
+    reader.SetArgs(init);
+    auto gls = reader.GetGLs();
+
+    EXPECT_FLOAT_EQ(gls.first.at(0), 0);
+    EXPECT_FLOAT_EQ(gls.first.at(1), 1);
+
+    EXPECT_FLOAT_EQ(gls.first.at(2), 0.2);
+    EXPECT_FLOAT_EQ(gls.first.at(3), 0);
+
+    EXPECT_FLOAT_EQ(gls.first.at(4), 0);
+    EXPECT_FLOAT_EQ(gls.first.at(5), 0);
+
+  }
 }
