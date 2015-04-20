@@ -178,17 +178,25 @@ $(INSTILIB): $(OBJECT_FILES) $(HTSLIBPP)
 $(HTSLIBPP):
 	$(MAKE) -C htslibpp
 
+SYSLINKFLAGS :=
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+    SYSLINKFLAGS += -Wl,-whole-archive
+endif
+ifeq ($(UNAME_S),Darwin)
+endif
+
 ## binaries
 ## need to include --whole-archive option for static member variables
 $(BIN): $(INSTILIB) main.o
-	$(CXX) $(CXXFLAGS) -Wl,-whole-archive $^ -Wl,-no-whole-archive -o $@ $(LIBS) -Lhtslibpp
+	$(CXX) $(CXXFLAGS) -o $@ $(LIBS) -Lhtslibpp $(SYSLINKFLAGS) $^ 
 	cd $(BDIR) && rm -f insti && ln -s $@ insti
 
 static: $(INSTILIB) main.o
 	$(CXX) $(CXXFLAGS) $^ -o $(BDIR)/insti.$(VERSION).static-$(KERNEL) $(SLIBS)
 
 $(BIN).debug: $(INSTILIB) main.o
-	$(CXX) $(CXXFLAGS) -Wl,-whole-archive $^ -Wl,-no-whole-archive -o $@ $(LIBS)  -Lhtslibpp
+	$(CXX) $(CXXFLAGS) -o $@ $(LIBS)  -Lhtslibpp $(SYSLINKFLAGS) $^ 
 
 
 ## installation
