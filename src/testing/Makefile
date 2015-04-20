@@ -23,7 +23,7 @@ LIBS += -lpthread -L$(SRC_DIR)/htslibpp
 # created to the list.
 TESTS := insti_unittests.bin other_unittests.bin glPack_unittests.bin glReader_tests.bin
 ifndef NCUDA
-TESTS += cuda_tests
+TESTS += cuda_tests.bin
 endif
 RUNTESTS:=$(addprefix run_,$(TESTS))
 INSTILIB := $(SRC_DIR)/$(INSTILIB)
@@ -131,7 +131,7 @@ cuda_tests.o: cuda_tests.cpp $(GTEST_HEADERS) $(SRC_DIR)/*.hpp.gch
 cuda_tests.link.o: cuda_tests.cu.o $(SRC_DIR)/hmmLike.cu.o 
 	$(NVCC) $^ $(NVCCFLAGS) -dlink -o $@
 
-cuda_tests: cuda_tests.link.o gtest_main.a cuda_tests.o cuda_tests.cu.o $(SRC_DIR)/hmmLike.cu.o $(SRC_DIR)/hmmLike.o $(CUDA_O_FILES)
+cuda_tests.bin: cuda_tests.link.o gtest_main.a cuda_tests.o cuda_tests.cu.o $(SRC_DIR)/hmmLike.cu.o $(SRC_DIR)/hmmLike.o $(CUDA_O_FILES)
 	$(CXX) $^ $(CXXFLAGS) -o $@ $(LIBS)
 
 run_cuda_tests:cuda_tests

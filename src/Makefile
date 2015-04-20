@@ -105,7 +105,7 @@ static: SLIBS := u-wkretzsch-snptools/samtools-0.1.16/libbam.a /usr/lib64/libm.a
 
 clean:
 	rm -f *.a *.o *.hpp.gch olivier/utils.hpp.gch
-
+	$(MAKE) -C htslibpp clean
 
 .DELETE_ON_ERROR:
 
@@ -173,21 +173,22 @@ main.o: main.cpp version.hpp.gch impute.hpp.gch insti.hpp.gch
 
 ## library
 $(INSTILIB): $(OBJECT_FILES) $(HTSLIBPP)
-	 ar $(ARFLAGS) $@ $(OBJECT_FILES)
+	$(AR) $(ARFLAGS) $@ $(OBJECT_FILES)
 
 $(HTSLIBPP):
 	$(MAKE) -C htslibpp
 
 ## binaries
+## need to include --whole-archive option for static member variables
 $(BIN): $(INSTILIB) main.o
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS) -Lhtslibpp
+	$(CXX) $(CXXFLAGS) -Wl,-whole-archive $^ -Wl,-no-whole-archive -o $@ $(LIBS) -Lhtslibpp
 	cd $(BDIR) && rm -f insti && ln -s $@ insti
 
 static: $(INSTILIB) main.o
 	$(CXX) $(CXXFLAGS) $^ -o $(BDIR)/insti.$(VERSION).static-$(KERNEL) $(SLIBS)
 
 $(BIN).debug: $(INSTILIB) main.o
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)  -Lhtslibpp
+	$(CXX) $(CXXFLAGS) -Wl,-whole-archive $^ -Wl,-no-whole-archive -o $@ $(LIBS)  -Lhtslibpp
 
 
 ## installation
