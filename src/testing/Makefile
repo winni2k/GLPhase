@@ -25,7 +25,7 @@ TESTS := insti_unittests.bin other_unittests.bin glPack_unittests.bin glReader_t
 ifndef NCUDA
 TESTS += cuda_tests.bin
 endif
-RUNTESTS:=$(addprefix run_,$(TESTS))
+RUNTESTS=$(TESTS:.bin=.run)
 INSTILIB := $(SRC_DIR)/$(INSTILIB)
 O_FILES :=  $(addprefix $(SRC_DIR)/, $(OBJECT_FILES))
 
@@ -79,37 +79,10 @@ gtest_main.a : gtest-all.o gtest_main.o
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $<
 
-%.bin: %.o gtest_main.a $(INSTILIB)
+$(TESTS): %.bin: %.o gtest_main.a $(INSTILIB)
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)
 
-#insti_unittests.o : insti_unittests.cpp $(SRC_DIR)/*.hpp.gch $(GTEST_HEADERS)
-#	$(CXX) $(CXXFLAGS) -c $<
-
-#insti_unittests : insti_unittests.o gtest_main.a $(INSTILIB) 
-#	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)
-
-run_insti_unittests.bin: insti_unittests.bin
-	./$^
-
-#other_unittests.o : other_unittests.cpp $(SRC_DIR)/*.hpp.gch $(GTEST_HEADERS)
-#	$(CXX) $(CXXFLAGS) -c $<
-
-#other_unittests : other_unittests.o gtest_main.a $(INSTILIB)
-#	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)
-
-run_other_unittests.bin: other_unittests.bin
-	./$^
-
-#glPack_unittests.o : glPack_unittests.cpp $(SRC_DIR)/glPack.hpp.gch $(SRC_DIR)/glVQ.hpp.gch $(GTEST_HEADERS)
-#	$(CXX) $(CXXFLAGS) -c $<
-
-#glPack_unittests : glPack_unittests.o gtest_main.a $(SRC_DIR)/glPack.o $(SRC_DIR)/glVQ.o
-#	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)
-
-run_glPack_unittests.bin: glPack_unittests.bin
-	./$^
-
-run_glReader_tests.bin: glReader_tests.bin
+$(RUNTESTS): %.run: %.bin
 	./$^
 
 ifndef NCUDA
@@ -118,7 +91,7 @@ ifndef NCUDA
 # see: http://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#using-separate-compilation-in-cuda
 # order of nvcc options is important! options should always go last!
 
-NVCCFLAGS += -L $(GTEST_DIR)
+NVCCFLAGS += -L $(GTEST_DIR) -I$(SRC_DIR)
 
 cuda_tests.cu.o: cuda_tests.cu
 	$(NVCC) $< $(NVCCFLAGS) -dc -o $@ 
@@ -139,5 +112,5 @@ run_cuda_tests:cuda_tests
 endif
 
 .PHONY: clean all debug $(RUNTESTS)
-.SUFFIXES:
+.SUFFIXES: 
 ### Makefile ends here
