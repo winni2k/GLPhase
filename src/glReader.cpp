@@ -2,6 +2,7 @@
 
 using namespace std;
 using namespace Bio;
+using namespace htspp;
 
 std::pair<std::vector<float>, Bio::snp_storage_ordered> GLReader::GetGLs() {
   LoadGLs();
@@ -14,8 +15,7 @@ void GLReader::LoadGLs() {
       LoadSTBinGLs();
       break;
     case GLHelper::gl_t::BCF:
-      throw logic_error(
-          "Tried to read BCF GL file, but this method is not implemented yet");
+      LoadBCFGLs();
       break;
     }
   }
@@ -29,8 +29,7 @@ void GLReader::LoadNames() {
     LoadSTBinNames();
     break;
   case GLHelper::gl_t::BCF:
-    throw logic_error(
-        "Tried to read BCF GL file, but this method is not implemented yet");
+    LoadBCFNames();
     break;
   }
 }
@@ -56,9 +55,64 @@ void GLReader::LoadSTBinNames() {
     m_names.push_back(std::move(*it));
 }
 
+void GLReader::LoadBCFNames() {
+  m_names.clear();
+  bcfFile_cpp bcf(m_init.nameFile, "r");
+  bcf_hdr hdr(*bcf_hdr_read(bcf.data()));
+  m_names = get_sample_names(*(hdr.data()));
+}
+
 vector<string> GLReader::GetNames() {
   LoadNames();
   return std::move(m_names);
+}
+
+void GLReader::LoadBCFGLs() {
+  if (m_names.empty())
+    LoadBCFNames();
+  m_sites.clear();
+  m_gls.clear();
+  bcfFile_cpp bcf(m_init.glFile, "r");
+
+  bcf_hdr hdr(*bcf_hdr_read(bcf.data()));
+  bcf1_extended rec;
+  // for now, extract GLs from GL tag
+  const int numVals = 3;
+  while (rec.bcf_read(bcf, hdr) >= 0) {
+
+    // read in site
+    vector<string> alleles = rec.alleles();
+    if (alleles.size() < 2)
+      throw std::runtime_error("Too few alleles in BCF record");
+    if (alleles.size() > 2)
+      throw std::runtime_error("More than two alleles per record are not "
+                               "supported. Please break BCF into biallelics "
+                               "using bcftools norm -m -");
+    m_sites.push_back(snp(move(rec.chromName(hdr)), rec.pos1(),
+                          move(alleles[0]), move(alleles[1])));
+
+    // read in format
+    auto gls = rec.get_format_float(hdr, "GL");
+    if (gls.second != m_names.size() * numVals)
+      throw std::runtime_error("Returned number of values is not correct: " +
+                               to_string(gls.second));
+    float *p = gls.first.get();
+    for (size_t sampNum = 0; sampNum < m_names.size(); ++sampNum, p += 3) {
+      float homR = phred2prob<float, float>(*p);
+      float het = phred2prob<float, float>(*(p + 1));
+      float homA = phred2prob<float, float>(*(p + 2));
+
+      if (m_init.glRetType != GLHelper::gl_ret_t::ST_DROP_FIRST) {
+        m_gls.push_back(homR);
+        m_gls.push_back(het);
+        m_gls.push_back(homA);
+      } else {
+        float sum = homR + het + homA;
+        m_gls.push_back(het / sum);
+        m_gls.push_back(homA / sum);
+      }
+    }
+  }
 }
 
 void GLReader::LoadSTBinGLs() {

@@ -7,12 +7,13 @@ BDIR := ../bin
 VERSION := $(shell grep VERSION_MAJOR version.hpp | cut -f3 -d' ').$(shell grep VERSION_MINOR version.hpp | cut -f3 -d' ').$(shell grep VERSION_REVISION version.hpp | cut -f3 -d' ')
 
 # object and header files are defined here
-OBJECT_FILES := impute.o insti.o emcchain.o olivier/utils.o haplotype.o kMedoids.o kNN.o hapPanel.o sampler.o glPack.o tabix.o glVQ.o geneticMap.o bio.o glReader.o
+SOURCES=impute.cpp insti.cpp emcchain.cpp olivier/utils.cpp haplotype.cpp kMedoids.cpp kNN.cpp hapPanel.cpp sampler.cpp glPack.cpp tabix.cpp glVQ.cpp geneticMap.cpp bio.cpp glReader.cpp
+OBJECT_FILES=$(SOURCES:.cpp=.o)
+HEADER_FILES=$(SOURCES:.cpp=.hpp.gch)
 ifndef NCUDA
 OBJECT_FILES += hmmLike.cu.o allCuda.link.o hmmLike.o
 endif
 
-HEADER_FILES := insti.hpp.gch impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch version.hpp.gch bio.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch sampler.hpp.gch tabix.hpp.gch globals.h glVQ.hpp geneticMap.hpp.gch glReader.hpp.gch
 ifndef NCUDA
 HEADER_FILES += hmmLike.hpp.gch
 endif
@@ -33,6 +34,9 @@ endif
 
 BIN := $(BDIR)/$(BINBASE)
 INSTILIB=$(BINBASE).a
+HTSLIBPP_DIR:=htslibpp
+HTSLIBPP:=$(HTSLIBPP_DIR)/libhtspp.a
+
 
 release: BIN += .release
 
@@ -55,9 +59,9 @@ test: CXXFLAGS += -O0 -ggdb
 
 # gcc
 CXX := g++
-CXXFLAGS += -Wall -Wextra -std=c++11 -mpopcnt
+CXXFLAGS += -Wall -Wextra -std=c++11 -mpopcnt -Ihtslibpp
 BOOSTLIB := -lboost_iostreams #alternatively: /opt/boost/boost-1.54.0-intel/lib/libboost_iostreams.a
-LIBS += -lgsl -lgslcblas -lhts -lbz2 $(BOOSTLIB) -lm -lstdc++ -lz
+LIBS += -lgsl -lgslcblas -lhts -lbz2 $(BOOSTLIB) -lm -lstdc++ -lz -lhtspp
 
 # nvcc
 ifndef NCUDA
@@ -170,6 +174,9 @@ main.o: main.cpp version.hpp.gch impute.hpp.gch insti.hpp.gch
 ## library
 $(INSTILIB): $(OBJECT_FILES)
 	 ar $(ARFLAGS) $@ $^
+
+$(HTSLIBPP):
+	$(MAKE) -C htslibpp
 
 ## binaries
 $(BIN): $(INSTILIB) main.o

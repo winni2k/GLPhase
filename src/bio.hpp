@@ -4,6 +4,8 @@
 #ifndef _BIO_HPP
 #define _BIO_HPP 1
 
+#include <limits>
+#include <cmath>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
@@ -125,6 +127,12 @@ public:
   std::string chrom() const { return m_chrom; }
   bool eq_chrom(const std::string chrom) { return chrom == m_chrom; }
 };
+
+template <class F, class I> F phred2prob(I phred) {
+  if (phred > std::numeric_limits<F>::min_exponent10 * -10)
+    return static_cast<F>(0);
+  return static_cast<F>(pow(10, -phred / 10));
+}
 }
 
 #endif /* _BIO_HPP */

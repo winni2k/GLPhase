@@ -9,6 +9,7 @@
 #include <vector>
 #include "utils.hpp"
 #include "bio.hpp"
+#include "vcf.hpp"
 
 namespace Bio {
 
@@ -35,7 +36,9 @@ private:
   void LoadNames();
   void LoadGLs();
   void LoadSTBinNames();
+  void LoadBCFNames();
   void LoadSTBinGLs();
+  void LoadBCFGLs();
   std::pair<std::vector<float>, Bio::snp_storage_ordered> GetSTBinGLs();
 
 public:

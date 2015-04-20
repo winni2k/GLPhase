@@ -14,15 +14,14 @@ GTEST_DIR = $(SRC_DIR)/gtest-1.7.0
 
 # google test throwing warnings, workaround is to mark the dir as a system header dir
 export CXXFLAGS += -isystem $(GTEST_DIR)
-
-export CPATH += :$(GTEST_DIR)/include:$(GTEST_DIR)
-export CPLUS_INCLUDE_PATH += :$(SRC_DIR):$(SRC_DIR)/olivier:$(GTEST_DIR)/src:$(SRC_DIR)/vcfPhasedBreakMulti/src
+export CXXFLAGS += -I$(SRC_DIR) -I$(SRC_DIR)/olivier -I$(GTEST_DIR)/src -I$(SRC_DIR)/vcfPhasedBreakMulti/src -I$(SRC_DIR)/htslibpp -I$(GTEST_DIR)/include -I$(GTEST_DIR)
+export CPATH += :
 AR= ar
-LIBS += -lpthread
+LIBS += -lpthread -L$(SRC_DIR)/htslibpp
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
-TESTS := insti_unittests other_unittests glPack_unittests
+TESTS := insti_unittests.bin other_unittests.bin glPack_unittests.bin glReader_tests.bin
 ifndef NCUDA
 TESTS += cuda_tests
 endif
@@ -77,31 +76,40 @@ gtest_main.a : gtest-all.o gtest_main.o
 # gtest_main.a, depending on whether it defines its own main()
 # function.
 
-insti_unittests.o : insti_unittests.cpp $(SRC_DIR)/*.hpp.gch $(GTEST_HEADERS)
+%.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $<
 
-insti_unittests : insti_unittests.o gtest_main.a $(INSTILIB) 
+%.bin: %.o gtest_main.a $(INSTILIB)
 	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)
 
-run_insti_unittests: insti_unittests
+#insti_unittests.o : insti_unittests.cpp $(SRC_DIR)/*.hpp.gch $(GTEST_HEADERS)
+#	$(CXX) $(CXXFLAGS) -c $<
+
+#insti_unittests : insti_unittests.o gtest_main.a $(INSTILIB) 
+#	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)
+
+run_insti_unittests.bin: insti_unittests.bin
 	./$^
 
-other_unittests.o : other_unittests.cpp $(SRC_DIR)/*.hpp.gch $(GTEST_HEADERS)
-	$(CXX) $(CXXFLAGS) -c $<
+#other_unittests.o : other_unittests.cpp $(SRC_DIR)/*.hpp.gch $(GTEST_HEADERS)
+#	$(CXX) $(CXXFLAGS) -c $<
 
-other_unittests : other_unittests.o gtest_main.a $(INSTILIB)
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)
+#other_unittests : other_unittests.o gtest_main.a $(INSTILIB)
+#	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)
 
-run_other_unittests: other_unittests
+run_other_unittests.bin: other_unittests.bin
 	./$^
 
-glPack_unittests.o : glPack_unittests.cpp $(SRC_DIR)/glPack.hpp.gch $(SRC_DIR)/glVQ.hpp.gch $(GTEST_HEADERS)
-	$(CXX) $(CXXFLAGS) -c $<
+#glPack_unittests.o : glPack_unittests.cpp $(SRC_DIR)/glPack.hpp.gch $(SRC_DIR)/glVQ.hpp.gch $(GTEST_HEADERS)
+#	$(CXX) $(CXXFLAGS) -c $<
 
-glPack_unittests : glPack_unittests.o gtest_main.a $(SRC_DIR)/glPack.o $(SRC_DIR)/glVQ.o
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)
+#glPack_unittests : glPack_unittests.o gtest_main.a $(SRC_DIR)/glPack.o $(SRC_DIR)/glVQ.o
+#	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)
 
-run_glPack_unittests: glPack_unittests
+run_glPack_unittests.bin: glPack_unittests.bin
+	./$^
+
+run_glReader_tests.bin: glReader_tests.bin
 	./$^
 
 ifndef NCUDA

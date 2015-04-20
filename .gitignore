@@ -1,6 +1,8 @@
 *.o
 *.gch
 *.a
+*.gch-*
+*.bin
 /bin
 /src/testing/insti_unittests
 /src/testing/other_unittests

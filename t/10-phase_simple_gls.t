@@ -49,7 +49,7 @@ ok( system("$insti -C100 -m 100 -B0 -i10 -o $nogmapBase $simpleGLs") == 0,
     "ran insti without GMap" );
 BGZIPandIndexSTBin("$nogmapBase.vcf.gz");
 
-my $code = VCFHapMatch( "$nogmapBase.vcf.gz",
+$code = VCFHapMatch( "$nogmapBase.vcf.gz",
     "$simpleDir/simple.gls.v1.expected.bin.vcf", $resDir );
 ok( $code eq 0, "simple haps v1 ngmap exit code OK" ) or diag($code);
 
