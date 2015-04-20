@@ -24,6 +24,7 @@ BINBASE := $(BINBASE).ncuda
 CXXFLAGS += -DNCUDA
 endif
 
+#system specific choices
 NOMP = 
 SYSLINKFLAGS_START :=
 SYSLINKFLAGS_END :=
