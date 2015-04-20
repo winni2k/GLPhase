@@ -9,7 +9,7 @@
 #include <vector>
 #include "utils.hpp"
 #include "bio.hpp"
-#include "vcf.hpp"
+#include "htslibpp/vcf.hpp"
 
 namespace Bio {
 
