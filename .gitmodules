@@ -1,3 +1,7 @@
 [submodule "src/vcfPhasedBreakMulti"]
 	path = src/vcfPhasedBreakMulti
 	url = https://github.com/wkretzsch/vcfPhasedBreakMulti.git
+[submodule "src/htslibpp"]
+	path = src/htslibpp
+	url = git@github.com:wkretzsch/htslibpp.git
+	branch = master

@@ -172,22 +172,22 @@ main.o: main.cpp version.hpp.gch impute.hpp.gch insti.hpp.gch
 	$(CXX) $(CXXFLAGS) -c $<
 
 ## library
-$(INSTILIB): $(OBJECT_FILES)
-	 ar $(ARFLAGS) $@ $^
+$(INSTILIB): $(OBJECT_FILES) $(HTSLIBPP)
+	 ar $(ARFLAGS) $@ $(OBJECT_FILES)
 
 $(HTSLIBPP):
 	$(MAKE) -C htslibpp
 
 ## binaries
 $(BIN): $(INSTILIB) main.o
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS) -Lhtslibpp
 	cd $(BDIR) && rm -f insti && ln -s $@ insti
 
 static: $(INSTILIB) main.o
 	$(CXX) $(CXXFLAGS) $^ -o $(BDIR)/insti.$(VERSION).static-$(KERNEL) $(SLIBS)
 
 $(BIN).debug: $(INSTILIB) main.o
-	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)  -Lhtslibpp
 
 
 ## installation
