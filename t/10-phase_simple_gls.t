@@ -32,7 +32,7 @@ my $simpleGLBase = "$resDir/simple.gls.v1";
 my $simpleGLs    = "$simpleGLBase.bin";
 copy( "$simpleDir/simple.gls.v1.bin", $simpleGLs );
 
-my $gMap = "$Bin/../samples/geneticMap/genetic_map_chr20_combined_b37.txt";
+my $gMap = "$Bin/../samples/geneticMap/genetic_map_chr20_combined_b37.txt.gz";
 
 ok( system("$insti -g $gMap -C100 -m 100 -B0 -i10 $simpleGLs") == 0,
     "ran insti" );

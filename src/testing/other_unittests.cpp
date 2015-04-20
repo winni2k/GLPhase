@@ -51,7 +51,7 @@ string unsortedRefHaps =
     sampleDir +
     "/20_0_62000000.011976121_012173018.paste.onlyThree.unsorted.haps";
 string geneticMap =
-    sampleDir + "/geneticMap/genetic_map_chr20_combined_b37.txt";
+    sampleDir + "/geneticMap/genetic_map_chr20_combined_b37.txt.gz";
 
 gsl_rng *rng = gsl_rng_alloc(gsl_rng_default);
 
