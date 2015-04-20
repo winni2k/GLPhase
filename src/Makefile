@@ -24,6 +24,20 @@ BINBASE := $(BINBASE).ncuda
 CXXFLAGS += -DNCUDA
 endif
 
+NOMP = 
+SYSLINKFLAGS_START :=
+SYSLINKFLAGS_END :=
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Linux)
+    SYSLINKFLAGS_START += -Wl,-whole-archive
+    SYSLINKFLAGS_END += -Wl,-no-whole-archive
+endif
+# Darwin does not support OMP, so disable
+ifeq ($(UNAME_S),Darwin)
+    NOMP = 1
+endif
+
+
 # disables OMP
 ifndef NOMP
 CXXFLAGS += -fopenmp
@@ -178,25 +192,17 @@ $(INSTILIB): $(OBJECT_FILES) $(HTSLIBPP)
 $(HTSLIBPP):
 	$(MAKE) -C htslibpp
 
-SYSLINKFLAGS :=
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),Linux)
-    SYSLINKFLAGS += -Wl,-whole-archive
-endif
-ifeq ($(UNAME_S),Darwin)
-endif
-
 ## binaries
 ## need to include --whole-archive option for static member variables
 $(BIN): $(INSTILIB) main.o
-	$(CXX) $(CXXFLAGS) -o $@ $(LIBS) -Lhtslibpp $(SYSLINKFLAGS) $^ 
+	$(CXX) $(CXXFLAGS) $(SYSLINKFLAGS_START) $^ $(SYSLINKFLAGS_END) -o $@ $(LIBS) -Lhtslibpp
 	cd $(BDIR) && rm -f insti && ln -s $@ insti
 
 static: $(INSTILIB) main.o
 	$(CXX) $(CXXFLAGS) $^ -o $(BDIR)/insti.$(VERSION).static-$(KERNEL) $(SLIBS)
 
 $(BIN).debug: $(INSTILIB) main.o
-	$(CXX) $(CXXFLAGS) -o $@ $(LIBS)  -Lhtslibpp $(SYSLINKFLAGS) $^ 
+	$(CXX) $(CXXFLAGS) $(SYSLINKFLAGS_START) $^ $(SYSLINKFLAGS_END) -o $@ $(LIBS)  -Lhtslibpp 
 
 
 ## installation
