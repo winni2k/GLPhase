@@ -10,6 +10,9 @@ debug:
 test:
 	$(MAKE) -C src test
 
+disttest:
+	$(MAKE) -C src disttest
+
 oxford:
 	$(MAKE) -C src oxford
 
