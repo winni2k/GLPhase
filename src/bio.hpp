@@ -33,6 +33,7 @@ public:
                          std::to_string(m_endBP);
     return region;
   }
+  std::string Chrom() const { return m_chrom; }
 };
 
 class snp {

@@ -249,7 +249,7 @@ int main(int ac, char **av) {
       if (outBase.empty())
         outBase = file[i];
 
-      lp.save_vcf(outBase.c_str(), commandLine.str());
+      lp.save_vcf(outBase, commandLine.str());
 
       // output relationship graph if applicable
       if (init.estimator == 2 || init.estimator == 3) {

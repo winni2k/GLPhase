@@ -27,7 +27,7 @@ my $harness = TAP::Harness->new(
 
 # find all files in this script's dir with a .t ending
 opendir( my $dh, $Bin ) || die "can't opendir $Bin: $!";
-my @tests = map { "$Bin/$_" } grep { /\.t$/ && -f "$Bin/$_" } readdir($dh);
+my @tests = map { "$Bin/$_" } sort grep { /\.t$/ && -f "$Bin/$_" } readdir($dh);
 closedir $dh;
 
 $harness->runtests(@tests);

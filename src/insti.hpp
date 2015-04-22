@@ -307,7 +307,7 @@ public:
                        unsigned hn, gsl_rng *rng);
 
   void save_relationship_graph(std::string sOutputFile);
-  void save_vcf(const char *F, std::string commandLine);
+  void save_vcf(const std::string &base, const std::string &commandLine);
 
   bool UsingScaffold() { return (m_scaffold.Initialized()); };
 };

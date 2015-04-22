@@ -106,9 +106,9 @@ sub VCFHapMatch {
 
     my $tBase = basename( $testVcf, '.vcf.gz' );
     my $eBase = basename( $expVcf,  '.vcf.gz' );
-    system("bcftools convert -h $wd/$tBase $testVcf")
+    system("bcftools convert -h $wd/$tBase $testVcf 2>/dev/null")
       and die "could not convert file $wd/$tBase";
-    system("bcftools convert -h $wd/$eBase $expVcf")
+    system("bcftools convert -h $wd/$eBase $expVcf 2>/dev/null")
       and die "could not convert file $wd/$tBase";
     return HapEq( "$wd/$tBase.hap.gz", "$wd/$eBase.hap.gz" );
 }

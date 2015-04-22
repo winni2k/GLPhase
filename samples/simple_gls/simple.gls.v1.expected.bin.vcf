@@ -1,7 +1,7 @@
 ##fileformat=VCFv4.0
 ##source=WTCHG:INSTIv1.4.13
 ##phaseAndImputeCall=/data/fenghuang/not-backed-up/kretzsch/dev/insti/t/../bin/insti /data/fenghuang/not-backed-up/kretzsch/dev/insti/t/results/10-phase_simple_gls/simple.gls.v1.bin -g /data/fenghuang/not-backed-up/kretzsch/dev/insti/t/../samples/geneticMap/genetic_map_chr20_combined_b37.txt -C100 -m 100 -B0 -i10
-##iteration=%u
+##contig=<ID=20>
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 ##FORMAT=<ID=GP,Number=3,Type=Float,Description="Phred-scaled genotype posterior probability">
 ##FORMAT=<ID=APP,Number=2,Type=Float,Description="Phred-scaled allelic posterior probability, P(Allele=1|Haplotype)">
