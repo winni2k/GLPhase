@@ -39,8 +39,8 @@ HMMLike::HMMLike(const vector<uint64_t> &hapPanel, unsigned numHaps,
 
   // Checking expectations.
   assert(m_numCycles > 0);
-  assert(m_inHapPanel.size() == m_totalNumHaps * NUMSITES / WORDSIZE);
-  assert(NUMSITES == m_glPack.GetNumSites());
+  assert(m_inHapPanel.size() <= m_totalNumHaps * NUMSITES / WORDSIZE);
+  assert(NUMSITES >= m_glPack.GetNumSites());
   assert(m_glPack.GetCodeBook().size() == 1 << BITSPERCODE);
   assert(m_glPack.GetNumBitsPerGL() == BITSPERCODE);
 

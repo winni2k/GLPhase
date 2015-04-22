@@ -21,10 +21,7 @@ $insti = "$Bin/$insti";
 
 my $harness = TAP::Harness->new(
     {
-        test_args => [
-            $defines{VERSION_MAJOR}, $defines{VERSION_MINOR},
-            $defines{VERSION_REVISION}, $insti,
-        ]
+        test_args => [ $insti ]
     }
 );
 

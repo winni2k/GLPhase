@@ -24,14 +24,15 @@ namespace HMMLikeCUDA {
 extern __constant__ float norm;
 extern __constant__ float transitionMat[NUMSITES * 3];
 extern __constant__ float mutationMat[4 * 4];
-extern __device__ float hmmLike(unsigned idx, const unsigned (&hapIdxs)[4],
+extern __device__ float hmmLike(unsigned idx, const unsigned(&hapIdxs)[4],
                                 const uint32_t *__restrict__ d_packedGLs,
                                 unsigned packedGLStride,
                                 const uint64_t *__restrict__ d_hapPanel,
-                                const float *__restrict__ d_codeBook);
+                                const float *__restrict__ d_codeBook,
+                                unsigned numSites);
 // extern __device__ void UnpackGLs(unsigned char GLset, float (&GLs)[3]);
-extern __device__ void FillEmit(const float (&GLs)[3], float (&emit)[4]);
-extern __device__ void UnpackGLsWithCodeBook(uint32_t GLcodes, float (&GLs)[3],
+extern __device__ void FillEmit(const float(&GLs)[3], float(&emit)[4]);
+extern __device__ void UnpackGLsWithCodeBook(uint32_t GLcodes, float(&GLs)[3],
                                              const float *__restrict__ codeBook,
                                              unsigned char glIdx);
 

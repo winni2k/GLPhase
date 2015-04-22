@@ -8,6 +8,7 @@ use warnings;
 use Carp;
 use Data::Dumper;
 use File::Basename;
+use File::Slurp;
 use Carp;
 
 require Exporter;
@@ -24,7 +25,7 @@ our @ISA = qw(Exporter);
 our %EXPORT_TAGS = (
     'all' => [
         qw(
-          VCFHapMatch BGZIPandIndexSTBin
+          VCFHapMatch VCFNRD BGZIPandIndexSTVCFGZ
           )
     ]
 );
@@ -37,9 +38,10 @@ our $VERSION = '0.01';
 
 # Preloaded methods go here.
 
-sub GetFH{
+sub GetFH {
     my $file = shift;
-    open(my ($fh), $file =~ m/\.gz$/ ? "gzip -dc $file |" : "<$file") or die "could not open file $file";
+    open( my ($fh), $file =~ m/\.gz$/ ? "gzip -dc $file |" : "<$file" )
+      or die "could not open file $file";
     return $fh;
 }
 
@@ -104,14 +106,33 @@ sub VCFHapMatch {
 
     my $tBase = basename( $testVcf, '.vcf.gz' );
     my $eBase = basename( $expVcf,  '.vcf.gz' );
-    system("bcftools convert -h $wd/$tBase $testVcf") and die "could not convert file $wd/$tBase";
-    system("bcftools convert -h $wd/$eBase $expVcf") and die "could not convert file $wd/$tBase";
+    system("bcftools convert -h $wd/$tBase $testVcf")
+      and die "could not convert file $wd/$tBase";
+    system("bcftools convert -h $wd/$eBase $expVcf")
+      and die "could not convert file $wd/$tBase";
     return HapEq( "$wd/$tBase.hap.gz", "$wd/$eBase.hap.gz" );
 }
 
-sub BGZIPandIndexSTBin{
+sub VCFNRD {
+    my $testVCF = shift;
+    my $expVCF  = shift;
+    my $wd      = shift;
+    my $tBase   = basename( $testVCF, '.vcf.gz' );
+    system( "bcftools stats $expVCF $testVCF -s " . '$'
+          . "(bcftools query -l $expVCF"
+          . q( | perl -0 -ane 'print join(",", @F)')
+          . " ) > $wd/$tBase.stats" );
+    my @lines = read_file("$wd/$tBase.stats");
+    @lines = grep { m/^NRDs/ } @lines;
+    my @line = split /\t/, $lines[0];
+    return $line[2];
+}
+
+sub BGZIPandIndexSTVCFGZ {
     my $vcf = shift;
-    system("gzip -dc $vcf | bgzip -c > $vcf.tmp && mv -f $vcf.tmp $vcf && bcftools index $vcf") and die  "could not bgzip and index $vcf";
+    system(
+"gzip -dc $vcf | bgzip -c > $vcf.tmp && mv -f $vcf.tmp $vcf && bcftools index $vcf"
+    ) and die "could not bgzip and index $vcf";
 }
 
 1;

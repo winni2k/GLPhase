@@ -47,15 +47,16 @@ __global__ void GlobalHmmLike(unsigned idx, const unsigned (*hapIdxs)[4],
                               unsigned packedGLStride,
                               const uint64_t *__restrict__ d_hapPanel,
                               const float *__restrict__ d_codeBook,
-                              float *retLike) {
+                              float *retLike, unsigned numSites) {
   *retLike = HMMLikeCUDA::hmmLike(idx, *hapIdxs, d_packedGLs, packedGLStride,
-                                  d_hapPanel, d_codeBook);
+                                  d_hapPanel, d_codeBook, numSites);
 
   return;
 }
 
 float CallHMMLike(unsigned idx, const unsigned (*hapIdxs)[4],
-                  unsigned packedGLStride, const vector<uint64_t> &h_hapPanel) {
+                  unsigned packedGLStride, const vector<uint64_t> &h_hapPanel,
+                  unsigned numSites) {
 
   cudaError_t err = cudaSuccess;
 
@@ -119,7 +120,7 @@ float CallHMMLike(unsigned idx, const unsigned (*hapIdxs)[4],
     run kernel
   */
   GlobalHmmLike << <1, 1>>> (idx, d_hapIdxs, d_packedGLPtr, packedGLStride,
-                             d_hapPanel, d_codeBookPtr, d_likePtr);
+                             d_hapPanel, d_codeBookPtr, d_likePtr, numSites);
   cudaDeviceSynchronize();
   err = cudaGetLastError();
   if (err != cudaSuccess) {
@@ -154,14 +155,14 @@ void UnpackGLsWithCodeBook(uint32_t GLcodes, vector<float> &GLs,
   thrust::host_vector<float> h_GLs;
   h_GLs = d_GLs;
   for (int i = 0; i < 3; ++i)
-      GLs[i] = h_GLs[i];
+    GLs[i] = h_GLs[i];
 }
 
 cudaError_t CopyTranToHost(vector<float> &tran) {
 
-  assert(tran.size() == NUMSITES * 3);
+  assert(tran.size() <= NUMSITES * 3);
   return cudaMemcpyFromSymbol(tran.data(), HMMLikeCUDA::transitionMat,
-                              sizeof(float) * NUMSITES * 3, 0,
+                              sizeof(float) * tran.size(), 0,
                               cudaMemcpyDeviceToHost);
 }
 

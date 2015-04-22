@@ -9,7 +9,7 @@ __constant__ float norm;
 __constant__ float transitionMat[NUMSITES * 3];
 __constant__ float mutationMat[4 * 4];
 
-__device__ void UnpackGLsWithCodeBook(uint32_t GLcodes, float (&GLs)[3],
+__device__ void UnpackGLsWithCodeBook(uint32_t GLcodes, float(&GLs)[3],
                                       const float *__restrict__ codeBook,
                                       unsigned char glIdx) {
 
@@ -36,7 +36,7 @@ GLs[2] = max(1 - GLs[0] - GLs[1], 0.0f);
 }
 */
 
-__device__ void FillEmit(const float (&GLs)[3], float (&emit)[4]) {
+__device__ void FillEmit(const float(&GLs)[3], float(&emit)[4]) {
 
   for (unsigned i = 0; i < 4; ++i)
     emit[i] = mutationMat[i] * GLs[0] + mutationMat[i + 4 * 1] * GLs[1] +
@@ -50,11 +50,12 @@ __device__ uint64_t test(const uint64_t *P, unsigned I) {
 
 // this should add up to around 88 registers
 // 1 + 4 + 2 + 1 + 2 = 10 registers, maybe optimized away by compiler?
-__device__ float hmmLike(unsigned idx, const unsigned (&hapIdxs)[4],
+__device__ float hmmLike(unsigned idx, const unsigned(&hapIdxs)[4],
                          const uint32_t *__restrict__ d_packedGLs,
                          unsigned packedGLStride,
                          const uint64_t *__restrict__ d_hapPanel,
-                         const float *__restrict__ d_codeBook) {
+                         const float *__restrict__ d_codeBook,
+                         unsigned numSites) {
 
   // pull the four haplotypes into f0, f1, m0 and m1
   const uint64_t *f0 = &d_hapPanel[hapIdxs[0] * WN], // 8 registers?
@@ -82,7 +83,7 @@ __device__ float hmmLike(unsigned idx, const unsigned (&hapIdxs)[4],
         l11 = 0.25f * emit[(test(f1, 0) << 1) | test(m1, 0)];
 
   //  1 register
-  for (uint32_t site = 1; site < NUMSITES; ++site) {
+  for (uint32_t site = 1; site < numSites; ++site) {
     // move to next site for e and t
 
     // #########
@@ -147,7 +148,8 @@ __global__ void findHapSet(const uint32_t *__restrict__ d_packedGLs,
                            const unsigned *__restrict__ d_extraPropHaps,
                            unsigned *d_chosenHapIdxs, unsigned numSamples,
                            unsigned numCycles, curandStateXORWOW_t *globalState,
-                           const float *__restrict__ d_codeBook
+                           const float *__restrict__ d_codeBook,
+                           unsigned numSites
 #ifdef DEBUG
                            ,
                            float *d_likes
@@ -165,8 +167,8 @@ __global__ void findHapSet(const uint32_t *__restrict__ d_packedGLs,
       hapIdxs[i] = d_hapIdxs[idx + numSamples * i];
 
     // define emission matrix
-    float curr =
-        hmmLike(idx, hapIdxs, d_packedGLs, numSamples, d_hapPanel, d_codeBook);
+    float curr = hmmLike(idx, hapIdxs, d_packedGLs, numSamples, d_hapPanel,
+                         d_codeBook, numSites);
 
 #ifdef DEBUG
     // debugging ...
@@ -188,7 +190,7 @@ __global__ void findHapSet(const uint32_t *__restrict__ d_packedGLs,
 
       hapIdxs[replaceHapNum] = d_extraPropHaps[idx + cycle * numSamples];
       float prop = hmmLike(idx, hapIdxs, d_packedGLs, numSamples, d_hapPanel,
-                           d_codeBook);
+                           d_codeBook, numSites);
 
       // accept new set
       if (curand_uniform(&localState) < __expf((prop - curr) * S))
@@ -292,12 +294,12 @@ void CheckDevice() {
 
 void CopyTranToDevice(const vector<float> &tran) {
 
-  assert(tran.size() == NUMSITES * 3);
-  // first three values of tran are never used
+  assert(tran.size() <= NUMSITES * 3);
+  // fixme: first three values of tran are never used
   for (unsigned i = 3; i < tran.size(); i += 3)
     assert(abs(tran[i] + 2 * tran[i + 1] + tran[i + 2] - 1) < 0.1);
   cudaError_t err = cudaMemcpyToSymbol(transitionMat, tran.data(),
-                                       sizeof(float) * NUMSITES * 3, 0,
+                                       sizeof(float) * tran.size(), 0,
                                        cudaMemcpyHostToDevice);
   if (err != cudaSuccess) {
     stringstream outerr(
@@ -368,19 +370,24 @@ void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
                     const vector<unsigned> &extraPropHaps, unsigned numSites,
                     unsigned numSamples, unsigned numCycles,
                     vector<unsigned> &hapIdxs, unsigned long seed) {
-  assert(numSites == NUMSITES);
+  assert(numSites <= NUMSITES);
   assert(gd_packedGLs); // make sure pointer points to something
-  if (gd_packedGLs->size() !=
-      numSamples * numSites * BITSPERCODE / UINT32T_SIZE) {
+
+  // make sure packed GLs have the right size
+  size_t expectedSize = numSamples * ceil(static_cast<float>(numSites) *
+                                          BITSPERCODE / UINT32T_SIZE);
+  if (gd_packedGLs->size() != expectedSize) {
     ostringstream err;
-    err << "gd_packed GLs has wrong size: " << gd_packedGLs->size();
+    err << "[RunHMMOnDevice] gd_packed GLs has wrong size: "
+        << gd_packedGLs->size() << "\n\texpected size: " << expectedSize;
     throw std::runtime_error(err.str());
   }
   assert(gd_codeBook); // make sure pointer points to something
   assert(gd_codeBook->size() == 2 * (1 << BITSPERCODE));
 
   assert(hapPanel.size() >=
-         WN * (*max_element(extraPropHaps.begin(), extraPropHaps.end()) + 1));
+         ceil(static_cast<float>(numSites) / WORDSIZE) *
+             (*max_element(extraPropHaps.begin(), extraPropHaps.end()) + 1));
   assert(hapIdxs.size() == numSamples * 4);
   assert(extraPropHaps.size() == numSamples * numCycles);
 
@@ -445,23 +452,7 @@ if (err != cudaSuccess) {
 #ifdef DEBUG
   cout << "[HMMLikeCUDA] Copying HapPanel to device\n";
 #endif
-  size_t hapPanelSize = hapPanel.size() * sizeof(uint64_t);
-
-  // allocate memory on device
-  uint64_t *d_hapPanel;
-  err = cudaMalloc(&d_hapPanel, hapPanelSize);
-  if (err != cudaSuccess) {
-    cerr << "Failed to allocate hapPanel on device\n";
-    exit(EXIT_FAILURE);
-  }
-
-  // copy data across
-  err = cudaMemcpy(d_hapPanel, hapPanel.data(), hapPanelSize,
-                   cudaMemcpyHostToDevice);
-  if (err != cudaSuccess) {
-    cerr << "Failed to copy hapPanel to device\n";
-    exit(EXIT_FAILURE);
-  }
+  thrust::device_vector<uint64_t> d_hapPanel(hapPanel.begin(), hapPanel.end());
 
 /*
   copy initial hap indices to device memory
@@ -469,23 +460,7 @@ if (err != cudaSuccess) {
 #ifdef DEBUG
   cout << "[HMMLikeCUDA] Copying hap indices to device\n";
 #endif
-  size_t hapIdxsSize = hapIdxs.size() * sizeof(unsigned);
-
-  // allocate memory on device
-  unsigned *d_hapIdxs;
-  err = cudaMalloc(&d_hapIdxs, hapIdxsSize);
-  if (err != cudaSuccess) {
-    cerr << "Failed to allocate hap indices on device\n";
-    exit(EXIT_FAILURE);
-  }
-
-  // copy data across
-  err = cudaMemcpy(d_hapIdxs, hapIdxs.data(), hapIdxsSize,
-                   cudaMemcpyHostToDevice);
-  if (err != cudaSuccess) {
-    cerr << "Failed to copy hap indices to device\n";
-    exit(EXIT_FAILURE);
-  }
+  thrust::device_vector<unsigned> d_hapIdxs(hapIdxs.begin(), hapIdxs.end());
 
 /*
   copy extra proposal haps to device memory
@@ -493,33 +468,13 @@ if (err != cudaSuccess) {
 #ifdef DEBUG
   cout << "[HMMLikeCUDA] Copying extra proposal haps to device\n";
 #endif
-  size_t extraPropHapsSize = extraPropHaps.size() * sizeof(unsigned);
-
-  // allocate memory on device
-  unsigned *d_extraPropHaps;
-  err = cudaMalloc(&d_extraPropHaps, extraPropHapsSize);
-  if (err != cudaSuccess) {
-    cerr << "Failed to allocate extra prop haps on device\n";
-    exit(EXIT_FAILURE);
-  }
-
-  // copy data across
-  err = cudaMemcpy(d_extraPropHaps, extraPropHaps.data(), extraPropHapsSize,
-                   cudaMemcpyHostToDevice);
-  if (err != cudaSuccess) {
-    cerr << "Failed to copy extra prop haps to device\n";
-    exit(EXIT_FAILURE);
-  }
+  thrust::device_vector<unsigned> d_extraPropHaps(extraPropHaps.begin(),
+                                                  extraPropHaps.end());
 
   /*
     allocate device memory for results
   */
-  unsigned *d_chosenHapIdxs;
-  err = cudaMalloc(&d_chosenHapIdxs, hapIdxsSize);
-  if (err != cudaSuccess) {
-    cerr << "Failed to allocate memory for result hap idxs on device\n";
-    exit(EXIT_FAILURE);
-  }
+  thrust::device_vector<unsigned> d_chosenHapIdxs(hapIdxs.size());
 
 #ifdef DEBUG
   /*
@@ -538,18 +493,15 @@ if (err != cudaSuccess) {
 #endif
 
   /*
-    convert gd_packedGLs to raw ptr
-  */
-  const uint32_t *d_packedGLPtr =
-      thrust::raw_pointer_cast(gd_packedGLs->data());
-
-  const float *d_codeBook = thrust::raw_pointer_cast(gd_codeBook->data());
-  /*
     run kernel
   */
   findHapSet << <blocksPerRun, threadsPerBlock>>>
-      (d_packedGLPtr, d_hapPanel, d_hapIdxs, d_extraPropHaps, d_chosenHapIdxs,
-       numSamples, numCycles, devStates, d_codeBook
+      (thrust::raw_pointer_cast(gd_packedGLs->data()),
+       thrust::raw_pointer_cast(d_hapPanel.data()),
+       thrust::raw_pointer_cast(d_hapIdxs.data()),
+       thrust::raw_pointer_cast(d_extraPropHaps.data()),
+       thrust::raw_pointer_cast(d_chosenHapIdxs.data()), numSamples, numCycles,
+       devStates, thrust::raw_pointer_cast(gd_codeBook->data()), numSites
 #ifdef DEBUG
        ,
        d_likePtr
@@ -565,19 +517,9 @@ if (err != cudaSuccess) {
   /*
     copy result hap indices back to host into hapIdxs
   */
-  err = cudaMemcpy(hapIdxs.data(), d_chosenHapIdxs, hapIdxsSize,
-                   cudaMemcpyDeviceToHost);
-  if (err != cudaSuccess) {
-    cerr << "Failed to copy chosen indices to host: " << cudaGetErrorString(err)
-         << "\nCode: " << err << "\n";
-    exit(EXIT_FAILURE);
-  }
+  thrust::copy(d_chosenHapIdxs.begin(), d_chosenHapIdxs.end(), hapIdxs.begin());
 
   assert(cudaFree(devStates) == cudaSuccess);
-  assert(cudaFree(d_chosenHapIdxs) == cudaSuccess);
-  assert(cudaFree(d_extraPropHaps) == cudaSuccess);
-  assert(cudaFree(d_hapIdxs) == cudaSuccess);
-  assert(cudaFree(d_hapPanel) == cudaSuccess);
 
 #ifdef DEBUG
   thrust::host_vector<float> h_likes(numCycles + 1);

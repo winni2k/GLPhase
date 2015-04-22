@@ -18,7 +18,7 @@ extern cudaError_t CopyTranToHost(vector<float> &tran);
 extern cudaError_t CopyMutMatToHost(vector<float> &mutMat);
 extern float CallHMMLike(unsigned idx, const unsigned (*hapIdxs)[4],
                          unsigned packedGLStride,
-                         const vector<uint64_t> &h_hapPanel);
+                         const vector<uint64_t> &h_hapPanel, unsigned numSites);
 extern void UnpackGLsWithCodeBook(uint32_t GLcodes, vector<float> &GLs,
                                   unsigned char glIdx);
 }
@@ -66,7 +66,7 @@ TEST(UnpackGLsWithCodeBook, UnpackOk) {
 
   // testing silly values
   uint32_t num = 1;
-  vector<pair<float, float> > codeBook(exp2(BITSPERCODE));
+  vector<pair<float, float>> codeBook(exp2(BITSPERCODE));
   for (int i = 0; i < codeBook.size(); ++i) {
     codeBook[i].first = static_cast<float>(i) / 10;
     codeBook[i].second = static_cast<float>(i) * 2 / 100;
@@ -213,8 +213,9 @@ TEST(HMMLike, createsOK) {
         fixedHapIdxs[i] = 2;
       HMMLikeCUDA::CopyPackedGLsToDevice(packedGLs);
       HMMLikeCUDA::CopyCodeBookToDevice(glPack0.GetCodeBook());
-      float like = HMMLikeCUDATest::CallHMMLike(
-          sampIdx, &fixedHapIdxs, glPack0.GetSampleStride(), hapPanel);
+      float like = HMMLikeCUDATest::CallHMMLike(sampIdx, &fixedHapIdxs,
+                                                glPack0.GetSampleStride(),
+                                                hapPanel, numSites);
       ASSERT_GE(1, like);
     }
   }
@@ -225,15 +226,15 @@ TEST(HMMLike, createsOK) {
   // this should be 40 haplotypes
   const unsigned bigNumHaps = 12;
   hapPanel.resize(numWords * bigNumHaps);
-  hapPanel.at(5 *numWords) = ~0;
-  hapPanel.at(6 *numWords) = ~0;
-  hapPanel.at(5 *numWords + 5) = ~0;
-  hapPanel.at(6 *numWords + 5) = ~0;
+  hapPanel.at(5 * numWords) = ~0;
+  hapPanel.at(6 * numWords) = ~0;
+  hapPanel.at(5 * numWords + 5) = ~0;
+  hapPanel.at(6 * numWords + 5) = ~0;
 
-  hapPanel.at(7 *numWords + 1) = ~0;
-  hapPanel.at(8 *numWords + 1) = ~0;
-  hapPanel.at(7 *numWords + 7) = ~0;
-  hapPanel.at(8 *numWords + 7) = ~0;
+  hapPanel.at(7 * numWords + 1) = ~0;
+  hapPanel.at(8 * numWords + 1) = ~0;
+  hapPanel.at(7 * numWords + 7) = ~0;
+  hapPanel.at(8 * numWords + 7) = ~0;
 
   // initialize site mutation probability matrix
   // diagonal is chance of no mutation
@@ -347,12 +348,12 @@ TEST(HMMLike, createsOK) {
     Now let's create a data set where both father and mother pairs are defined
   */
   // bigNumHaps should be 12
-  hapPanel.at(10 *numWords + 2) = ~0;
-  hapPanel.at(11 *numWords + 3) = ~0;
+  hapPanel.at(10 * numWords + 2) = ~0;
+  hapPanel.at(11 * numWords + 3) = ~0;
 
   // debugging
   {
-    vector<unsigned> haps = { 5, 6, 7, 8, 10, 11 };
+    vector<unsigned> haps = {5, 6, 7, 8, 10, 11};
     for (auto hapNum : haps) {
       cout << endl << "HapNum: " << hapNum << endl;
       for (unsigned wordNum = 0; wordNum < numWords; ++wordNum) {
@@ -405,17 +406,19 @@ TEST(HMMLike, createsOK) {
         fixedHapIdxs[i] = 2;
       HMMLikeCUDA::CopyPackedGLsToDevice(packedGLs);
       HMMLikeCUDA::CopyCodeBookToDevice(glPack4.GetCodeBook());
-      float badLike = HMMLikeCUDATest::CallHMMLike(
-          sampIdx, &fixedHapIdxs, glPack4.GetSampleStride(), hapPanel);
+      float badLike = HMMLikeCUDATest::CallHMMLike(sampIdx, &fixedHapIdxs,
+                                                   glPack4.GetSampleStride(),
+                                                   hapPanel, numSites);
       ASSERT_GE(1, badLike);
 
       GLPack glPack5(init);
       auto packedGLs2 = glPack4.GetPackedGLs();
-      unsigned fixedHapIdxs2[4] = { 5, 10, 6, 10 };
+      unsigned fixedHapIdxs2[4] = {5, 10, 6, 10};
       HMMLikeCUDA::CopyPackedGLsToDevice(packedGLs2);
       HMMLikeCUDA::CopyCodeBookToDevice(glPack5.GetCodeBook());
-      float goodLike = HMMLikeCUDATest::CallHMMLike(
-          sampIdx, &fixedHapIdxs2, glPack5.GetSampleStride(), hapPanel);
+      float goodLike = HMMLikeCUDATest::CallHMMLike(sampIdx, &fixedHapIdxs2,
+                                                    glPack5.GetSampleStride(),
+                                                    hapPanel, numSites);
 
       ASSERT_GT(goodLike, badLike);
     }
@@ -498,14 +501,14 @@ TEST(HMMLike, createsOK) {
     const float highExp = 100;
     for (unsigned i = 0; i < wordSize * 3; i += 3) {
       // sample 2, 1st,4th and 6th word set to ALT/ALT
-      GLs.at(i + 2 + 2 *numSites * 3) = highExp;
-      GLs.at(i + 2 + 2 *numSites * 3 + wordSize * 3 * 3) = highExp;
-      GLs.at(i + 2 + 2 *numSites * 3 + wordSize * 3 * 5) = highExp;
+      GLs.at(i + 2 + 2 * numSites * 3) = highExp;
+      GLs.at(i + 2 + 2 * numSites * 3 + wordSize * 3 * 3) = highExp;
+      GLs.at(i + 2 + 2 * numSites * 3 + wordSize * 3 * 5) = highExp;
 
       // sample 3, 2nd,3rd and 8th word set to ALT/ALT
-      GLs.at(i + 2 + 3 *numSites * 3 + wordSize * 3 * 1) = highExp;
-      GLs.at(i + 2 + 3 *numSites * 3 + wordSize * 3 * 2) = highExp;
-      GLs.at(i + 2 + 3 *numSites * 3 + wordSize * 3 * 7) = highExp;
+      GLs.at(i + 2 + 3 * numSites * 3 + wordSize * 3 * 1) = highExp;
+      GLs.at(i + 2 + 3 * numSites * 3 + wordSize * 3 * 2) = highExp;
+      GLs.at(i + 2 + 3 * numSites * 3 + wordSize * 3 * 7) = highExp;
     }
   }
 
@@ -577,7 +580,7 @@ TEST(HMMLike, createsOK) {
 
       // debugging
 
-      vector<unsigned> haps = { 5, 6, 7, 8, 10, 11 };
+      vector<unsigned> haps = {5, 6, 7, 8, 10, 11};
       for (auto hapNum : haps) {
         cout << endl << "HapNum: " << hapNum << endl;
         for (unsigned wordNum = 0; wordNum < numWords; ++wordNum) {

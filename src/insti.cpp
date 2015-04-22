@@ -1640,7 +1640,7 @@ void Insti::estimate() {
         if (std::dynamic_pointer_cast<KNN>(iterationSampler)) {
           cout << m_tag << ":\tReclustering haplotypes\n";
           m_sampler = make_shared<KNN>(
-              s_uNumClusters, haps, WN, m_sites.size(), m_init.scaffoldFreqLB,
+              s_uNumClusters, haps, wn, m_sites.size(), m_init.scaffoldFreqLB,
               m_init.scaffoldFreqUB, m_init.scaffoldUsingMAF, rng,
               Insti::s_clusterDistanceMetric);
           cout << m_tag << ":\tReclustering complete.\n";

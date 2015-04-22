@@ -4,8 +4,6 @@
 
 #########################
 
-# change 'tests => 1' to 'tests => last_test_to_print';
-
 use Test::More;
 BEGIN { plan tests => 4 }
 
@@ -20,7 +18,6 @@ use File::Basename;
 use lib $Bin;
 use VCFComp ':all';
 
-my @version_nums = splice( @ARGV, 0, 3 );
 my $insti        = shift @ARGV;
 my $simpleDir    = "$Bin/../samples/simple_gls";
 my $resDir       = "$Bin/results/" . basename( $0, '.t' );
@@ -36,7 +33,7 @@ my $gMap = "$Bin/../samples/geneticMap/genetic_map_chr20_combined_b37.txt.gz";
 
 ok( system("$insti -g $gMap -C100 -m 100 -B0 -i10 $simpleGLs") == 0,
     "ran insti" );
-BGZIPandIndexSTBin("$simpleGLs.vcf.gz");
+BGZIPandIndexSTVCFGZ("$simpleGLs.vcf.gz");
 
 my $code = VCFHapMatch( "$simpleGLs.vcf.gz",
     "$simpleDir/simple.gls.v1.expected.bin.vcf", $resDir );
@@ -47,7 +44,7 @@ ok( $code eq 0, "simple haps v1" ) or diag($code);
 my $nogmapBase = "$simpleGLBase.noGmap";
 ok( system("$insti -C100 -m 100 -B0 -i10 -o $nogmapBase $simpleGLs") == 0,
     "ran insti without GMap" );
-BGZIPandIndexSTBin("$nogmapBase.vcf.gz");
+BGZIPandIndexSTVCFGZ("$nogmapBase.vcf.gz");
 
 $code = VCFHapMatch( "$nogmapBase.vcf.gz",
     "$simpleDir/simple.gls.v1.expected.bin.vcf", $resDir );
