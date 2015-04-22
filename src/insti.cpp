@@ -191,6 +191,17 @@ int Insti::RWSelection(const vector<EMCChain> &rvcChains) {
   return iChainIndex;
 }
 
+void Insti::load_bcf(const string &bcf) {
+
+  Bio::GLHelper::init init;
+  init.glFile = bcf;
+  init.nameFile = bcf;
+  init.glType = GLHelper::gl_t::BCF;
+  GLReader reader(move(init));
+
+  load_gls(move(reader));
+}
+
 void Insti::load_bin(const string &binFile) {
 
   Bio::GLHelper::init init;
@@ -2176,35 +2187,43 @@ void Insti::SetHapsAccordingToScaffold() {
 }
 
 void Insti::document() {
-  cerr << "Author\tWarren W. Kretzschmar @ Marchini Group @ Universiy of "
+  cerr << "Author: Warren W. Kretzschmar @ Marchini Group @ Universiy of "
           "Oxford - Statistics";
   cerr << "\n\nThis code is based on SNPTools impute:";
   cerr << "\nhaplotype imputation by cFDSL distribution";
-  cerr << "\nAuthor\tYi Wang @ Fuli Yu' Group @ BCM-HGSC";
-  cerr << "\n\nusage\timpute [options] 1.bin 2.bin ...";
+  cerr << "\nAuthor: Yi Wang @ Fuli Yu Group @ BCM-HGSC";
+  cerr << "\n\nUsage: insti [options] <input.bin|input.bcf>";
   //  cerr << "\n\t-d <density>    relative SNP density to Sanger sequencing
   // (1)";
 
   //    cerr << "\n\t-b <burn>       burn-in generations (56)";
-  cerr << "\n\t-l <file>       list of input files";
-  cerr << "\n\t-n <fold>       sample size*fold of nested MH sampler "
-          "iteration "
-          "(2)";
-  cerr << "\n\t-o <name>\tPrefix to use for output files";
+  //  cerr << "\n\t-l <file>       list of input files";
+  cerr << "\n\t-n <unsigned>   Fold: Number of iterations of nested MH sampler "
+          "= sample size*fold "
+          "(" << Impute::nn << ")";
+  cerr << "\n\t-o <string>     prefix to use for output files";
   cerr << "\n\t-P <thread>     number of threads (0=MAX,default=1)";
-  cerr << "\n\t-v <vcf>        integrate known genotype in VCF format";
-  cerr << "\n\t-c <conf>       confidence of known genotype (0.9998)";
+  //  cerr << "\n\t-v <vcf>        integrate known genotype in VCF format"; this
+  //  option is currently broken
+  cerr << "\n\t-c <conf>       confidence of known genotype (" << Impute::conf
+       << ")";
   cerr << "\n\t-x <gender>     impute x chromosome data";
   cerr << "\n\t-e <file>       write log to file";
-  cerr << "\n\t-g <file>       genetic map (required)";
+  cerr << "\n\t-g <file>       genetic map";
+  cerr << "\n\t-I <bin|b>      input file type (\"bin\")";
 
   cerr << "\n\n    GENERATION OPTIONS";
   cerr << "\n\t-m <mcmc>       sampling generations (200)";
-  cerr << "\n\t-C <integer>    number of cycles to estimate an individual's "
-          "parents before updating";
   cerr << "\n\t-B <integer>    number of simulated annealing generations (28)";
   cerr << "\n\t-i <integer>    number of non-simulated annealing burnin "
           "generations (28)";
+  cerr << "\n\t-C <unsigned>   number of iterations of nested MH sampler (0).  Overrides -n if greater than 0.";
+
+  cerr << "\n\n";
+  exit(1);
+
+  // options below this point are alpha and not part of the original SNPTools
+  // algorithm
   cerr << "\n\t-M <integer>    generation number at which to start "
           "clustering, "
           "0-based (28)";

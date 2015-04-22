@@ -61,17 +61,18 @@ namespace phoenix = boost::phoenix;
 
 namespace InstiHelper {
 struct Init {
-  unsigned estimator = 0;
+  unsigned estimator{0};
   std::string scaffoldHapsFile;
   std::string scaffoldSampleFile; // location of scaffold sample file
-  double scaffoldFreqLB =
-      0.05; // cutoff variant AF for what to cluster on in scaffold
-  double scaffoldFreqUB =
-      0.95; // cutoff variant AF for what to cluster in scaffold
-  bool scaffoldUsingMAF = false;
-  bool initPhaseFromScaffold = false;
-  size_t reclusterEveryNGen = 0; // 0 means don't recluster
-  size_t numThreads = 1;
+
+  // cutoff variant AF for what to cluster on in scaffold
+  double scaffoldFreqLB{0};
+  // cutoff variant AF for what to cluster in scaffold
+  double scaffoldFreqUB{0};
+  bool scaffoldUsingMAF{false};
+  bool initPhaseFromScaffold{false};
+  size_t reclusterEveryNGen{0}; // 0 means don't recluster
+  size_t numThreads{1};
 
   // genetic map file name
   std::string geneticMap;
@@ -234,7 +235,7 @@ public:
   void CalculateVarAfs();
 
   // Metropolis Hastings with Annealing is default
-  unsigned m_estimator = 0;
+  unsigned m_estimator{0};
 
   // see main.cpp and document for documentation
   static unsigned s_uParallelChains;
@@ -288,6 +289,7 @@ public:
 
   void load_gls(Bio::GLReader reader);
   void load_bin(const std::string &binFile);
+  void load_bcf(const std::string &bcf);
 
   void initialize();
 
