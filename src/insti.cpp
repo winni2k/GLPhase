@@ -212,7 +212,7 @@ void Insti::load_gls(GLReader reader) {
 
   in = name.size();
   mn = m_sites.size();
-  cerr << "GLs\n"
+  cout << "GLs\n"
        << "\tLoaded " << mn << " sites\n"
        << "\tLoaded " << in << " samples\n";
 

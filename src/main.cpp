@@ -18,7 +18,7 @@ namespace po = boost::program_options;
 
 int main(int ac, char **av) {
 
-  cerr << "INSTI -- v" << VERSION_MAJOR << "." << VERSION_MINOR << "."
+  cout << "INSTI -- v" << VERSION_MAJOR << "." << VERSION_MINOR << "."
        << VERSION_XSTR(VERSION_REVISION) << endl;
   try {
     stringstream commandLine;
@@ -171,7 +171,7 @@ int main(int ac, char **av) {
       }
     }
 
-    cerr << "Call: " << commandLine.str() << endl;
+    cout << "Call: " << commandLine.str() << endl;
 
     // need to specify burnin generations as sum of SA and non-SA gens
     Impute::bn = Insti::s_uSABurninGen + Insti::s_uNonSABurninGen;
@@ -237,10 +237,10 @@ int main(int ac, char **av) {
         cerr << Impute::vcf_file[j] << '\t'
              << lp.load_vcf(Impute::vcf_file[j].c_str()) << endl;
       */
-      cerr << lp.m_tag << ": initializing..\n";
+      cout << lp.m_tag << ": initializing.." << endl;
 
       lp.initialize();
-      cerr << lp.m_tag << ": estimating..\n";
+      cout << lp.m_tag << ": estimating.." << endl;
 
       // choose which estimation method to use
       lp.estimate();
@@ -262,9 +262,9 @@ int main(int ac, char **av) {
 
       // printing out run time
       gettimeofday(&end, NULL);
-      cerr << lp.m_tag << ": time\t"
+      cout << lp.m_tag << ": time\t"
            << end.tv_sec - sta.tv_sec + 1e-6 * (end.tv_usec - sta.tv_usec)
-           << endl << endl;
+           << endl;
     }
   } catch (exception &e) {
     cerr << e.what() << endl;
