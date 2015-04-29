@@ -98,9 +98,9 @@ void GLReader::LoadBCFGLs() {
                                to_string(gls.second));
     float *p = gls.first.get();
     for (size_t sampNum = 0; sampNum < m_names.size(); ++sampNum, p += 3) {
-      float homR = phred2prob<float, float>(*p);
-      float het = phred2prob<float, float>(*(p + 1));
-      float homA = phred2prob<float, float>(*(p + 2));
+      float homR = glToProb(*p);
+      float het = glToProb(*(p + 1));
+      float homA = glToProb(*(p + 2));
 
       if (m_init.glRetType != GLHelper::gl_ret_t::ST_DROP_FIRST) {
         m_gls.push_back(homR);

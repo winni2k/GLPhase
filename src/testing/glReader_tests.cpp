@@ -33,7 +33,7 @@ void sampleBinTests(Bio::GLReader &reader) {
     EXPECT_TRUE(*(gls.second.at(7)) == searchSNP);
 
     // check that site's GLs
-    EXPECT_FLOAT_EQ(gls.first.at(3 * 3 * 7), 0);
+    EXPECT_FLOAT_EQ(0, gls.first.at(3 * 3 * 7));
     EXPECT_FLOAT_EQ(gls.first.at(3 * 3 * 7 + 1), 0);
     EXPECT_FLOAT_EQ(gls.first.at(3 * 3 * 7 + 2), 1);
 

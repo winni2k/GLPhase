@@ -5,7 +5,7 @@
 #########################
 
 use Test::More;
-BEGIN { plan tests => 2 }
+BEGIN { plan tests => 4 }
 
 use warnings;
 use strict;
@@ -31,11 +31,21 @@ copy( "$srcDir/ex.bin", $gls );
 
 my $gMap = "$srcDir/ex.map";
 
-ok( system("$insti -g $gMap -C100 -m 100 -B5 -i5 $gls") == 0,
-    "ran insti" );
+ok( system("$insti -g $gMap -C100 -m 100 -B5 -i5 $gls") == 0, "ran insti" );
 BGZIPandIndexSTVCFGZ("$gls.vcf.gz");
 
 my $nrd = VCFNRD( "$gls.vcf.gz", "$srcDir/ex.vcf.gz", $resDir );
+cmp_ok( $nrd, '<', 5, "simulated hap gen NRD < 5" );
+
+# let's also run on the vcf version of the bin file
+$gls = "$glBase.gls.vcf.gz";
+copy( "$srcDir/ex.gls.vcf.gz", $gls ) or die "could not copy";
+copy( "$srcDir/ex.gls.vcf.gz.csi", "$gls.csi" ) or die "could not copy";
+
+ok( system("$insti -g $gMap -C100 -m 100 -B5 -i5 $gls -o $gls -Ib") == 0, "ran insti" );
+BGZIPandIndexSTVCFGZ("$gls.vcf.gz");
+
+$nrd = VCFNRD( "$gls.vcf.gz", "$srcDir/ex.vcf.gz", $resDir );
 cmp_ok( $nrd, '<', 5, "simulated hap gen NRD < 5" );
 
 #########################

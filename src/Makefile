@@ -137,6 +137,8 @@ hmmLike.hpp.gch: hmmLike.hpp sampler.hpp.gch olivier/utils.hpp.gch glPack.hpp.gc
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 endif
 
+glReader.hpp.gch: glReader.hpp.gch olivier/utils.hpp.gch bio.hpp.gch
+
 glPack.hpp.gch: glPack.hpp olivier/utils.hpp.gch glVQ.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
@@ -170,6 +172,9 @@ insti.hpp.gch: $(INSTIHEADERPRE)
 ## object files
 %.o: %.cpp %.hpp.gch
 	$(CXX) $(CXXFLAGS) -c $<
+
+glReader.o: glReader.cpp glReader.hpp.gch bio.hpp.gch olivier/utils.hpp.gch
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 olivier/utils.o: olivier/utils.cpp olivier/utils.hpp.gch
 	$(CXX) $(CXXFLAGS) -Wno-sign-compare -c $< -o $@

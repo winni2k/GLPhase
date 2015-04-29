@@ -8,6 +8,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <unordered_set>
 #include <vector>
 
@@ -129,10 +130,22 @@ public:
   bool eq_chrom(const std::string chrom) { return chrom == m_chrom; }
 };
 
+template <class F> F glToProb(F val) {
+  static_assert(std::is_floating_point<F>::value,
+                "F needs to be a floating point type");
+  F tran = std::pow(static_cast<F>(10), val);
+  tran = std::max(tran, static_cast<F>(0));
+  tran = std::min(tran, static_cast<F>(1));
+  return tran;
+}
+
 template <class F, class I> F phred2prob(I phred) {
   if (phred > std::numeric_limits<F>::min_exponent10 * -10)
     return static_cast<F>(0);
-  return static_cast<F>(pow(10, -phred / 10));
+  F ret = static_cast<F>(pow(10, -phred / 10));
+  assert(ret <= 1);
+  assert(ret >= 0);
+  return ret;
 }
 }
 
