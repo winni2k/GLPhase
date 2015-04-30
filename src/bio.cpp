@@ -24,6 +24,15 @@ std::vector<std::string> tokenize_partial(const std::string &str,
   return tokens;
 }
 
+void snp_storage::push_back(Bio::snp input) {
+  std::string inStr = input.to_string();
+  if (m_site_set.count(inStr) > 0)
+    throw std::runtime_error("Cannot push SNP, it already exists: [" + inStr +
+                             "]");
+  m_site_set.insert(inStr);
+  m_sites.push_back(std::move(input));
+}
+
 void snp_storage_ordered::push_back(Bio::snp input) {
   if (!m_sites.empty() && input.pos < m_sites.back().pos)
     throw std::range_error("Tried to insert position [" +

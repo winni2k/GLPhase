@@ -5,7 +5,7 @@
 #########################
 
 use Test::More;
-BEGIN { plan tests => 4 }
+BEGIN { plan tests => 5 }
 
 use warnings;
 use strict;
@@ -50,4 +50,6 @@ $code = VCFHapMatch( "$nogmapBase.vcf.gz",
     "$simpleDir/simple.gls.v1.expected.bin.vcf", $resDir );
 ok( $code eq 0, "simple haps v1 ngmap exit code OK" ) or diag($code);
 
-
+###
+# try running on a broken input file
+ok( system("$insti $simpleDir/simple.gls.v2.samePos.err.bin 2>/dev/null") != 0);

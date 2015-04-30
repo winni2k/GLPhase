@@ -75,13 +75,10 @@ std::vector<std::string> tokenize_partial(const std::string &str,
 class snp_storage {
 protected:
   std::vector<Bio::snp> m_sites;
-  std::unordered_multiset<std::string> m_site_set;
+  std::unordered_set<std::string> m_site_set;
 
 public:
-  void push_back(Bio::snp input) {
-    m_site_set.insert(input.to_string());
-    m_sites.push_back(std::move(input));
-  }
+  void push_back(Bio::snp input);
   size_t size() const { return m_sites.size(); }
   bool empty() const { return m_sites.empty(); }
   bool exists(const Bio::snp &search) const {

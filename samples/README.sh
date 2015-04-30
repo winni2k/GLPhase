@@ -38,3 +38,8 @@ java -jar ~/opt/beagle4/b4.r1274.jar gl=ex.gls.vcf.gz out=ex.bgl
 # create pseudo multiallelic site
 # edited simple.gls.v1.txt to have one quad allelic site
 gzip -c simple.gls.v1.samePos.txt > simple.gls.v1.samePos.bin
+
+###########
+# Thu Apr 30 13:48:17 BST 2015
+# added another allele that should cause insti to throw error
+gzip -c simple.gls.v2.samePos.err.txt >simple.gls.v2.samePos.err.bin
