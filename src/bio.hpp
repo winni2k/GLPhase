@@ -75,7 +75,7 @@ std::vector<std::string> tokenize_partial(const std::string &str,
 class snp_storage {
 protected:
   std::vector<Bio::snp> m_sites;
-  std::unordered_set<std::string> m_site_set;
+  std::unordered_multiset<std::string> m_site_set;
 
 public:
   void push_back(Bio::snp input) {
@@ -85,15 +85,17 @@ public:
   size_t size() const { return m_sites.size(); }
   bool empty() const { return m_sites.empty(); }
   bool exists(const Bio::snp &search) const {
-    return m_site_set.find(search.to_string()) != m_site_set.end();
+    return m_site_set.count(search.to_string()) > 0;
   }
+
   void clear() {
     m_sites.clear();
     m_site_set.clear();
   }
+
   std::vector<Bio::snp>::const_iterator at(size_t idx) const {
-    if (m_sites.size() <= idx)
-      throw std::range_error("Idx [" + std::to_string(idx) + "]out of range");
+    if (!(idx < m_sites.size()))
+      throw std::range_error("Idx [" + std::to_string(idx) + "] out of range");
     return m_sites.cbegin() + idx;
   }
 };
@@ -107,29 +109,18 @@ public:
     m_chrom.clear();
     Bio::snp_storage::clear();
   }
-  void push_back(Bio::snp input) {
-    if (!m_sites.empty() && input.pos < m_sites.back().pos)
-      throw std::range_error("Tried to insert position [" +
-                             std::to_string(input.pos) +
-                             "] that was less than last position [" +
-                             std::to_string(m_sites.back().pos) + "]");
-    if (m_sites.empty())
-      m_chrom = input.chr;
-    else if (m_chrom != input.chr)
-      throw std::range_error("Input snp is wrong chromosome [" + input.chr +
-                             "]");
-    Bio::snp_storage::push_back(std::move(input));
-  }
-
+  void push_back(Bio::snp input);
   std::pair<unsigned, unsigned> pos_range() const {
     if (m_sites.empty())
       throw std::range_error("Container is empty");
     return std::make_pair(m_sites.front().pos, m_sites.back().pos);
   }
+
   std::string chrom() const { return m_chrom; }
   bool eq_chrom(const std::string chrom) { return chrom == m_chrom; }
 };
 
+// template functions
 template <class F> F glToProb(F val) {
   static_assert(std::is_floating_point<F>::value,
                 "F needs to be a floating point type");

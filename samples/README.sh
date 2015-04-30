@@ -32,3 +32,9 @@ bcftools convert --gensample2vcf ex.forBT.gen.gz,ex.wtccc.sample | bcftools +tag
 
 # and call genotypes with beagle
 java -jar ~/opt/beagle4/b4.r1274.jar gl=ex.gls.vcf.gz out=ex.bgl
+
+###########
+# Wed Apr 29 14:30:30 BST 2015
+# create pseudo multiallelic site
+# edited simple.gls.v1.txt to have one quad allelic site
+gzip -c simple.gls.v1.samePos.txt > simple.gls.v1.samePos.bin

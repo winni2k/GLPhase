@@ -23,4 +23,17 @@ std::vector<std::string> tokenize_partial(const std::string &str,
   tokens.push_back(str.substr(p_last, p_curr - p_last));
   return tokens;
 }
+
+void snp_storage_ordered::push_back(Bio::snp input) {
+  if (!m_sites.empty() && input.pos < m_sites.back().pos)
+    throw std::range_error("Tried to insert position [" +
+                           std::to_string(input.pos) +
+                           "] that was less than last position [" +
+                           std::to_string(m_sites.back().pos) + "]");
+  if (m_sites.empty())
+    m_chrom = input.chr;
+  else if (m_chrom != input.chr)
+    throw std::range_error("Input snp is wrong chromosome [" + input.chr + "]");
+  Bio::snp_storage::push_back(std::move(input));
+}
 }

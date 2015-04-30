@@ -1242,8 +1242,11 @@ void Insti::initialize() {
   // 0.5 / (posi[mn - 1] - posi[0]) / density looks like a correction for finite
   // sites
   mu = 1 / mu;
-  float rho = 0.5 * mu * (mn - 1) /
-              (m_sites.at(mn - 1)->pos - m_sites.at(0)->pos) / density;
+  size_t firstPos = m_sites.at(0)->pos;
+  size_t lastPos = m_sites.at(mn - 1)->pos;
+  assert(lastPos >= firstPos);
+  float rho = lastPos == firstPos ? 0.0f : 0.5 * mu * (mn - 1) /
+                                               (lastPos - firstPos) / density;
   mu = mu / (hn + mu); // rho is recombination rate?  mu is mutation rate
 
   // initialzie the site transition matrix tran
@@ -2217,7 +2220,8 @@ void Insti::document() {
   cerr << "\n\t-B <integer>    number of simulated annealing generations (28)";
   cerr << "\n\t-i <integer>    number of non-simulated annealing burnin "
           "generations (28)";
-  cerr << "\n\t-C <unsigned>   number of iterations of nested MH sampler (0).  Overrides -n if greater than 0.";
+  cerr << "\n\t-C <unsigned>   number of iterations of nested MH sampler (0).  "
+          "Overrides -n if greater than 0.";
 
   cerr << "\n\n";
   exit(1);

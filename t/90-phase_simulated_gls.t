@@ -42,14 +42,10 @@ $gls = "$glBase.gls.vcf.gz";
 copy( "$srcDir/ex.gls.vcf.gz", $gls ) or die "could not copy";
 copy( "$srcDir/ex.gls.vcf.gz.csi", "$gls.csi" ) or die "could not copy";
 
-ok( system("$insti -g $gMap -C100 -m 100 -B5 -i5 $gls -o $gls -Ib") == 0, "ran insti" );
+ok( system("$insti -g $gMap -C100 -m 100 -B5 -i5 -o $gls -Ib $gls") == 0, "ran insti" );
 BGZIPandIndexSTVCFGZ("$gls.vcf.gz");
 
 $nrd = VCFNRD( "$gls.vcf.gz", "$srcDir/ex.vcf.gz", $resDir );
 cmp_ok( $nrd, '<', 5, "simulated hap gen NRD < 5" );
 
-#########################
-
-# Insert your test code below, the Test::More module is used here so read
-# its man page ( perldoc Test::More ) for help writing this test script.
 

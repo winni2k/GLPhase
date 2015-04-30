@@ -137,7 +137,8 @@ hmmLike.hpp.gch: hmmLike.hpp sampler.hpp.gch olivier/utils.hpp.gch glPack.hpp.gc
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 endif
 
-glReader.hpp.gch: glReader.hpp.gch olivier/utils.hpp.gch bio.hpp.gch
+glReader.hpp.gch: glReader.hpp olivier/utils.hpp.gch bio.hpp.gch
+	$(CXX) $(CXXFLAGS) -x c++-header $<
 
 glPack.hpp.gch: glPack.hpp olivier/utils.hpp.gch glVQ.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
