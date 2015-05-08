@@ -1,3 +1,12 @@
+1.6.2   Fri May 08 15:38:42 BST 2015
+        Adds more tests for multiallelic sites
+        Genetic distances are calculated correctly from genetic map
+        Adds genetic distance inflation option -R
+
+1.6.1   Fri May 01 10:21:10 BST 2015
+        Accepts input GLs in BCF format
+        Accepts input GLs with multiple sites at the same position
+
 1.4.11  Tue Jul 08 21:17:06 BST 2014
         glVQ: increased training set size to entire set
         added more omp parallelization

@@ -44,7 +44,7 @@ void GLReader::LoadSTBinNames() {
   string buffer;
   vector<string> tokens;
   if (!binFD.isGood())
-    throw std::runtime_error("Error opening file [" + binFile + "]");
+    throw std::runtime_error("Error opening 'nameFile' file [" + binFile + "]");
   getline(binFD, buffer);
   boost::split(tokens, buffer, boost::is_any_of("\t"));
   if (tokens.size() < 4)

@@ -23,6 +23,8 @@ public:
   GeneticMap(){};
   GeneticMap(std::string &fileName);
   double GeneticLocation(unsigned genomLoc);
+
+  // genetic distance in Morgans
   double GeneticDistance(unsigned first, unsigned second);
   bool empty();
 };

@@ -9,7 +9,7 @@
 #include <stdexcept>
 #include <string>
 #include <type_traits>
-#include <unordered_set>
+#include <unordered_map>
 #include <vector>
 
 // this was written with c++11 in mind
@@ -75,7 +75,8 @@ std::vector<std::string> tokenize_partial(const std::string &str,
 class snp_storage {
 protected:
   std::vector<Bio::snp> m_sites;
-  std::unordered_set<std::string> m_site_set;
+  // string representation of SNP -> index of SNP in m_sites
+  std::unordered_map<std::string, size_t> m_site_set;
 
 public:
   void push_back(Bio::snp input);
@@ -84,6 +85,7 @@ public:
   bool exists(const Bio::snp &search) const {
     return m_site_set.count(search.to_string()) > 0;
   }
+  size_t index(const Bio::snp &search) const;
 
   void clear() {
     m_sites.clear();

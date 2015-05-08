@@ -1,6 +1,7 @@
 
 #include "gtest/gtest.h"
 #include "insti.hpp"
+#include "glReader.hpp"
 #include <algorithm>
 #include <gsl/gsl_rng.h>
 
@@ -12,6 +13,9 @@ string sampleLegend =
     sampleDir + "/20_011976121_012173018.bin.onlyThree.legend";
 string sampleHap = sampleDir + "/20_011976121_012173018.bin.onlyThree.hap";
 string sampleBin = sampleDir + "/20_011976121_012173018.bin.onlyThree.bin";
+string sampleBinWithMulti =
+    sampleDir + "/20_011976121_012173018.bin.onlyThree.withMultiall.bin";
+string bigSampleMultiBin = sampleDir + "/hapGen/ex.multi.bin";
 string refHap =
     sampleDir + "/20_0_62000000.011976121_012173018.paste.onlyThree.hap";
 string refLegend =
@@ -36,6 +40,9 @@ string scaffoldHap =
     sampleDir + "/20_011976121_012173018.bin.onlyThree.scaffold50.hap";
 string scaffoldHaps =
     sampleDir + "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted.haps";
+string scaffoldHapsWithMultiall =
+    sampleDir +
+    "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted.withMultiall.haps";
 string scaffoldTabHaps =
     sampleDir +
     "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted.tabhaps.gz";
@@ -61,6 +68,44 @@ string geneticMap =
 
 gsl_rng *rng = gsl_rng_alloc(gsl_rng_default);
 
+void sampleBinPreInitProbCheck(Insti &lp) {
+
+  // making sure prob size is correct
+  EXPECT_EQ(1024 * 2 * lp.in, lp.prob.size());
+
+  EXPECT_EQ(0, lp.prob[0]);
+  EXPECT_EQ(1, lp.prob[1]);
+  EXPECT_EQ(0.2f, lp.prob[2]);
+  EXPECT_EQ(0, lp.prob[3]);
+  EXPECT_EQ(0, lp.prob[4]);
+  EXPECT_EQ(0, lp.prob[5]);
+  EXPECT_EQ(0, lp.prob[6]);
+  EXPECT_EQ(1, lp.prob[7]);
+  EXPECT_EQ(1, lp.prob[lp.in * 6 - 4]);
+  EXPECT_EQ(1, lp.prob[lp.in * 2 + 1]);
+  EXPECT_EQ(0, lp.prob[lp.in * 2 + 3]);
+}
+
+void sampleBinPostInitProbCheck(Insti &lp) {
+
+  EXPECT_EQ(1024 * 3 * lp.in, lp.prob.size());
+  EXPECT_EQ(0, lp.prob[0]);
+  EXPECT_EQ(0, lp.prob[1]);
+  EXPECT_EQ(1, lp.prob[2]);
+
+  // 3 = lp.pn
+  EXPECT_EQ(0.8f, lp.prob[0 + lp.mn * 3]);
+  EXPECT_EQ(0.2f, lp.prob[1 + lp.mn * 3]);
+  EXPECT_EQ(0, lp.prob[2 + lp.mn * 3]);
+
+  EXPECT_EQ(1, lp.prob[0 + lp.mn * 2 * 3]);
+  EXPECT_EQ(0, lp.prob[1 + lp.mn * 2 * 3]);
+  EXPECT_EQ(0, lp.prob[2 + lp.mn * 2 * 3]);
+
+  EXPECT_EQ(0, lp.prob[4]);
+  EXPECT_EQ(1, lp.prob[5]);
+}
+
 TEST(Insti, loadBin) {
 
   InstiHelper::Init init;
@@ -71,7 +116,7 @@ TEST(Insti, loadBin) {
   ASSERT_EQ(3, lp.in);
 
   // testing sites
-  EXPECT_EQ(1024, lp.m_sites.size());
+  ASSERT_EQ(1024, lp.m_sites.size());
 
   // chr
   EXPECT_EQ("20", lp.m_sites.chrom());
@@ -94,39 +139,13 @@ TEST(Insti, loadBin) {
   EXPECT_EQ("T", lp.m_sites.at(1023)->alt);
 
   // prob
-  // making sure prob size is correct
-  EXPECT_EQ(1024 * 2 * lp.in, lp.prob.size());
-
-  EXPECT_EQ(0, lp.prob[0]);
-  EXPECT_EQ(1, lp.prob[1]);
-  EXPECT_EQ(0.2f, lp.prob[2]);
-  EXPECT_EQ(0, lp.prob[3]);
-  EXPECT_EQ(0, lp.prob[4]);
-  EXPECT_EQ(0, lp.prob[5]);
-  EXPECT_EQ(0, lp.prob[6]);
-  EXPECT_EQ(1, lp.prob[7]);
-  EXPECT_EQ(1, lp.prob[lp.in * 6 - 4]);
+  sampleBinPreInitProbCheck(lp);
 
   //    cerr << "BLOINC1\n";
   // now initialize lp and see if probs still make sense
   lp.initialize();
 
-  EXPECT_EQ(1024 * 3 * lp.in, lp.prob.size());
-  EXPECT_EQ(0, lp.prob[0]);
-  EXPECT_EQ(0, lp.prob[1]);
-  EXPECT_EQ(1, lp.prob[2]);
-
-  // 3 = lp.pn
-  EXPECT_EQ(0.8f, lp.prob[0 + lp.mn * 3]);
-  EXPECT_EQ(0.2f, lp.prob[1 + lp.mn * 3]);
-  EXPECT_EQ(0, lp.prob[2 + lp.mn * 3]);
-
-  EXPECT_EQ(1, lp.prob[0 + lp.mn * 2 * 3]);
-  EXPECT_EQ(0, lp.prob[1 + lp.mn * 2 * 3]);
-  EXPECT_EQ(0, lp.prob[2 + lp.mn * 2 * 3]);
-
-  EXPECT_EQ(0, lp.prob[4]);
-  EXPECT_EQ(1, lp.prob[5]);
+  sampleBinPostInitProbCheck(lp);
 
   //  cerr << "BLOINC2\n";
   // now test refpanel loading
@@ -150,6 +169,38 @@ TEST(Insti, loadBin) {
   // InstiPanelType::SCAFFOLD);
 }
 
+void testStandardScaffold(Insti &lp) {
+
+  ASSERT_EQ("samp1", lp.GetScaffoldID(0));
+  ASSERT_EQ("samp2", lp.GetScaffoldID(1));
+  ASSERT_EQ("samp3", lp.GetScaffoldID(2));
+
+  ASSERT_EQ(6, lp.GetScaffoldNumHaps());
+  ASSERT_EQ(1, lp.GetScaffoldNumWordsPerHap());
+  ASSERT_EQ(50, lp.GetScaffoldNumSites());
+
+  for (unsigned i = 0; i != 5; i++)
+    EXPECT_EQ(0, lp.TestScaffoldSite(i, 0));
+  EXPECT_EQ(1, lp.TestScaffoldSite(5, 0));
+
+  for (unsigned i = 1; i != 26; i++) {
+    EXPECT_EQ(0, lp.TestScaffoldSite(0, i));
+    EXPECT_EQ(1, lp.TestScaffoldSite(1, i));
+    EXPECT_EQ(0, lp.TestScaffoldSite(2, i));
+    EXPECT_EQ(1, lp.TestScaffoldSite(3, i));
+    EXPECT_EQ(0, lp.TestScaffoldSite(4, i));
+    EXPECT_EQ(0, lp.TestScaffoldSite(5, i));
+  }
+
+  for (unsigned i = 26; i != 50; i++) {
+    EXPECT_EQ(1, lp.TestScaffoldSite(0, i));
+    EXPECT_EQ(0, lp.TestScaffoldSite(1, i));
+    EXPECT_EQ(0, lp.TestScaffoldSite(2, i));
+    EXPECT_EQ(1, lp.TestScaffoldSite(3, i));
+    EXPECT_EQ(1, lp.TestScaffoldSite(4, i));
+    EXPECT_EQ(0, lp.TestScaffoldSite(5, i));
+  }
+}
 TEST(Insti, loadHapsSamp) {
 
   InstiHelper::Init init;
@@ -175,31 +226,7 @@ TEST(Insti, loadHapsSamp) {
 
   // test the scaffold loading
   lp.LoadHapsSamp(scaffoldHaps, scaffHapsSampSample, InstiPanelType::SCAFFOLD);
-  ASSERT_EQ("samp1", lp.GetScaffoldID(0));
-  ASSERT_EQ("samp2", lp.GetScaffoldID(1));
-  ASSERT_EQ("samp3", lp.GetScaffoldID(2));
-
-  ASSERT_EQ(6, lp.GetScaffoldNumHaps());
-  ASSERT_EQ(1, lp.GetScaffoldNumWordsPerHap());
-  ASSERT_EQ(50, lp.GetScaffoldNumSites());
-
-  for (unsigned i = 0; i != 26; i++) {
-    EXPECT_EQ(0, lp.TestScaffoldSite(0, i));
-    EXPECT_EQ(1, lp.TestScaffoldSite(1, i));
-    EXPECT_EQ(0, lp.TestScaffoldSite(2, i));
-    EXPECT_EQ(1, lp.TestScaffoldSite(3, i));
-    EXPECT_EQ(0, lp.TestScaffoldSite(4, i));
-    EXPECT_EQ(0, lp.TestScaffoldSite(5, i));
-  }
-
-  for (unsigned i = 26; i != 50; i++) {
-    EXPECT_EQ(1, lp.TestScaffoldSite(0, i));
-    EXPECT_EQ(0, lp.TestScaffoldSite(1, i));
-    EXPECT_EQ(0, lp.TestScaffoldSite(2, i));
-    EXPECT_EQ(1, lp.TestScaffoldSite(3, i));
-    EXPECT_EQ(1, lp.TestScaffoldSite(4, i));
-    EXPECT_EQ(0, lp.TestScaffoldSite(5, i));
-  }
+  testStandardScaffold(lp);
 
   // unordered haps test
   Insti lp2(init);
@@ -213,7 +240,7 @@ TEST(Insti, loadHapsSamp) {
   ASSERT_EQ("samp2", lp2.GetScaffoldID(1));
   ASSERT_EQ("samp3", lp2.GetScaffoldID(2));
 
-  for (unsigned i = 0; i != 26; i++) {
+  for (unsigned i = 1; i != 26; i++) {
     EXPECT_EQ(0, lp2.TestScaffoldSite(4, i));
     EXPECT_EQ(1, lp2.TestScaffoldSite(5, i));
     EXPECT_EQ(0, lp2.TestScaffoldSite(0, i));
@@ -256,7 +283,7 @@ TEST(Insti, loadHapsSamp) {
   ASSERT_EQ("samp2", lp4.GetScaffoldID(1));
   ASSERT_EQ("samp3", lp4.GetScaffoldID(2));
 
-  for (unsigned i = 0; i != 26; i++) {
+  for (unsigned i = 1; i != 26; i++) {
     EXPECT_EQ(0, lp4.TestScaffoldSite(4, i));
     EXPECT_EQ(1, lp4.TestScaffoldSite(5, i));
     EXPECT_EQ(0, lp4.TestScaffoldSite(0, i));
@@ -273,6 +300,35 @@ TEST(Insti, loadHapsSamp) {
     EXPECT_EQ(1, lp4.TestScaffoldSite(2, i));
     EXPECT_EQ(0, lp4.TestScaffoldSite(3, i));
   }
+}
+
+// test to see what happens if input bin contains multiallelics
+TEST(Insti, loadHapsSamp2) {
+  InstiHelper::Init init;
+  init.geneticMap = geneticMap;
+  Insti lp(init);
+  lp.load_bin(sampleBinWithMulti);
+
+  sampleBinPreInitProbCheck(lp);
+
+  lp.initialize();
+
+  sampleBinPostInitProbCheck(lp);
+
+  lp.LoadHapsSamp(scaffoldHaps, scaffHapsSampSample, InstiPanelType::SCAFFOLD);
+  testStandardScaffold(lp);
+}
+
+TEST(Insti, loadHapsSamp3) {
+  InstiHelper::Init init;
+  init.geneticMap = geneticMap;
+  Insti lp(init);
+  lp.load_bin(sampleBinWithMulti);
+  lp.initialize();
+
+  lp.LoadHapsSamp(scaffoldHapsWithMultiall, scaffHapsSampSample,
+                  InstiPanelType::SCAFFOLD);
+  testStandardScaffold(lp);
 }
 
 TEST(Insti, loadHapLegSampErrors) {
@@ -302,20 +358,15 @@ TEST(Insti, loadHapLegSampErrors) {
       unsortedRefHaps, scaffHapsSampUnorderedSample, InstiPanelType::SCAFFOLD));
 }
 
-TEST(Insti, initializingHapsFromScaffold) {
-  InstiHelper::Init init;
-  init.geneticMap = geneticMap;
-  init.scaffoldHapsFile = scaffoldHaps;
-  init.initPhaseFromScaffold = true;
-  init.scaffoldSampleFile = scaffHapsSampSample;
-  Insti lp(init);
-
-  lp.load_bin(sampleBin);
-  // test the scaffold loading
-  lp.initialize();
-
+void testStandardInitFromHaps(Insti &lp) {
   // test to see if main haps were initialized correctly
-  vector<unsigned> siteIdxs = {6, 316, 576};
+
+  // test site 6 seprately
+  for (unsigned i = 0; i != 5; ++i)
+    EXPECT_EQ(0, lp.TestMainHap_(i, 6));
+  EXPECT_EQ(1, lp.TestMainHap_(5, 6));
+
+  vector<unsigned> siteIdxs = {316, 576};
   for (auto i : siteIdxs) {
     EXPECT_EQ(0, lp.TestMainHap_(0, i));
     EXPECT_EQ(1, lp.TestMainHap_(1, i));
@@ -333,6 +384,81 @@ TEST(Insti, initializingHapsFromScaffold) {
     EXPECT_EQ(1, lp.TestMainHap_(3, i));
     EXPECT_EQ(1, lp.TestMainHap_(4, i));
     EXPECT_EQ(0, lp.TestMainHap_(5, i));
+  }
+}
+TEST(Insti, initializingHapsFromScaffold) {
+  InstiHelper::Init init;
+  init.geneticMap = geneticMap;
+  init.scaffoldHapsFile = scaffoldHaps;
+  init.initPhaseFromScaffold = true;
+  init.scaffoldSampleFile = scaffHapsSampSample;
+  Insti lp(init);
+
+  lp.load_bin(sampleBin);
+  // test the scaffold loading
+  lp.initialize();
+
+  // test to see if main haps were initialized correctly
+  testStandardInitFromHaps(lp);
+}
+
+TEST(Insti, initializingHapsFromScaffold2) {
+  InstiHelper::Init init;
+  init.geneticMap = geneticMap;
+  init.scaffoldHapsFile = scaffoldHaps;
+  init.initPhaseFromScaffold = true;
+  init.scaffoldSampleFile = scaffHapsSampSample;
+  Insti lp(init);
+
+  lp.load_bin(sampleBinWithMulti);
+  // test the scaffold loading
+  lp.initialize();
+
+  testStandardInitFromHaps(lp);
+}
+
+TEST(Insti, bigSampleMultiBin) {
+  InstiHelper::Init init;
+  init.geneticMap = geneticMap;
+  Insti lp(init);
+  lp.load_bin(bigSampleMultiBin);
+
+  Bio::GLHelper::init glInit;
+  glInit.glFile = bigSampleMultiBin;
+  glInit.nameFile = bigSampleMultiBin;
+  glInit.glRetType = Bio::GLHelper::gl_ret_t::ST_DROP_FIRST;
+  Bio::GLReader glr(glInit);
+
+  auto glData = glr.GetGLs();
+  auto &gls = glData.first;
+
+  ASSERT_EQ(gls.size(), lp.prob.size());
+  for (size_t i = 0; i < gls.size(); ++i) {
+    SCOPED_TRACE("i = " + to_string(i));
+    ASSERT_FLOAT_EQ(gls[i], lp.prob[i]);
+  }
+
+  // now let's have prob transposed and converted to triplets
+  lp.initialize();
+
+  glInit.glRetType = Bio::GLHelper::gl_ret_t::STANDARD;
+  glr.SetArgs(glInit);
+  glData = glr.GetGLs();
+  auto &gls2 = glData.first;
+  ASSERT_EQ(gls.size(), lp.prob.size());
+
+  auto names = glr.GetNames();
+  size_t nSites = gls.size() / names.size() / 3;
+  for (size_t site = 0; site != nSites; ++site) {
+    for (size_t samp = 0; samp != names.size(); ++samp) {
+      for (size_t pNum = 0; pNum != 3; ++pNum) {
+        SCOPED_TRACE("site = " + to_string(site) + ", samp = " +
+                     to_string(samp) + ", probNum(0-based) = " +
+                     to_string(pNum));
+        ASSERT_FLOAT_EQ(gls[site * names.size() * 3 + samp * 3 + pNum],
+                        lp.prob[samp * nSites * 3 + site * 3 + pNum]);
+      }
+    }
   }
 }
 
@@ -370,23 +496,7 @@ TEST(Insti, LoadVCFGZ) {
   ASSERT_EQ(1, lp.GetScaffoldNumWordsPerHap());
   ASSERT_EQ(50, lp.GetScaffoldNumSites());
 
-  for (unsigned i = 0; i != 26; i++) {
-    EXPECT_EQ(0, lp.TestScaffoldSite(0, i));
-    EXPECT_EQ(1, lp.TestScaffoldSite(1, i));
-    EXPECT_EQ(0, lp.TestScaffoldSite(2, i));
-    EXPECT_EQ(1, lp.TestScaffoldSite(3, i));
-    EXPECT_EQ(0, lp.TestScaffoldSite(4, i));
-    EXPECT_EQ(0, lp.TestScaffoldSite(5, i));
-  }
-
-  for (unsigned i = 26; i != 50; i++) {
-    EXPECT_EQ(1, lp.TestScaffoldSite(0, i));
-    EXPECT_EQ(0, lp.TestScaffoldSite(1, i));
-    EXPECT_EQ(0, lp.TestScaffoldSite(2, i));
-    EXPECT_EQ(1, lp.TestScaffoldSite(3, i));
-    EXPECT_EQ(1, lp.TestScaffoldSite(4, i));
-    EXPECT_EQ(0, lp.TestScaffoldSite(5, i));
-  }
+  testStandardScaffold(lp);
 
   // unordered haps test
   Insti lp2(init);

@@ -29,8 +29,16 @@ void snp_storage::push_back(Bio::snp input) {
   if (m_site_set.count(inStr) > 0)
     throw std::runtime_error("Cannot push SNP, it already exists: [" + inStr +
                              "]");
-  m_site_set.insert(inStr);
+  m_site_set.insert(make_pair(inStr, m_sites.size()));
   m_sites.push_back(std::move(input));
+}
+
+size_t snp_storage::index(const Bio::snp &search) const {
+  auto site = m_site_set.find(search.to_string());
+  if (site == m_site_set.end())
+    throw std::runtime_error("Could not find site [" + search.to_string() +
+                             "] in site set");
+  return site->second;
 }
 
 void snp_storage_ordered::push_back(Bio::snp input) {

@@ -75,5 +75,5 @@ double GeneticMap::GeneticDistance(unsigned first, unsigned second) {
   if (first > second)
     throw std::runtime_error("first is larger than second");
 
-  return GeneticLocation(second) - GeneticLocation(first);
+  return (GeneticLocation(second) - GeneticLocation(first)) / 100;
 }

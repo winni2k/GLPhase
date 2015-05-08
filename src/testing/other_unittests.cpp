@@ -25,24 +25,6 @@ string refLegend =
 string refHaps =
     sampleDir + "/20_0_62000000.011976121_012173018.paste.onlyThree.haps";
 
-string scaffHapLegSampSample = sampleDir + "/onlyThree.hapLegSamp.sample";
-string scaffHapsSampSample = sampleDir + "/onlyThree.hapsSample.sample";
-string scaffHapsSampUnorderedSample =
-    sampleDir + "/onlyThree.hapsSample.unordered.sample";
-
-string scaffoldUnorderedHaps =
-    sampleDir +
-    "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted.unordered.haps";
-string scaffoldHap =
-    sampleDir + "/20_011976121_012173018.bin.onlyThree.scaffold50.hap";
-string scaffoldHaps =
-    sampleDir + "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted.haps";
-string scaffoldHapsWrongReg =
-    sampleDir +
-    "/20_011976121_012173018.bin.onlyThree.scaffold50.sorted.wrongRegion.haps";
-string scaffoldLegend =
-    sampleDir + "/20_011976121_012173018.bin.onlyThree.scaffold50.legend";
-
 string brokenHapLegSampSample =
     brokenDir + "/onlyThree.hapLegSample.extraLine.sample";
 string brokenHapsSampSample =
@@ -419,17 +401,17 @@ TEST(GeneticMap, distanceOK) {
 
   GeneticMap gmap(geneticMap);
   // no interpolation
-  EXPECT_DOUBLE_EQ(5.49294973985857 - 5.49294697413266,
+  EXPECT_DOUBLE_EQ((5.49294973985857 - 5.49294697413266) / 100,
                    gmap.GeneticDistance(1140727, 1140749));
-  EXPECT_DOUBLE_EQ(5.49294697413266, gmap.GeneticDistance(61795, 1140727));
-  EXPECT_DOUBLE_EQ(110.205396293913, gmap.GeneticDistance(61795, 62949445));
-  EXPECT_DOUBLE_EQ(104.71244931978034, gmap.GeneticDistance(1140727, 62949445));
+  EXPECT_DOUBLE_EQ(0.0549294697413266, gmap.GeneticDistance(61795, 1140727));
+  EXPECT_DOUBLE_EQ(1.10205396293913, gmap.GeneticDistance(61795, 62949445));
+  EXPECT_DOUBLE_EQ(1.0471244931978034, gmap.GeneticDistance(1140727, 62949445));
 
   // interpolation of one site
-  EXPECT_NEAR((5.49294973985857 - 5.49294697413266) / 22 * 5,
+  EXPECT_NEAR((5.49294973985857 - 5.49294697413266) / 22 * 5 / 100,
               gmap.GeneticDistance(1140727, 1140732), 1e-9);
-  EXPECT_NEAR((5.49294697413266 - 5.49291291069285) / 270 * 220 +
-                  (5.49294973985857 - 5.49294697413266) / 22 * 5,
+  EXPECT_NEAR(((5.49294697413266 - 5.49291291069285) / 270 * 220 +
+               (5.49294973985857 - 5.49294697413266) / 22 * 5) /
+                  100,
               gmap.GeneticDistance(1140507, 1140732), 1e-8);
 }
-

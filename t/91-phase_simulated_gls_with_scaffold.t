@@ -5,7 +5,7 @@
 #########################
 
 use Test::More;
-BEGIN { plan tests => 6 }
+BEGIN { plan tests => 4 }
 
 use warnings;
 use strict;
@@ -29,27 +29,30 @@ my $glBase = "$resDir/simulated_gls";
 my $gls    = "$glBase.bin";
 copy( "$srcDir/ex.bin", $gls );
 
+my $i2Hap = "$srcDir/ex.haps.gz";
+my $i2Leg = "$srcDir/ex.leg";
+
 my $gMap = "$srcDir/ex.map";
 
-ok( system("$insti -g $gMap -C100 -m 20 -B5 -i5 $gls") == 0, "ran insti" );
+ok(
+    system("$insti -g $gMap -C100 -m 10 -B0 -i3 -H $i2Hap -L $i2Leg -k $gls")
+      == 0,
+    "ran insti"
+);
 BGZIPandIndexSTVCFGZ("$gls.vcf.gz");
 
 my $nrd = VCFNRD( "$gls.vcf.gz", "$srcDir/ex.vcf.gz", $resDir );
-cmp_ok($nrd , '>', 0, "simulated hap gen NRD ($nrd) > 0" );
-cmp_ok( $nrd, '<', 5.5, "simulated hap gen NRD ($nrd) < 5.5" );
+cmp_ok( $nrd, '<', 5, "simulated hap gen NRD ($nrd) < 5" );
 
 # let's also run on the vcf version of the bin file
 $gls = "$glBase.gls.vcf.gz";
-copy( "$srcDir/ex.gls.vcf.gz", $gls ) or die "could not copy";
+copy( "$srcDir/ex.gls.vcf.gz",     $gls )       or die "could not copy";
 copy( "$srcDir/ex.gls.vcf.gz.csi", "$gls.csi" ) or die "could not copy";
 
-ok( system("$insti -g $gMap -C100 -m 20 -B5 -i5 -o $gls -Ib $gls") == 0, "ran insti" );
+ok( system("$insti -g $gMap -C100 -m 10 -B0 -i3 -o $gls -Ib -H $i2Hap -L $i2Leg $gls") == 0,
+    "ran insti" );
 BGZIPandIndexSTVCFGZ("$gls.vcf.gz");
 
 $nrd = VCFNRD( "$gls.vcf.gz", "$srcDir/ex.vcf.gz", $resDir );
-cmp_ok($nrd , '>', 0, "simulated hap gen NRD ($nrd) > 0" );
-cmp_ok( $nrd, '<', 5.5, "simulated hap gen NRD ($nrd) < 5.5" );
-
-
-
+cmp_ok( $nrd, '<', 5, "simulated hap gen NRD ($nrd) < 5" );
 

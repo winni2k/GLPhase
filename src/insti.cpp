@@ -323,7 +323,6 @@ void Insti::OpenTabHaps(const string &hapsFile, vector<vector<char>> &loadHaps,
   // start parsing haplotype lines
   string buffer;
   unsigned numHaps = 0;
-  unsigned previousPos = 0;
   unsigned matchSites = 0;
   unsigned glSiteIdx =
       0; // used for checking sites against already loaded glSites
@@ -355,10 +354,13 @@ void Insti::OpenTabHaps(const string &hapsFile, vector<vector<char>> &loadHaps,
     if (!m_sites.exists(newSite))
       continue;
 
-    if (pos == previousPos)
-      throw std::runtime_error("[insti] Multiple variants at the same "
-                               "position are not implemented yet");
-    previousPos = pos;
+    size_t prevGlSiteIdx = glSiteIdx;
+    glSiteIdx = m_sites.index(newSite);
+    if (glSiteIdx <= prevGlSiteIdx)
+      throw std::runtime_error("[insti] Variants in haplotypes are out of "
+                               "order with GL variants: [" +
+                               m_sites.at(glSiteIdx)->to_string() + "]");
+
     ++matchSites;
 
     // check to make sure the correct number of haplotypes exist in line
@@ -857,7 +859,7 @@ void Insti::FilterSites(vector<vector<char>> &loadHaps, vector<snp> &loadSites,
 
   // now keep all sites that are in the GL set of sites
   // look up each load site to see if its in the GL sites
-  unsigned previousPos = 0;
+  //  unsigned glSiteIdx = 0;
   unsigned matchSites = 0;
   for (unsigned loadSiteIdx = 0; loadSiteIdx < loadSites.size();
        ++loadSiteIdx) {
@@ -865,14 +867,16 @@ void Insti::FilterSites(vector<vector<char>> &loadHaps, vector<snp> &loadSites,
     if (!m_sites.exists(loadSite))
       continue;
 
+    /*
     // test each of the sites to see if it matches
-    if (loadSite.pos < previousPos)
-      throw std::runtime_error(
-          "[insti] Haplotypes file is not ordered by position: ");
-    if (loadSite.pos == previousPos)
-      throw std::runtime_error("[insti] Multiple variants at the same "
-                               "position are not implemented yet");
-    previousPos = loadSite.pos;
+    size_t prevGlSiteIdx = glSiteIdx;
+    glSiteIdx = m_sites.index(loadSite);
+    if (glSiteIdx <= prevGlSiteIdx)
+      throw std::runtime_error("[Insti::FilterSites] Variants in haplotypes are
+    out of "
+                               "order with GL variants: [" +
+                               m_sites.at(glSiteIdx)->to_string() + "]");
+    */
     ++matchSites;
 
     // keep the site because it matches
@@ -1264,10 +1268,13 @@ void Insti::initialize() {
     } else {
       r = m_geneticMap.GeneticDistance(m_sites.at(m - 1)->pos,
                                        m_sites.at(m)->pos);
-      // threshold genetic map to max value of 1
-      r = r > 1 ? 1 : r;
     }
 
+    // inflate recombination rate by inflation factor
+    r *= m_init.geneticMapInflationFactor;
+    
+    // threshold recombination rate to max value of 1
+    r = r > 1 ? 1 : r;
     //  4 state HMM with three transitions at each position
     // for each position, transition.  r= recombination,
     // 1-r= no recombination
@@ -2167,12 +2174,8 @@ void Insti::SetHapsAccordingToScaffold() {
     for (unsigned scaffoldPositionIdx = 0;
          scaffoldPositionIdx < m_scaffold.NumSites(); scaffoldPositionIdx++) {
 
-      // find the site in site that matches the scaffold position
-      for (; siteIdx < m_sites.size(); siteIdx++) {
-        auto site = m_sites.at(siteIdx);
-        if (site->pos == m_scaffold.Position(scaffoldPositionIdx))
-          break;
-      }
+      // find the site in m_sites that matches the scaffold position
+      siteIdx = m_sites.index(*(m_scaffold.Variant(scaffoldPositionIdx)));
 
       // if this is not true, then the scaffold position could not be found in
       // site

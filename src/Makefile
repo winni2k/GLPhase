@@ -76,7 +76,9 @@ test: CXXFLAGS += -O0 -ggdb
 
 # gcc
 CXX := g++
-CXXFLAGS += -Wall -Wextra -std=c++11 -mpopcnt -Ihtslibpp
+# alternative: STDCXX:= -std=gnu++11
+STDCXX := -std=c++11
+CXXFLAGS += -Wall -Wextra -mpopcnt -Ihtslibpp $(STDCXX)
 BOOSTLIB := -lboost_iostreams #alternatively: /opt/boost/boost-1.54.0-intel/lib/libboost_iostreams.a
 LIBS += -lgsl -lgslcblas -lhts -lbz2 $(BOOSTLIB) -lm -lstdc++ -lz -lhtspp
 

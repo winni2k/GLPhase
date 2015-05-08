@@ -43,3 +43,44 @@ gzip -c simple.gls.v1.samePos.txt > simple.gls.v1.samePos.bin
 # Thu Apr 30 13:48:17 BST 2015
 # added another allele that should cause insti to throw error
 gzip -c simple.gls.v2.samePos.err.txt >simple.gls.v2.samePos.err.bin
+
+###########
+# Fri May 01 11:17:37 BST 2015
+# create a standard bin file with multiallelic sites
+cp 20_011976121_012173018.bin.onlyThree.bin.txt  20_011976121_012173018.bin.onlyThree.withMultiall.bin.txt
+# edit 20_011976121_012173018.bin.onlyThree.withMultiall.bin.txt 
+gzip -c 20_011976121_012173018.bin.onlyThree.withMultiall.bin.txt  > 20_011976121_012173018.bin.onlyThree.withMultiall.bin
+
+###########
+# Fri May 01 18:31:55 BST 2015
+# create simulated data with multiallelics
+zcat ex.gls.vcf.gz | grep -v '^#' | awk 'BEGIN{OFS="\t"}{$4="C"; if(NR %2){$5="T"} else{$5 = "A"} $2=99999 + NR + NR%2; print}'  > tmp
+(zcat ex.gls.vcf.gz | grep '^#'; cat tmp) | bgzip -c > ex.gls.multi.vcf.gz
+
+# let's try calling genotypes with beagle
+java -jar ~/opt/beagle4/beagle.r1399.jar gl=ex.gls.multi.vcf.gz out=ex.multi.bgl
+
+###########
+# Fri May 08 10:37:09 BST 2015
+# need to create a multi version of ex.vcf.gz
+zcat ex.vcf.gz | grep -v '^#' | awk 'BEGIN{OFS="\t"}{$4="C"; if(NR %2){$5="T"} else{$5 = "A"} $2=99999 + NR + NR%2; print}'  > tmp
+(zcat ex.vcf.gz | grep '^#'; cat tmp) | bgzip -c > ex.multi.vcf.gz
+
+# need to create multi version of ex.bin
+zcat ex.bin | tail -n +2 | awk 'BEGIN{FS="\t"; OFS="\t"}{if(NR %2){$3="CT"} else{$3 = "CA"} $2=99999 + NR + NR%2; print}'  > tmp
+(zcat ex.bin | head -1; cat tmp) | gzip -c > ex.multi.bin
+
+# debugging
+paste <(zcat ../../../samples/hapGen/ex.multi.vcf.gz | grep -v '^#' | cut -f1,2,4,5,10 )\
+      <(zcat simulated_gls.gls.multi.vcf.gz.vcf.gz | grep -v '^#' | cut -f1,2,4,5,10 | perl -pne 's/([01]|[01]):\S+/$1/' )
+
+###########
+# Fri May 08 14:54:57 BST 2015
+# let's see if the model simply performs poorly on closely spaced sites
+# create bin file with all sites next to each other
+zcat ex.gls.vcf.gz |  grep -v '^#' | awk 'BEGIN{FS="\t"; OFS="\t"}{if(NR %2){$3="CT"} else{$3 = "CA"} $2=99999 + NR; print}'  > tmp
+(zcat ex.gls.vcf.gz | grep '^#'; cat tmp) | bgzip -c > ex.gls.almost_multi.vcf.gz
+
+zcat ex.vcf.gz |  grep -v '^#' | awk 'BEGIN{FS="\t"; OFS="\t"}{if(NR %2){$3="CT"} else{$3 = "CA"} $2=99999 + NR; print}'  > tmp
+(zcat ex.vcf.gz | grep '^#'; cat tmp) | bgzip -c > ex.almost_multi.vcf.gz
+

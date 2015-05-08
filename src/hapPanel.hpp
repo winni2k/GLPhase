@@ -40,7 +40,7 @@ private:
   }
 
 public:
-  void Init(std::vector<std::vector<char> > &inHaps,
+  void Init(std::vector<std::vector<char>> &inHaps,
             std::vector<Bio::snp> &inSites,
             std::vector<std::string> &inSampleIDs);
 
@@ -48,11 +48,11 @@ public:
     assert(idx < m_sampleIDs.size());
     return m_sampleIDs[idx];
   }
-  unsigned NumHaps() {
+  unsigned NumHaps() const {
     assert(m_initialized);
     return m_numHaps;
   }
-  unsigned NumWordsPerHap() {
+  unsigned NumWordsPerHap() const {
     assert(m_initialized);
     return m_numWordsPerHap;
   }
@@ -64,20 +64,24 @@ public:
     assert(hapNum < m_numHaps);
     return &m_haps[hapNum * m_numWordsPerHap];
   }
-  unsigned MaxSites() {
+  unsigned MaxSites() const {
     assert(Initialized());
     return NumWordsPerHap() * m_wordSize;
   }
-  unsigned NumSites() {
+  unsigned NumSites() const {
     assert(m_initialized);
     return m_sites.size();
   }
-  bool Initialized() { return m_initialized; }
+  bool Initialized() const { return m_initialized; }
   std::vector<uint64_t>
-  Char2BitVec(const std::vector<std::vector<char> > &inHaps, unsigned numWords,
+  Char2BitVec(const std::vector<std::vector<char>> &inHaps, unsigned numWords,
               unsigned wordSize);
 
-  unsigned Position(unsigned idx) { return m_sites[idx].pos; }
+  unsigned Position(size_t idx) const { return m_sites.at(idx).pos; }
+  std::vector<Bio::snp>::const_iterator Variant(size_t idx) const {
+    assert(idx < m_sites.size());
+    return m_sites.cbegin() + idx;
+  }
 };
 
 #endif

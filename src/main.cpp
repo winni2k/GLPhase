@@ -46,10 +46,11 @@ int main(int ac, char **av) {
     string sLogFile;
     int opt;
     bool optMSet = false;
-    while ((opt = getopt(
-                ac, av,
-                "Vm:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:Q:fo:DTr:P:ag:I:")) >=
-           0) {
+    while (
+        (opt = getopt(
+             ac, av,
+             "Vm:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:Q:fo:DTr:P:ag:I:R:")) >=
+        0) {
       switch (opt) {
 
       /*      case 'd':
@@ -173,6 +174,9 @@ int main(int ac, char **av) {
       case 'g':
         init.geneticMap = optarg;
         break;
+      case 'R':
+          init.geneticMapInflationFactor = std::stoul(optarg);
+        break;
       default:
         Insti::document();
       }
@@ -200,7 +204,9 @@ int main(int ac, char **av) {
 
     // Die if more than one file was specified on command line
     if (file.size() != 1) {
-      cerr << endl << "INSTI only accepts one input .bin file" << endl << endl;
+      cerr << endl
+           << "INSTI only accepts one input GLs file (bin/BCF/VCF format)"
+           << endl << endl;
       Insti::document();
     }
     string &inputFile = file[0];

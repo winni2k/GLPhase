@@ -76,6 +76,7 @@ struct Init {
 
   // genetic map file name
   std::string geneticMap;
+  unsigned geneticMapInflationFactor = 1;
 };
 }
 // require c++11
