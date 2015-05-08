@@ -1272,7 +1272,7 @@ void Insti::initialize() {
 
     // inflate recombination rate by inflation factor
     r *= m_init.geneticMapInflationFactor;
-    
+
     // threshold recombination rate to max value of 1
     r = r > 1 ? 1 : r;
     //  4 state HMM with three transitions at each position
@@ -1624,7 +1624,7 @@ void Insti::estimate() {
   GLPack glPack(init);
 
   // create hap sampler object
-  HMMLike cudaHapSampler(haps, hn, glPack, m_uCycles, tran, &pc,
+  HMMLike cudaHapSampler(haps, hn + m_uNumRefHaps, glPack, m_uCycles, tran, &pc,
                          iterationSampler, *rng);
 #endif
 
@@ -1793,7 +1793,7 @@ fast Insti::solve_EMC(unsigned I, unsigned N, fast S) {
 
       // mutate parent hap
       do
-        vcChains[j].setParent(rp, gsl_rng_get(rng) % hn);
+        vcChains[j].setParent(rp, gsl_rng_get(rng) % hn + m_uNumRefHaps);
 
       while (vcChains[j].getParent(rp) / 2 == I);
 

@@ -23,9 +23,11 @@ LIBS += -lpthread -L$(SRC_DIR)/htslibpp
 # created to the list.
 TESTS := insti_unittests.bin other_unittests.bin glPack_unittests.bin glReader_tests.bin
 ifndef NCUDA
-TESTS += cuda_tests.bin
+ALLTESTS := $(TESTS)
+TESTSCU:= cuda_tests.bin
+ALLTESTS += $(TESTSCU)
 endif
-RUNTESTS=$(TESTS:.bin=.run)
+RUNTESTS=$(ALLTESTS:.bin=.run)
 INSTILIB := $(SRC_DIR)/$(INSTILIB)
 O_FILES :=  $(addprefix $(SRC_DIR)/, $(OBJECT_FILES))
 
@@ -40,7 +42,7 @@ debug:
 	$(CXX) -E -x c++ - -v < /dev/null
 
 clean:
-	rm -f $(TESTS) gtest.a gtest_main.a *.o *.hpp.gch *.h.gch insti
+	rm -f $(ALLTESTS) gtest.a gtest_main.a *.o *.hpp.gch *.h.gch insti
 
 
 

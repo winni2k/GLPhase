@@ -18,10 +18,12 @@ map { my @l = split( /\s+/, $_ ); $defines{ $l[1] } = $l[2] }
 
 my $insti = shift @ARGV;
 $insti = "$Bin/$insti";
+my $nJobs = shift;
 
 my $harness = TAP::Harness->new(
     {
-        test_args => [ $insti ]
+     test_args => [ $insti ],
+     jobs => $nJobs || 1,
     }
 );
 
