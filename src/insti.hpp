@@ -74,9 +74,12 @@ struct Init {
   size_t reclusterEveryNGen{0}; // 0 means don't recluster
   size_t numThreads{1};
 
+  // GL subsetting based on region
+  std::string glSubsetRegion;
+
   // genetic map file name
   std::string geneticMap;
-  unsigned geneticMapInflationFactor = 1;
+  double geneticMapInflationFactor = 1;
 };
 }
 // require c++11

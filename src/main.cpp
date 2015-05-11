@@ -9,6 +9,7 @@
 //
 
 #include <chrono>
+#include "boost/program_options.hpp"
 #include "version.hpp"
 #include "impute.hpp"
 #include "insti.hpp"
@@ -39,53 +40,262 @@ int main(int ac, char **av) {
     Impute::is_x = false;
     Impute::is_y = false;
 
-    string inputFileType{"bin"};
-    vector<string> file;
+    string inputFileType = "bin";
+    string inputFile;
     string outBase;
+    string sexFile;
 
     string sLogFile;
-    int opt;
     bool optMSet = false;
+
+    po::options_description general("General options");
+    general.add_options()(
+
+        "help", "Print help messages")(
+
+        "gls", po::value<string>(&inputFile)->required(),
+        "Genotype likelihoods file ('bin','VCF','BCF' format)")(
+
+        "fold,n", po::value<unsigned>(&Impute::nn)->default_value(2),
+        "Fold: Number of iterations of nested MH sampler = sample size*fold")(
+
+        "prefix,o", po::value<string>(&outBase),
+        "Prefix to use for output files")(
+
+        "threads,P", po::value<size_t>(&init.numThreads)->default_value(1),
+        "Number of threads (0=MAX)")(
+
+        "confidence,c", po::value<double>(&Impute::conf)->default_value(0.9998),
+        "Confidence of known genotype")(
+
+        "sex,x", po::value<string>(&sexFile),
+        "Sex file. Impute x chromosome data")(
+
+        "input-file-type,I",
+        po::value<string>(&inputFileType)->default_value("bin"),
+        "Input file type")(
+
+        "log-file,e", po::value<string>(&sLogFile), "Write to log file")(
+
+        "gmap,g", po::value<string>(&init.geneticMap), "Genetic map")(
+
+        "gmap-inflation",
+        po::value<double>(&init.geneticMapInflationFactor)->default_value(1),
+        "Genetic map distance inflation factor")(
+
+        "region,R", po::value<string>(&init.glSubsetRegion),
+        string("Region to subset GLs to. Format: <chrom:start-end>. Only the "
+               "first " +
+               to_string(NUMSITES) +
+               " sites are used.  A fatal error is thrown "
+               "if more than 5% of sites in a region are "
+               "thrown out in this way.").c_str());
+
+    po::options_description generation("Generation options");
+    generation.add_options()(
+
+        "sampling-gens,m", po::value<unsigned>(&Impute::sn)->default_value(200),
+        "Number of sampling generations")(
+
+        "simulated-annealing-burnin-gens,B",
+        po::value<unsigned>(&Insti::s_uSABurninGen)->default_value(28),
+        "Number of simulated annealing burnin generations")(
+
+        "burnin-gens,i",
+        po::value<unsigned>(&Insti::s_uNonSABurninGen)->default_value(28),
+        "Number of non-simulated annealing burnin generations")(
+
+        "nested-gens,C",
+        po::value<unsigned>(&Insti::s_uNonSABurninGen)->default_value(0),
+        "Number of generations of nested MH sampler. Overrides --fold if "
+        "greater than 0.");
+
+    po::options_description estimates("Haplotype estimation options");
+    estimates.add_options()(
+        "hap-estimation-algorithm,E",
+        po::value<unsigned>(&init.estimator)->default_value(0),
+        "Haplotype estimation algorithm to use:\n"
+        " 0: \tMetropolis Hastings with simulated "
+        "annealing\n"
+        " 1: \tEvolutionary Monte Carlo with "
+        "--num-parallel-chains parallel chains\n"
+        " 2: \tAdaptive Metropolis Hastings - "
+        "sample/sample matrix\n"
+        " 3: \tAdaptive Metropolis Hastings - "
+        "sample/haplotype matrix")(
+
+        "num-parallel-chains", po::value<unsigned>(&Insti::s_uParallelChains),
+        "Number of parallel chains to use in parallel estimation algorithms")(
+
+        "num-clusters,K",
+        po::value<unsigned>(&Insti::s_uNumClusters)->default_value(0),
+        "Number of clusters/nearest neighbors to use for haplotype "
+        "clustering/kNN search. Does not currently work with --kickstart "
+        "option.")(
+
+        "cluster-type,t",
+        po::value<unsigned>(&Insti::s_uClusterType)->default_value(0),
+        "Cluster type:\n"
+        " 0: \tk-Medoids -- PAM\n"
+        " 1: \tk-Medoids -- Park and Jun 2008\n"
+        " 2: \tk-Nearest Neighbors -- IMPUTE2 (-K is the "
+        "number of haplotypes to keep)")(
+
+        "use-tract-length,T", "Use shared tract length as distance metric for "
+                              "clustering")(
+
+        "recluster-every-n-gen,r", po::value<size_t>(&init.reclusterEveryNGen),
+        "Recluster every n generations. Only works if cluster-type = 2")(
+
+        "cluster-start-gen,M",
+        po::value<unsigned>(&Insti::s_uStartClusterGen)->default_value(28),
+        "Generation number (0-based) at which to start clustering")(
+
+        "delayed-rejection-MH", "Use delayed reject Metropolis Hastings");
+
+    po::options_description refPanel("Reference panel options");
+    refPanel.add_options()("i2-haps,H",
+                           po::value<string>(&Insti::s_sRefHapFile),
+                           "IMPUTE2 style HAP file")(
+
+        "i2-legend,L", po::value<string>(&Insti::s_sRefLegendFile),
+        "IMPUTE2 style LEGEND file")(
+
+        "kickstart,k", "Kickstart phasing by using only ref panel in "
+                       "first iteration");
+
+    po::options_description preHaps("Pre-existing haplotype options");
+    preHaps.add_options()(
+
+        "wtccc-haps,h", po::value<string>(&init.scaffoldHapsFile),
+        "WTCCC style HAPS file")(
+
+        "wtccc-samples,s", po::value<string>(&init.scaffoldSampleFile),
+        "WTCCC style SAMPLES file")(
+
+        "varaf-LB,q",
+        po::value<double>(&init.scaffoldFreqLB)->default_value(0.0f),
+        "Lower bound of variant allele frequency [0-1] above which sites are "
+        "used for clustering from scaffold.")(
+
+        "varaf-UB,Q",
+        po::value<double>(&init.scaffoldFreqUB)->default_value(1.0f),
+        "Upper bound of variant allele frequency [0-1] above which sites are "
+        "used for clustering from scaffold.")(
+
+        "use-minor-varaf,a",
+        "Use minor allele frequency instead of variant "
+        "allele frequency for clustering and applying --varaf-LB and "
+        "--varaf-UB below which sites are used for clustering from scaffold.")(
+
+        "fix-phase", "Fix phase according to pre-existing haplotypes");
+
+    po::options_description all("allowed options");
+    all.add(general).add(generation).add(estimates).add(refPanel).add(preHaps);
+
+    po::positional_options_description positionalOptions;
+    positionalOptions.add("gls", 1);
+
+    po::variables_map vm;
+    try {
+      po::store(po::command_line_parser(ac, av)
+                    .options(all)
+                    .positional(positionalOptions)
+                    .run(),
+                vm); // can throw
+
+      /** --help option
+       */
+      if (vm.count("help")) {
+        cerr << general << endl;
+        cerr << generation << endl;
+        cerr << estimates << endl;
+        cerr << refPanel << endl;
+        cerr << preHaps << endl;
+        return 0;
+      }
+
+      po::notify(vm); // throws on error, so do after help in case
+                      // there are any problems
+    } catch (po::error &e) {
+      std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
+
+      cerr << general << endl;
+      cerr << generation << endl;
+      cerr << estimates << endl;
+      cerr << refPanel << endl;
+      cerr << preHaps << endl;
+
+      return 1;
+    }
+
+    // perform extra validations
+    if (vm.count("sex"))
+      Impute::is_x = true;
+
+    if (vm.count("log-file"))
+      Insti::s_bIsLogging = true;
+
+    if (init.estimator > 3) {
+      cerr << "ERROR: --hap-estimation-algorithm needs to be between 0 and 3"
+           << endl;
+      exit(1);
+    }
+
+    if (Insti::s_uParallelChains < 2) {
+      cerr << "ERROR: --num-parallel-chains needs to be > 1" << endl;
+      exit(1);
+    }
+
+    Insti::s_bKickStartFromRef = vm.count("kickstart") > 0;
+    optMSet = vm.count("cluster-start-gen") > 0;
+    init.scaffoldUsingMAF = vm.count("use-minor-varaf") > 0;
+    init.initPhaseFromScaffold = vm.count("fix-phase");
+    if (vm.count("use-tract-length"))
+      Insti::s_clusterDistanceMetric = kNNDistT::tracLen;
+
+    /*
     while (
         (opt = getopt(
              ac, av,
              "Vm:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:Q:fo:DTr:P:ag:I:R:")) >=
         0) {
       switch (opt) {
-
-      /*      case 'd':
-              Impute::density = atof(optarg);
-              break;
-                    case 'b':
-                        Impute::bn = stoul(optarg);
-                        break; */
-      case 'm':
-        Impute::sn = stoul(optarg);
-        break;
-      case 'n':
-        Impute::nn = stoul(optarg);
-        break;
-      case 'v':
-        Impute::vcf_file.push_back(optarg);
-        break;
-      case 'c':
-        Impute::conf = atof(optarg);
-        break;
-      case 'x':
-        Impute::is_x = true;
-        Impute::gender(optarg);
-        break;
-      /*
-        This option makes no sense if we are only allowing one input file
-    case 'l': {
-      char temp[256];
-      FILE *f = fopen(optarg, "rt");
-      while (fscanf(f, "%s", temp) != EOF)
-        file.push_back(temp);
-      fclose(f);
-    } break;
-      */
-      case 'I':
+    */
+    /*      case 'd':
+            Impute::density = atof(optarg);
+            break;
+                  case 'b':
+                      Impute::bn = stoul(optarg);
+                      break; */
+    /*
+  case 'm':
+    Impute::sn = stoul(optarg);
+    break;
+  case 'n':
+    Impute::nn = stoul(optarg);
+    break;
+  case 'v':
+    Impute::vcf_file.push_back(optarg);
+    break;
+  case 'c':
+    Impute::conf = atof(optarg);
+    break;
+  case 'x':
+    Impute::is_x = true;
+    Impute::gender(optarg);
+    break;*/
+    /*
+      This option makes no sense if we are only allowing one input file
+  case 'l': {
+    char temp[256];
+    FILE *f = fopen(optarg, "rt");
+    while (fscanf(f, "%s", temp) != EOF)
+      file.push_back(temp);
+    fclose(f);
+  } break;
+    */
+    /*  case 'I':
         inputFileType = optarg;
         break;
       case 'e':
@@ -175,12 +385,14 @@ int main(int ac, char **av) {
         init.geneticMap = optarg;
         break;
       case 'R':
-          init.geneticMapInflationFactor = std::stoul(optarg);
+        init.geneticMapInflationFactor = std::stoul(optarg);
         break;
       default:
         Insti::document();
       }
     }
+
+    */
 
     cout << "Call: " << commandLine.str() << endl;
 
@@ -197,19 +409,6 @@ int main(int ac, char **av) {
         Insti::document();
       }
     }
-
-    // read in files
-    for (int i = optind; i < ac; i++)
-      file.push_back(av[i]);
-
-    // Die if more than one file was specified on command line
-    if (file.size() != 1) {
-      cerr << endl
-           << "INSTI only accepts one input GLs file (bin/BCF/VCF format)"
-           << endl << endl;
-      Insti::document();
-    }
-    string &inputFile = file[0];
 
     // keep track of time - these things are important!
     timeval sta, end;
