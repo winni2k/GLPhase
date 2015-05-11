@@ -51,6 +51,7 @@ using namespace Bio;
 // initializyng static member variables
 
 // number of parallel chains to use for parallel estimators
+// these should really be moved to the insti helper init struct
 unsigned Insti::s_uParallelChains = 5;
 unsigned Insti::s_uCycles = 0;
 bool Insti::s_bIsLogging = false;
@@ -1118,27 +1119,21 @@ bool Insti::LoadHapLegSamp(const string &legendFile, const string &hapFile,
                            const string &sampleFile, InstiPanelType panelType) {
 
   // make sure required files are defined
-  if (legendFile.size() == 0) {
-    cerr << "Need to define a legend file if defining a hap file\n";
-    document();
-  }
+  if (legendFile.size() == 0)
+    throw runtime_error("Need to define a legend file if defining a hap file");
 
-  if (hapFile.size() == 0) {
-    cerr << "Need to define a hap file if defining a legend file\n";
-    document();
-  }
+  if (hapFile.size() == 0)
+    throw runtime_error("Need to define a hap file if defining a legend file");
 
-  if (sampleFile.size() == 0 && panelType == InstiPanelType::SCAFFOLD) {
-    cerr << "Need to define a sample file if using scaffold\n";
-    document();
-  }
+  if (sampleFile.size() == 0 && panelType == InstiPanelType::SCAFFOLD)
+    throw runtime_error("Need to define a sample file if using scaffold");
 
   // for now sample loading is not implemented
-  if (sampleFile.size() > 0) {
-    cerr << "for now sample loading is not implemented in the sampleghap "
-            "paradigm";
-    document();
-  }
+  if (sampleFile.size() > 0)
+    throw runtime_error(
+        "for now sample loading is not implemented in the sampleghap "
+        "paradigm");
+
   CheckPanelPrereqs(panelType);
 
   // Load Samples (not implemented)
@@ -1190,8 +1185,8 @@ void Insti::initialize() {
   haps.resize(hn * wn);    // space to store all haplotypes
   hnew.resize(hn * wn);    // number of haplotypes = 2 * number of samples  ...
                            // haps mn is # of sites,
-  hsum.assign(hn * mn, 0); // one unsigned for every hap's site - what for?  To
-                           // estimate allele probs
+  hsum.assign(hn * mn, 0); // one unsigned for every hap's site - what for? To
+  // estimate allele probs
 
   //    pare.assign(in * in, 0);  // in x in matrix, one uint16 for every pair
   // of individuals
@@ -1204,7 +1199,8 @@ void Insti::initialize() {
   vector<fast> temp(in * pn);
 
   // initialize emission matrix
-  // 4 emissions, for each site 4 emissions * number of samples.  (0|0, 1|1 0|1
+  // 4 emissions, for each site 4 emissions * number of samples.  (0|0, 1|1
+  // 0|1
   // 1|0)
   en = 4 * mn;
   emit.resize(in * en);
@@ -1243,7 +1239,8 @@ void Insti::initialize() {
 
   // mu * (mn-1) looks like the Watterson estimator of the population mutation
   // rate theta
-  // 0.5 / (posi[mn - 1] - posi[0]) / density looks like a correction for finite
+  // 0.5 / (posi[mn - 1] - posi[0]) / density looks like a correction for
+  // finite
   // sites
   mu = 1 / mu;
   size_t firstPos = m_sites.at(0)->pos;
@@ -1572,8 +1569,8 @@ void Insti::estimate() {
         break;
 
       default:
-        cout << "unexpected cluster type: " << s_uClusterType << endl;
-        document();
+        throw runtime_error("unexpected cluster type: " +
+                            to_string(s_uClusterType));
       }
     }
 
@@ -1604,7 +1601,7 @@ void Insti::estimate() {
     return;
 
   default:
-    document();
+    throw runtime_error("Unknown estimator: [" + to_string(m_estimator) + "]");
   }
 
   // the default sampler shall be sampling randomly
@@ -1737,8 +1734,8 @@ fast Insti::solve_EMC(unsigned I, unsigned N, fast S) {
 
   // initialize emc chains with increasing temperatures
   vector<EMCChain> vcChains;
-  vector<uint>
-      vuChainTempHierarchy; // index of Chains sorted by temperature, ascending
+  vector<uint> vuChainTempHierarchy; // index of Chains sorted by temperature,
+                                     // ascending
 
   for (unsigned i = 0; i < Insti::s_uParallelChains; i++) {
     vcChains.push_back(EMCChain((i + 1) * fMaxTemp / Insti::s_uParallelChains,
@@ -2190,94 +2187,4 @@ void Insti::SetHapsAccordingToScaffold() {
       ++scaffoldSiteIdx;
     }
   }
-}
-
-void Insti::document() {
-  cerr << "Author: Warren W. Kretzschmar @ Marchini Group @ Universiy of "
-          "Oxford - Statistics";
-  cerr << "\n\nThis code is based on SNPTools impute:";
-  cerr << "\nhaplotype imputation by cFDSL distribution";
-  cerr << "\nAuthor: Yi Wang @ Fuli Yu Group @ BCM-HGSC";
-  cerr << "\n\nUsage: insti [options] <input.bin|input.bcf>";
-  //  cerr << "\n\t-d <density>    relative SNP density to Sanger sequencing
-  // (1)";
-
-  //    cerr << "\n\t-b <burn>       burn-in generations (56)";
-  //  cerr << "\n\t-l <file>       list of input files";
-  cerr << "\n\t-n <unsigned>   Fold: Number of iterations of nested MH sampler "
-          "= sample size*fold "
-          "(" << Impute::nn << ")";
-  cerr << "\n\t-o <string>     prefix to use for output files";
-  cerr << "\n\t-P <thread>     number of threads (0=MAX,default=1)";
-  //  cerr << "\n\t-v <vcf>        integrate known genotype in VCF format"; this
-  //  option is currently broken
-  cerr << "\n\t-c <conf>       confidence of known genotype (" << Impute::conf
-       << ")";
-  cerr << "\n\t-x <gender>     impute x chromosome data";
-  cerr << "\n\t-e <file>       write log to file";
-  cerr << "\n\t-g <file>       genetic map";
-  cerr << "\n\t-I <bin|b>      input file type (\"bin\")";
-
-  cerr << "\n\n    GENERATION OPTIONS";
-  cerr << "\n\t-m <mcmc>       sampling generations (200)";
-  cerr << "\n\t-B <integer>    number of simulated annealing generations (28)";
-  cerr << "\n\t-i <integer>    number of non-simulated annealing burnin "
-          "generations (28)";
-  cerr << "\n\t-C <unsigned>   number of iterations of nested MH sampler (0).  "
-          "Overrides -n if greater than 0.";
-
-  cerr << "\n\n";
-  exit(1);
-
-  // options below this point are alpha and not part of the original SNPTools
-  // algorithm
-  cerr << "\n\t-M <integer>    generation number at which to start "
-          "clustering, "
-          "0-based (28)";
-  cerr << "\n\n    HAPLOTYPE ESTIMATION OPTIONS";
-  cerr << "\n\t-E <integer>    choice of estimation algorithm (0)";
-  cerr << "\n\t                0 - Metropolis Hastings with simulated "
-          "annealing";
-  cerr << "\n\t                1 - Evolutionary Monte Carlo with -p parallel "
-          "chains";
-  cerr << "\n\t                2 - Adaptive Metropolis Hastings - "
-          "sample/sample matrix";
-  cerr << "\n\t                3 - Adaptive Metropolis Hastings - "
-          "sample/haplotype matrix";
-  cerr << "\n\t-p <integer>    number of parallel chains to use in parallel "
-          "estimation algorithms";
-  cerr << "\n\t                (at least 2, default 5)";
-  cerr << "\n\t-K <integer>    number of clusters to use for haplotypes "
-          "clustering (0 = option is off).";
-  cerr << "\n\t                Does not currently work with -k option";
-  cerr << "\n\t-t <integer>    Cluster type (0)";
-  cerr << "\n\t                0 - k-Medoids -- PAM";
-  cerr << "\n\t                1 - k-Medoids -- Park and Jun 2008";
-  cerr << "\n\t                2 - k-Nearest Neighbors -- IMPUTE2 (-K is the "
-          "number of haplotypes to keep)";
-  cerr << "\n\t-T              Use shared tract length as distance metric for "
-          "clustering";
-  cerr << "\n\t-r <integer>    Recluster every -r generations. Only works when "
-          "-t=2";
-
-  cerr << "\n\n    REFERENCE PANEL OPTIONS";
-  cerr << "\n\t-H <file>       IMPUTE2 style HAP file";
-  cerr << "\n\t-L <file>       IMPUTE2 style LEGEND file";
-  cerr << "\n\t-k              Kickstart phasing by using only ref panel in "
-          "first iteration";
-  cerr << "\n\n    SCAFFOLD OPTIONS";
-  cerr << "\n\t-h <file>       WTCCC style HAPS file";
-  cerr << "\n\t-s <file>       WTCCC style SAMPLE file";
-  cerr << "\n\t-q <float>      Lower bound of variant allele frequency ([0-1], "
-          "default 0.05) "
-          "above which sites are used for clustering from scaffold.";
-  cerr << "\n\t-Q <float>      Upper bound of variant allele frequency ([0-1], "
-          "default 0.05) "
-          "below which sites are used for clustering from scaffold.";
-  cerr << "\n\t-a              Use minor allele frequency instead of variant "
-          "allele frequency for clustering and applying -q and -Q."
-          "below which sites are used for clustering from scaffold.";
-  cerr << "\n\t-f              Fix phase according to scaffold (default off).";
-  cerr << "\n\n";
-  exit(1);
 }

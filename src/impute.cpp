@@ -671,6 +671,9 @@ void    Impute::save_pare(const char *F) {
 }
 */
 
+/*
+see main.cpp for documentation
+  
 void Impute::document(void) {
   cerr << "\nimpute";
   cerr << "\nhaplotype imputation by cFDSL distribution";
@@ -689,3 +692,4 @@ void Impute::document(void) {
   cerr << "\n\n";
   exit(0);
 }
+*/

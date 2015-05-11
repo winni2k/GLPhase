@@ -265,9 +265,6 @@ public:
 
   static MHType s_MHSamplerType;
 
-  // print out usage
-  static void document();
-
   unsigned GetNumWords() { return wn; }
 
   // returns allele of hap number hap at sites number site

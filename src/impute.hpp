@@ -92,7 +92,7 @@ public:
 
     static bool gender(char *F);
 
-    static void document(void);
+//    static void document(void);
 
     std::vector<Site> site;
     std::vector <std::string> name;

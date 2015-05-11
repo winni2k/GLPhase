@@ -21,6 +21,15 @@ int main(int ac, char **av) {
 
   cout << "INSTI -- v" << VERSION_MAJOR << "." << VERSION_MINOR << "."
        << VERSION_XSTR(VERSION_REVISION) << endl;
+
+  string header =
+      "Author: Warren W. Kretzschmar @ Marchini Group @ Universiy of "
+      "Oxford - Statistics"
+      "\n\nThis code is based on SNPTools impute:"
+      "\nhaplotype imputation by cFDSL distribution"
+      "\nAuthor: Yi Wang @ Fuli Yu Group @ BCM-HGSC"
+      "\n\nUsage: insti [options] <input.bin|input.bcf>\n";
+
   try {
     stringstream commandLine;
     commandLine << av[0];
@@ -73,7 +82,7 @@ int main(int ac, char **av) {
 
         "input-file-type,I",
         po::value<string>(&inputFileType)->default_value("bin"),
-        "Input file type")(
+        "--gls file type")(
 
         "log-file,e", po::value<string>(&sLogFile), "Write to log file")(
 
@@ -124,14 +133,15 @@ int main(int ac, char **av) {
         " 3: \tAdaptive Metropolis Hastings - "
         "sample/haplotype matrix")(
 
-        "num-parallel-chains", po::value<unsigned>(&Insti::s_uParallelChains),
+        "num-parallel-chains",
+        po::value<unsigned>(&Insti::s_uParallelChains)->default_value(5),
         "Number of parallel chains to use in parallel estimation algorithms")(
 
         "num-clusters,K",
         po::value<unsigned>(&Insti::s_uNumClusters)->default_value(0),
         "Number of clusters/nearest neighbors to use for haplotype "
         "clustering/kNN search. Does not currently work with --kickstart "
-        "option.")(
+        "option. -K = 0 turns of clustering.")(
 
         "cluster-type,t",
         po::value<unsigned>(&Insti::s_uClusterType)->default_value(0),
@@ -207,6 +217,7 @@ int main(int ac, char **av) {
       /** --help option
        */
       if (vm.count("help")) {
+        cerr << header << endl;
         cerr << general << endl;
         cerr << generation << endl;
         cerr << estimates << endl;
@@ -220,6 +231,7 @@ int main(int ac, char **av) {
     } catch (po::error &e) {
       std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
 
+      cerr << header << endl;
       cerr << general << endl;
       cerr << generation << endl;
       cerr << estimates << endl;
@@ -402,13 +414,10 @@ int main(int ac, char **av) {
       Insti::s_uStartClusterGen = Insti::s_uSABurninGen;
 
     // need to specify ref panel if kickstarting
-    if (Insti::s_bKickStartFromRef) {
-      if (Insti::s_sRefLegendFile.size() == 0) {
-        cerr << endl << "error: Need to specify ref panel if kickstarting."
-             << endl;
-        Insti::document();
-      }
-    }
+    if (Insti::s_bKickStartFromRef)
+      if (Insti::s_sRefLegendFile.size() == 0)
+        throw runtime_error(
+            "ERROR: Need to specify ref panel if kickstarting.");
 
     // keep track of time - these things are important!
     timeval sta, end;
