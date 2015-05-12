@@ -6,6 +6,13 @@
 BDIR := ../bin
 VERSION := $(shell grep VERSION_MAJOR version.hpp | cut -f3 -d' ').$(shell grep VERSION_MINOR version.hpp | cut -f3 -d' ').$(shell grep VERSION_REVISION version.hpp | cut -f3 -d' ')
 
+# setting cuda
+export CUDA:=
+export NCUDA:=1
+ifdef CUDA
+export NCUDA:=
+endif
+
 # object and header files are defined here
 SOURCES=impute.cpp insti.cpp emcchain.cpp olivier/utils.cpp haplotype.cpp kMedoids.cpp kNN.cpp hapPanel.cpp sampler.cpp glPack.cpp tabix.cpp glVQ.cpp geneticMap.cpp bio.cpp glReader.cpp
 OBJECT_FILES=$(SOURCES:.cpp=.o)

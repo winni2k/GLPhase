@@ -3,6 +3,18 @@
 using namespace std;
 namespace Bio {
 
+Region::Region(const string &region) {
+  regex rgx("(\\S+):(\\d+)-(\\d+)");
+  smatch sm;
+  regex_match(region, sm, rgx);
+  if (sm.empty())
+    throw runtime_error("Could not parse region: [" + region + "]");
+  assert(sm.size() == 4);
+  m_chrom = sm[1].str();
+  m_startBP = stoul(sm[2].str());
+  m_endBP = stoul(sm[3].str());
+}
+
 // this returns a vector filled with the first n_max_tokens
 std::vector<std::string> tokenize_partial(const std::string &str,
                                           size_t n_max_tokens,

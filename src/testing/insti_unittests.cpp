@@ -340,13 +340,15 @@ TEST(Insti, loadHapLegSampErrors) {
   lp.initialize();
 
   //    cerr << "BLOINC1\n";
-  ASSERT_EXIT(lp.LoadHapLegSamp("", sampleHap, "", InstiPanelType::REFERENCE),
-              ::testing::ExitedWithCode(1),
-              "Need to define a legend file if defining a hap file");
-  ASSERT_EXIT(
+
+  // "Need to define a legend file if defining a hap file"
+  EXPECT_THROW(lp.LoadHapLegSamp("", sampleHap, "", InstiPanelType::REFERENCE),
+               std::runtime_error);
+  // "Need to define a hap file if defining a legend file"
+  EXPECT_THROW(
       lp.LoadHapLegSamp(sampleLegend, "", "", InstiPanelType::REFERENCE),
-      ::testing::ExitedWithCode(1),
-      "Need to define a hap file if defining a legend file");
+      std::runtime_error);
+
   EXPECT_ANY_THROW(
       lp.LoadHapsSamp(refHaps, brokenHapsSampSample, InstiPanelType::SCAFFOLD));
 

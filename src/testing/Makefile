@@ -22,8 +22,8 @@ LIBS += -lpthread -L$(SRC_DIR)/htslibpp
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
 TESTS := insti_unittests.bin other_unittests.bin glPack_unittests.bin glReader_tests.bin
-ifndef NCUDA
 ALLTESTS := $(TESTS)
+ifndef NCUDA
 TESTSCU:= cuda_tests.bin
 ALLTESTS += $(TESTSCU)
 endif
@@ -35,8 +35,8 @@ O_FILES :=  $(addprefix $(SRC_DIR)/, $(OBJECT_FILES))
 INSTI_O_FILES :=  $(filter-out %main.o, $(O_FILES))
 CUDA_O_FILES := $(filter-out %allCuda.link.o, $(INSTI_O_FILES))
 
-all: $(RUNTESTS)
 
+all: $(RUNTESTS)
 
 debug:
 	$(CXX) -E -x c++ - -v < /dev/null

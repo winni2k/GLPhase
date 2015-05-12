@@ -23,6 +23,7 @@ struct init {
   std::string nameFile;
   gl_t glType = gl_t::STBIN;
   gl_ret_t glRetType = gl_ret_t::ST_DROP_FIRST;
+  Bio::Region targetRegion;
 };
 }
 

@@ -4,8 +4,10 @@
 #ifndef _BIO_HPP
 #define _BIO_HPP 1
 
-#include <limits>
+#include <cassert>
 #include <cmath>
+#include <limits>
+#include <regex>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
@@ -26,15 +28,23 @@ public:
   Region(){};
   Region(std::string chrom, unsigned startBP, unsigned endBP)
       : m_chrom(std::move(chrom)), m_startBP(startBP), m_endBP(endBP) {}
+  Region(const std::string &region);
 
   // returns region as tabix compatible region specifier of the form
   // chr:start-end
   std::string AsString() const {
-    std::string region = m_chrom + ":" + std::to_string(m_startBP) + "-" +
-                         std::to_string(m_endBP);
-    return region;
+    return m_chrom + ":" + std::to_string(m_startBP) + "-" +
+           std::to_string(m_endBP);
   }
   std::string Chrom() const { return m_chrom; }
+  unsigned startBP() const { return m_startBP; }
+  unsigned endBP() const { return m_endBP; }
+  bool empty() const { return m_chrom.empty(); }
+  void clear() {
+    m_chrom = "";
+    m_startBP = m_endBP = 0;
+  }
+  bool chrom_eq(const std::string &comp) const { return comp == m_chrom; }
 };
 
 class snp {
@@ -42,7 +52,7 @@ public:
   unsigned pos;
   std::string chr, ref, alt;
 
-  snp(std::string chr, int pos, std::string ref, std::string alt) {
+  snp(std::string chr, unsigned pos, std::string ref, std::string alt) {
     this->chr = chr;
     this->pos = pos;
     this->ref = ref;

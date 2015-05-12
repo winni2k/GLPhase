@@ -132,6 +132,9 @@ void GLReader::LoadSTBinGLs() {
   vector<string> tokens;
   // discard first line
   getline(inputFD, buffer);
+
+  auto &tr = m_init.targetRegion;
+  // read input gls
   while (getline(inputFD, buffer)) {
     ++lineNum;
     boost::split(tokens, buffer, boost::is_any_of("\t"));
@@ -140,6 +143,12 @@ void GLReader::LoadSTBinGLs() {
           "Input line " + to_string(lineNum) +
           " does not have the correct number of columns [" +
           to_string(3 + m_names.size()) + "]");
+
+    // skip GLs not in target region
+    unsigned pos = stoul(tokens[1]);
+    if (!tr.empty())
+      if (!tr.chrom_eq(tokens[0]) || tr.startBP() > pos || tr.endBP() < pos)
+        continue;
 
     // allow split on space for non snps
     string ref, alt;
@@ -156,8 +165,7 @@ void GLReader::LoadSTBinGLs() {
     }
 
     // save site
-    m_sites.push_back(
-        snp(move(tokens[0]), stoi(tokens[1]), move(ref), move(alt)));
+    m_sites.push_back(snp(move(tokens[0]), pos, move(ref), move(alt)));
 
     // parse two likelihoods in each column
     size_t idx = 0;
