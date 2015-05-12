@@ -72,13 +72,25 @@ void GLReader::LoadBCFGLs() {
     LoadBCFNames();
   m_sites.clear();
   m_gls.clear();
-  bcfFile_cpp bcf(m_init.glFile, "r");
+  bcf_srs sr;
+  sr.add_reader(m_init.glFile);
+  if (!m_init.targetRegion.empty()) {
+    if (sr.all_indexed())
+      sr.set_region(m_init.targetRegion.AsString());
+    else
+      sr.set_target(m_init.targetRegion.AsString());
+  }
+  //  bcfFile_cpp bcf(m_init.glFile, "r");
 
-  bcf_hdr hdr(*bcf_hdr_read(bcf.data()));
-  bcf1_extended rec;
+  bcf1_extended<false> rec;
   // for now, extract GLs from GL tag
   const int numVals = 3;
-  while (rec.bcf_read(bcf, hdr) >= 0) {
+  bcf_hdr_t *hdr = sr.get_header(0);
+  while (sr.next_line() > 0) {
+
+    rec.acquire_wrap(*(sr.get_line(0)));
+
+    //    while (rec.bcf_read(bcf, hdr) >= 0) {
 
     // read in site
     vector<string> alleles = rec.alleles();
@@ -88,11 +100,11 @@ void GLReader::LoadBCFGLs() {
       throw std::runtime_error("More than two alleles per record are not "
                                "supported. Please break BCF into biallelics "
                                "using bcftools norm -m -");
-    m_sites.push_back(snp(move(rec.chromName(hdr)), rec.pos1(),
+    m_sites.push_back(snp(move(rec.chromName(*hdr)), rec.pos1(),
                           move(alleles[0]), move(alleles[1])));
 
     // read in format
-    auto gls = rec.get_format_float(hdr, "GL");
+    auto gls = rec.get_format_float(*hdr, "GL");
     if (gls.second != m_names.size() * numVals)
       throw std::runtime_error("Returned number of values is not correct: " +
                                to_string(gls.second));
@@ -112,6 +124,7 @@ void GLReader::LoadBCFGLs() {
         m_gls.push_back(homA / sum);
       }
     }
+    //    }
   }
 }
 

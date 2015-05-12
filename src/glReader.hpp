@@ -10,6 +10,7 @@
 #include "utils.hpp"
 #include "bio.hpp"
 #include "htslibpp/vcf.hpp"
+#include "htslibpp/synced_bcf_reader.hpp"
 
 namespace Bio {
 
