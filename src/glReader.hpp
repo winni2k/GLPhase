@@ -20,11 +20,29 @@ enum class gl_t { BCF, STBIN };
 enum class gl_ret_t { STANDARD, ST_DROP_FIRST };
 
 struct init {
-  gl_t glType = gl_t::STBIN;
-  gl_ret_t glRetType = gl_ret_t::ST_DROP_FIRST;
-  size_t size_limit = 0; // 0 = no limit on number of sites to read
   std::string glFile;
   std::string nameFile;
+  unsigned size_limit = 0;  // 0 = no limit on number of sites to read
+  unsigned size_limit1 = 0; // 0 = no limit on number of sites to read
+  gl_t glType = gl_t::STBIN;
+  gl_ret_t glRetType = gl_ret_t::ST_DROP_FIRST;
+  unsigned size_limit2 = 0; // 0 = no limit on number of sites to read
+  unsigned size_limit3 = 0; // 0 = no limit on number of sites to read
+  unsigned size_limit4 = 0; // 0 = no limit on number of sites to read
+  Bio::Region targetRegion;
+};
+
+struct init2 {
+  std::string glFile;
+  std::string nameFile;
+
+  unsigned size_limit = 0;  // 0 = no limit on number of sites to read
+  unsigned size_limit1 = 0; // 0 = no limit on number of sites to read
+  gl_t glType = gl_t::STBIN;
+  gl_ret_t glRetType = gl_ret_t::ST_DROP_FIRST;
+  unsigned size_limit2 = 0; // 0 = no limit on number of sites to read
+  unsigned size_limit3 = 0; // 0 = no limit on number of sites to read
+  unsigned size_limit4 = 0; // 0 = no limit on number of sites to read
   Bio::Region targetRegion;
 };
 }

@@ -206,8 +206,15 @@ void Insti::load_bcf(const string &bcf) {
 void Insti::load_bin(const string &binFile) {
 
   Bio::GLHelper::init init;
+  Bio::GLHelper::init *init2;
+  init2 = new Bio::GLHelper::init;
   cerr << init.size_limit << endl;
   cerr << "size of init struct: " << sizeof(init) << endl;
+  cerr << "size of init struct: " << sizeof(init.glFile) << endl;
+  cerr << "size of init struct: " << sizeof(init.nameFile) << endl;
+  cerr << "size of init struct: " << sizeof(init.glType) << endl;
+  cerr << "size of init struct: " << sizeof(init.glRetType) << endl;
+  cerr << "size of init struct: " << sizeof(init.targetRegion) << endl;
   init.glFile = binFile;
   init.nameFile = binFile;
   init.glType = GLHelper::gl_t::STBIN;
