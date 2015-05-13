@@ -206,15 +206,6 @@ void Insti::load_bcf(const string &bcf) {
 void Insti::load_bin(const string &binFile) {
 
   Bio::GLHelper::init init;
-  Bio::GLHelper::init *init2;
-  init2 = new Bio::GLHelper::init;
-  cerr << init.size_limit << endl;
-  cerr << "size of init struct: " << sizeof(init) << endl;
-  cerr << "size of init struct: " << sizeof(init.glFile) << endl;
-  cerr << "size of init struct: " << sizeof(init.nameFile) << endl;
-  cerr << "size of init struct: " << sizeof(init.glType) << endl;
-  cerr << "size of init struct: " << sizeof(init.glRetType) << endl;
-  cerr << "size of init struct: " << sizeof(init.targetRegion) << endl;
   init.glFile = binFile;
   init.nameFile = binFile;
   init.glType = GLHelper::gl_t::STBIN;
@@ -235,8 +226,9 @@ void Insti::load_gls(GLReader reader) {
                              to_string(nNotRead) + "] is more than 5% of " +
                              to_string(NUMSITES));
 
-  cout << "[Insti] dropping [" + to_string(nNotRead) +
-              "] sites off end of GL chunk" << endl;
+  if (nNotRead > 0)
+    cout << "[Insti] dropping [" + to_string(nNotRead) +
+                "] sites off end of GL chunk" << endl;
 
   prob = move(gls.first);
   m_sites = move(gls.second);

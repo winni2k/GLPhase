@@ -130,8 +130,9 @@ static: SLIBS := u-wkretzsch-snptools/samtools-0.1.16/libbam.a /usr/lib64/libm.a
 #	$(MAKE) -C testing debug
 
 clean:
-	rm -f *.a *.o *.hpp.gch olivier/utils.hpp.gch
+	rm -f *.a *.o *.hpp.gch *.hpp.gch-* olivier/utils.hpp.gch*
 	$(MAKE) -C htslibpp clean
+	$(MAKE) -C testing clean
 
 .DELETE_ON_ERROR:
 
