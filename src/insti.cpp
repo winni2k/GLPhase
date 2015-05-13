@@ -207,6 +207,7 @@ void Insti::load_bin(const string &binFile) {
 
   Bio::GLHelper::init init;
   cerr << init.size_limit << endl;
+  cerr << "size of init struct: " << sizeof(init) << endl;
   init.glFile = binFile;
   init.nameFile = binFile;
   init.glType = GLHelper::gl_t::STBIN;
