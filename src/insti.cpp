@@ -221,14 +221,14 @@ void Insti::load_gls(GLReader reader) {
   auto gls = reader.GetGLs();
 
   auto nNotRead = reader.GetNumNotRead();
-  if (static_cast<double>(nNotRead) / NUMSITES > 0.05)
-    throw std::runtime_error("Number of sites not read from GL file [" +
-                             to_string(nNotRead) + "] is more than 5% of " +
-                             to_string(NUMSITES));
-
   if (nNotRead > 0)
     cout << "[Insti] dropping [" + to_string(nNotRead) +
                 "] sites off end of GL chunk" << endl;
+
+  if (static_cast<double>(nNotRead) / NUMSITES > 0.05)
+    throw std::runtime_error(
+        "Number of sites not read from GL file [" + to_string(nNotRead) +
+        "] is more than 5% of max: [" + to_string(NUMSITES) + "]");
 
   prob = move(gls.first);
   m_sites = move(gls.second);

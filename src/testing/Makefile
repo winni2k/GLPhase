@@ -78,7 +78,9 @@ gtest_main.a : gtest-all.o gtest_main.o
 # gtest_main.a, depending on whether it defines its own main()
 # function.
 
-%.o: %.cpp
+# instilib is not needed here, but I'm using it as a proxy
+# for updates to the headers that go into creating the library
+%.o: %.cpp $(INSTILIB)
 	$(CXX) $(CXXFLAGS) -c $<
 
 $(TESTS): %.bin: %.o gtest_main.a $(INSTILIB)
