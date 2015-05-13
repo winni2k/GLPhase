@@ -18,7 +18,7 @@ pair<float, float> GLVQHelper::GLTrio2RRHet(vector<float>::const_iterator gl) {
 
 // create code book a la wikipedia
 // https://en.wikipedia.org/wiki/Vector_quantization
-GLVQ::GLVQ(const vector<float> &inGLs, gsl_rng rng, unsigned codeBookSize)
+GLVQ::GLVQ(const vector<float> &inGLs, gsl_rng &rng, unsigned codeBookSize)
     : m_rng(rng) {
   BuildCodeBook(codeBookSize, inGLs);
 }
@@ -51,11 +51,11 @@ void GLVQ::BuildCodeBook(unsigned codeBookSize, const vector<float> &inGLs) {
   }
 
   // create random set of points to train on
-  vector<tuple<float, float, unsigned char> > trainingSet;
+  vector<tuple<float, float, unsigned char>> trainingSet;
 
   // training set size seems to make a difference
   // let's try all gls
-  const size_t trainingSetSize = numGLs;  
+  const size_t trainingSetSize = numGLs;
   trainingSet.reserve(trainingSetSize);
   for (unsigned iter = 0; iter < trainingSetSize; ++iter) {
     unsigned glIdx = 0;
@@ -89,7 +89,7 @@ void GLVQ::BuildCodeBook(unsigned codeBookSize, const vector<float> &inGLs) {
 
 // assign the points in the training set to the nearest centroid of the codeBook
 double
-GLVQ::AssignPoints(vector<tuple<float, float, unsigned char> > &points) const {
+GLVQ::AssignPoints(vector<tuple<float, float, unsigned char>> &points) const {
 
   // find nearest centroid
   double var = 0;
@@ -104,11 +104,11 @@ GLVQ::AssignPoints(vector<tuple<float, float, unsigned char> > &points) const {
   return var;
 }
 
-vector<pair<float, float> > GLVQ::UpdateCodeBook(
-    const vector<tuple<float, float, unsigned char> > &points) {
+vector<pair<float, float>>
+GLVQ::UpdateCodeBook(const vector<tuple<float, float, unsigned char>> &points) {
 
   // new codebook
-  vector<pair<float, float> > newCodeBook;
+  vector<pair<float, float>> newCodeBook;
   newCodeBook.reserve(m_codeBook.size());
 
   // keeps track of how many points each cluster has

@@ -170,7 +170,7 @@ MHSampler.hpp.gch: MHSampler.hpp olivier/utils.hpp.gch
 geneticMap.hpp.gch: geneticMap.hpp olivier/utils.hpp.gch
 	$(CXX) $(CXXFLAGS) -x c++-header $<
 
-INSTIHEADERPRE :=insti.hpp impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch sampler.hpp.gch version.hpp.gch bio.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch kNN.hpp.gch kMedoids.hpp.gch glPack.hpp.gch tabix.hpp.gch geneticMap.hpp.gch
+INSTIHEADERPRE :=insti.hpp impute.hpp.gch emcchain.hpp.gch olivier/utils.hpp.gch sampler.hpp.gch version.hpp.gch bio.hpp.gch hapPanel.hpp.gch MHSampler.hpp.gch kNN.hpp.gch kMedoids.hpp.gch glPack.hpp.gch tabix.hpp.gch geneticMap.hpp.gch glReader.hpp.gch
 
 ifndef NCUDA
 INSTIHEADERPRE += hmmLike.hpp.gch

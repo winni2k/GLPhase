@@ -72,6 +72,8 @@ void GLReader::LoadBCFGLs() {
     LoadBCFNames();
   m_sites.clear();
   m_gls.clear();
+  m_numNotRead = 0; // reset num not read counter
+  
   bcf_srs sr;
   sr.add_reader(m_init.glFile);
   if (!m_init.targetRegion.empty()) {
@@ -87,6 +89,12 @@ void GLReader::LoadBCFGLs() {
   const int numVals = 3;
   bcf_hdr_t *hdr = sr.get_header(0);
   while (sr.next_line() > 0) {
+
+    // stop reading sites, but count how many not read
+    if (m_init.size_limit != 0 && m_sites.size() >= m_init.size_limit) {
+      ++m_numNotRead;
+      continue;
+    }
 
     rec.acquire_wrap(*(sr.get_line(0)));
 
@@ -133,6 +141,7 @@ void GLReader::LoadSTBinGLs() {
     LoadSTBinNames();
   m_sites.clear();
   m_gls.clear();
+  m_numNotRead = 0; // reset not read counter
 
   const string &binFile = m_init.glFile;
   ifile inputFD(binFile, false, "gz");
@@ -162,6 +171,12 @@ void GLReader::LoadSTBinGLs() {
     if (!tr.empty())
       if (!tr.chrom_eq(tokens[0]) || tr.startBP() > pos || tr.endBP() < pos)
         continue;
+
+    // stop reading sites, but count how many not read
+    if (m_init.size_limit != 0 && m_sites.size() >= m_init.size_limit) {
+      ++m_numNotRead;
+      continue;
+    }
 
     // allow split on space for non snps
     string ref, alt;

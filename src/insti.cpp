@@ -206,6 +206,7 @@ void Insti::load_bcf(const string &bcf) {
 void Insti::load_bin(const string &binFile) {
 
   Bio::GLHelper::init init;
+  cerr << init.size_limit << endl;
   init.glFile = binFile;
   init.nameFile = binFile;
   init.glType = GLHelper::gl_t::STBIN;
@@ -217,7 +218,18 @@ void Insti::load_bin(const string &binFile) {
 void Insti::load_gls(GLReader reader) {
 
   reader.SetRetGLType(GLHelper::gl_ret_t::ST_DROP_FIRST);
+  reader.SetSiteReadLimit(NUMSITES);
   auto gls = reader.GetGLs();
+
+  auto nNotRead = reader.GetNumNotRead();
+  if (static_cast<double>(nNotRead) / NUMSITES > 0.05)
+    throw std::runtime_error("Number of sites not read from GL file [" +
+                             to_string(nNotRead) + "] is more than 5% of " +
+                             to_string(NUMSITES));
+
+  cout << "[Insti] dropping [" + to_string(nNotRead) +
+              "] sites off end of GL chunk" << endl;
+
   prob = move(gls.first);
   m_sites = move(gls.second);
   name = move(reader.GetNames());

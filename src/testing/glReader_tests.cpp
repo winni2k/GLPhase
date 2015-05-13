@@ -200,3 +200,20 @@ TEST(GLReader, loadsBCFRegion) {
     test::sampleBinTestsFirst3(reader);
   }
 }
+
+TEST(GLReader, loadsBCFRegion2) {
+  vector<string> glFiles{sampleVCF, sampleVCFGZ, sampleBCF, sampleBCFGZ};
+
+  for (auto file : glFiles) {
+    Bio::GLHelper::init init;
+    init.nameFile = file;
+    init.glFile = file;
+    init.glType = Bio::GLHelper::gl_t::BCF;
+    init.glRetType = Bio::GLHelper::gl_ret_t::STANDARD;
+    init.size_limit = 3;
+
+    Bio::GLReader reader(init);
+
+    test::sampleBinTestsFirst3(reader);
+  }
+}

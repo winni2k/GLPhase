@@ -38,19 +38,19 @@ std::pair<float, float> GLTrio2RRHet(std::vector<float>::const_iterator gl);
 
 class GLVQ {
 private:
-  std::vector<std::pair<float, float> > m_codeBook;
+  std::vector<std::pair<float, float>> m_codeBook;
   gsl_rng &m_rng;
 
   void BuildCodeBook(unsigned codeBookSize, const std::vector<float> &inGLs);
   double AssignPoints(
-      std::vector<std::tuple<float, float, unsigned char> > &points) const;
-  std::vector<std::pair<float, float> > UpdateCodeBook(
-      const std::vector<std::tuple<float, float, unsigned char> > &points);
+      std::vector<std::tuple<float, float, unsigned char>> &points) const;
+  std::vector<std::pair<float, float>> UpdateCodeBook(
+      const std::vector<std::tuple<float, float, unsigned char>> &points);
 
 public:
-  GLVQ(const std::vector<float> &inGLs, gsl_rng rng, unsigned codeBookSize);
+  GLVQ(const std::vector<float> &inGLs, gsl_rng &rng, unsigned codeBookSize);
   unsigned char FindGLCode(float RR, float Het) const;
-  std::vector<std::pair<float, float> > GetCodeBook() const {
+  std::vector<std::pair<float, float>> GetCodeBook() const {
     return m_codeBook;
   }
 };

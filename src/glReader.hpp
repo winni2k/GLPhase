@@ -20,11 +20,15 @@ enum class gl_t { BCF, STBIN };
 enum class gl_ret_t { STANDARD, ST_DROP_FIRST };
 
 struct init {
+  size_t size_limit3 = 0; // 0 = no limit on number of sites to read
+  Bio::Region targetRegion;
+  size_t size_limit2 = 0; // 0 = no limit on number of sites to read
   std::string glFile;
   std::string nameFile;
   gl_t glType = gl_t::STBIN;
   gl_ret_t glRetType = gl_ret_t::ST_DROP_FIRST;
-  Bio::Region targetRegion;
+
+  size_t size_limit = 0; // 0 = no limit on number of sites to read
 };
 }
 
@@ -34,6 +38,7 @@ private:
   Bio::snp_storage_ordered m_sites;
   std::vector<std::string> m_names;
   std::vector<float> m_gls;
+  size_t m_numNotRead = 0;
 
   void LoadNames();
   void LoadGLs();
@@ -50,6 +55,7 @@ public:
     m_sites.clear();
     m_names.clear();
     m_gls.clear();
+    m_numNotRead = 0;
   };
 
   // Setters
@@ -61,11 +67,16 @@ public:
     m_init.glRetType = type;
     clear();
   }
+  void SetSiteReadLimit(size_t limit) {
+    m_init.size_limit = limit;
+    clear();
+  }
 
   // Getters
   std::pair<std::vector<float>, Bio::snp_storage_ordered> GetGLs();
   std::vector<std::string> GetNames();
   std::string GetGLFile() const { return m_init.glFile; };
+  size_t GetNumNotRead() const { return m_numNotRead; };
 };
 }
 #endif /* _GLREADER_HPP */
