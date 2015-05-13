@@ -447,17 +447,17 @@ TEST(Insti, bigSampleMultiBin) {
   glr.SetArgs(glInit);
   glData = glr.GetGLs();
   auto &gls2 = glData.first;
-  ASSERT_EQ(gls.size(), lp.prob.size());
+  ASSERT_EQ(gls2.size(), lp.prob.size());
 
   auto names = glr.GetNames();
-  size_t nSites = gls.size() / names.size() / 3;
+  size_t nSites = gls2.size() / names.size() / 3;
   for (size_t site = 0; site != nSites; ++site) {
     for (size_t samp = 0; samp != names.size(); ++samp) {
       for (size_t pNum = 0; pNum != 3; ++pNum) {
         SCOPED_TRACE("site = " + to_string(site) + ", samp = " +
                      to_string(samp) + ", probNum(0-based) = " +
                      to_string(pNum));
-        ASSERT_FLOAT_EQ(gls[site * names.size() * 3 + samp * 3 + pNum],
+        ASSERT_FLOAT_EQ(gls2[site * names.size() * 3 + samp * 3 + pNum],
                         lp.prob[samp * nSites * 3 + site * 3 + pNum]);
       }
     }
