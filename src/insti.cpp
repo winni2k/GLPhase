@@ -218,6 +218,8 @@ void Insti::load_gls(GLReader reader) {
 
   reader.SetRetGLType(GLHelper::gl_ret_t::ST_DROP_FIRST);
   reader.SetSiteReadLimit(NUMSITES);
+//  reader.SetRegion(m_init.glSubsetRegion);
+//  reader.Set
   auto gls = reader.GetGLs();
 
   auto nNotRead = reader.GetNumNotRead();

@@ -98,7 +98,10 @@ int main(int ac, char **av) {
                to_string(NUMSITES) +
                " sites are used.  A fatal error is thrown "
                "if more than 5% of sites in a region are "
-               "thrown out in this way.").c_str());
+               "thrown out in this way.").c_str())(
+
+        "samples-file,S", po::value<string>(&init.glSubsetSamplesFile),
+        "File with samples to subset to (1 name per line)");
 
     po::options_description generation("Generation options");
     generation.add_options()(
@@ -115,7 +118,7 @@ int main(int ac, char **av) {
         "Number of non-simulated annealing burnin generations")(
 
         "nested-gens,C",
-        po::value<unsigned>(&Insti::s_uNonSABurninGen)->default_value(0),
+        po::value<unsigned>(&Insti::s_uCycles)->default_value(0),
         "Number of generations of nested MH sampler. Overrides --fold if "
         "greater than 0.");
 

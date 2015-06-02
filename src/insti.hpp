@@ -77,6 +77,9 @@ struct Init {
   // GL subsetting based on region
   std::string glSubsetRegion;
 
+  // GL subsetting based on sample
+  std::string glSubsetSamplesFile;
+
   // genetic map file name
   std::string geneticMap;
   double geneticMapInflationFactor = 1;

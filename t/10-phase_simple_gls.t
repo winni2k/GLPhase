@@ -5,7 +5,7 @@
 #########################
 
 use Test::More;
-BEGIN { plan tests => 4 }
+BEGIN { plan tests => 8 }
 
 use warnings;
 use strict;
@@ -15,12 +15,13 @@ use FindBin qw($Bin);
 use File::Path qw(make_path remove_tree);
 use File::Copy;
 use File::Basename;
+use File::Slurp;
 use lib $Bin;
 use VCFComp ':all';
 
-my $insti        = shift @ARGV;
-my $simpleDir    = "$Bin/../samples/simple_gls";
-my $resDir       = "$Bin/results/" . basename( $0, '.t' );
+my $insti     = shift @ARGV;
+my $simpleDir = "$Bin/../samples/simple_gls";
+my $resDir    = "$Bin/results/" . basename( $0, '.t' );
 
 make_path($resDir);
 
@@ -50,4 +51,37 @@ $code = VCFHapMatch( "$nogmapBase.vcf.gz",
     "$simpleDir/simple.gls.v1.expected.bin.vcf", $resDir );
 ok( $code eq 0, "simple haps v1 ngmap exit code OK" ) or diag($code);
 
+###
+# test --region option
+{
+    my $base = "$simpleGLBase.region";
+    ok(
+        system(
+            "$insti -C100 -m 5 -B0 -i5 --region 20:101363- -o $base $simpleGLs")
+          == 0,
+        "ran insti on region 20:101363-"
+    );
+    BGZIPandIndexSTVCFGZ("$base.vcf.gz");
 
+    $code = VCFHapMatch( "$base.vcf.gz",
+        "$simpleDir/simple.gls.v1.region.expected.bin.vcf", $resDir );
+    ok( $code eq 0, "simple haps v1 only region exit code OK" ) or diag($code);
+}
+
+###
+# test --samples-file option
+{
+    my $base = "$simpleGLBase.samplesFile";
+    write_file( "$base.samples", "samp2\n" );
+    ok(
+        system(
+            "$insti -C100 -m 5 -B0 -i5 -S $base.samples -o $base $simpleGLs")
+          == 0,
+        "ran insti only on samp2"
+    );
+    BGZIPandIndexSTVCFGZ("$base.vcf.gz");
+
+    $code = VCFHapMatch( "$base.vcf.gz",
+        "$simpleDir/simple.gls.v1.samp2.expected.bin.vcf", $resDir );
+    ok( $code eq 0, "simple haps v1 only samp2 exit code OK" ) or diag($code);
+}
