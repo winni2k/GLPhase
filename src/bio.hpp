@@ -130,7 +130,7 @@ public:
 };
 
 // template functions
-template <class F> F glToProb(F val) {
+template <class F> F gl2prob(F val) {
   static_assert(std::is_floating_point<F>::value,
                 "F needs to be a floating point type");
   F tran = std::pow(static_cast<F>(10), val);

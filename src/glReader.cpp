@@ -67,13 +67,24 @@ vector<string> GLReader::GetNames() {
   return std::move(m_names);
 }
 
+std::string GLReader::chooseTag(bcf_hdr_t &hdr) {
+
+  for (auto const &t : m_init.glTags)
+    if (std::find(knownGLTags.begin(), knownGLTags.end(), t) !=
+            knownGLTags.end() &&
+        bcf_hdr_get_hrec(&hdr, BCF_HL_FMT, "ID", t.c_str(), NULL))
+      return t;
+
+  throw std::runtime_error("[GLReader] Could not find a known tag");
+}
+
 void GLReader::LoadBCFGLs() {
   if (m_names.empty())
     LoadBCFNames();
   m_sites.clear();
   m_gls.clear();
   m_numNotRead = 0; // reset num not read counter
-  
+
   bcf_srs sr;
   sr.add_reader(m_init.glFile);
   if (!m_init.targetRegion.empty()) {
@@ -88,6 +99,9 @@ void GLReader::LoadBCFGLs() {
   // for now, extract GLs from GL tag
   const int numVals = 3;
   bcf_hdr_t *hdr = sr.get_header(0);
+
+  // decide
+  string tag = chooseTag(*hdr);
   while (sr.next_line() > 0) {
 
     // stop reading sites, but count how many not read
@@ -112,27 +126,49 @@ void GLReader::LoadBCFGLs() {
                           move(alleles[0]), move(alleles[1])));
 
     // read in format
-    auto gls = rec.get_format_float(*hdr, "GL");
-    if (gls.second != m_names.size() * numVals)
-      throw std::runtime_error("Returned number of values is not correct: " +
-                               to_string(gls.second));
-    float *p = gls.first.get();
-    for (size_t sampNum = 0; sampNum < m_names.size(); ++sampNum, p += 3) {
-      float homR = glToProb(*p);
-      float het = glToProb(*(p + 1));
-      float homA = glToProb(*(p + 2));
+    if (tag == "GL") {
+      auto gls = rec.get_format_float(*hdr, tag);
+      if (gls.second != m_names.size() * numVals)
+        throw std::runtime_error("Returned number of values is not correct: " +
+                                 to_string(gls.second));
+      float *p = gls.first.get();
+      for (size_t sampNum = 0; sampNum < m_names.size(); ++sampNum, p += 3) {
+        float homR = gl2prob(*p);
+        float het = gl2prob(*(p + 1));
+        float homA = gl2prob(*(p + 2));
 
-      if (m_init.glRetType != GLHelper::gl_ret_t::ST_DROP_FIRST) {
-        m_gls.push_back(homR);
-        m_gls.push_back(het);
-        m_gls.push_back(homA);
-      } else {
-        float sum = homR + het + homA;
-        m_gls.push_back(het / sum);
-        m_gls.push_back(homA / sum);
+        if (m_init.glRetType != GLHelper::gl_ret_t::ST_DROP_FIRST) {
+          m_gls.push_back(homR);
+          m_gls.push_back(het);
+          m_gls.push_back(homA);
+        } else {
+          float sum = homR + het + homA;
+          m_gls.push_back(het / sum);
+          m_gls.push_back(homA / sum);
+        }
+      }
+    } else if (tag == "PL") {
+      auto gls = rec.get_format_int32(*hdr, tag);
+      if (gls.second != m_names.size() * numVals)
+        throw std::runtime_error("Returned number of values is not correct: " +
+                                 to_string(gls.second));
+      int32_t *p = gls.first.get();
+      for (size_t sampNum = 0; sampNum < m_names.size(); ++sampNum, p += 3) {
+        float homR = phred2prob<float, int32_t>(*p);
+        float het = phred2prob<float, int32_t>(*(p + 1));
+        float homA = phred2prob<float, int32_t>(*(p + 2));
+
+        if (m_init.glRetType != GLHelper::gl_ret_t::ST_DROP_FIRST) {
+          m_gls.push_back(homR);
+          m_gls.push_back(het);
+          m_gls.push_back(homA);
+        } else {
+          float sum = homR + het + homA;
+          m_gls.push_back(het / sum);
+          m_gls.push_back(homA / sum);
+        }
       }
     }
-    //    }
   }
 }
 
