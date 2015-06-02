@@ -1,0 +1,10 @@
+##fileformat=VCFv4.0
+##source=WTCHG:INSTIv1.4.13
+##phaseAndImputeCall=/data/fenghuang/not-backed-up/kretzsch/dev/insti/t/../bin/insti /data/fenghuang/not-backed-up/kretzsch/dev/insti/t/results/10-phase_simple_gls/simple.gls.v1.bin -g /data/fenghuang/not-backed-up/kretzsch/dev/insti/t/../samples/geneticMap/genetic_map_chr20_combined_b37.txt -C100 -m 100 -B0 -i10 --region 101363-
+##contig=<ID=20>
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=GP,Number=3,Type=Float,Description="Phred-scaled genotype posterior probability">
+##FORMAT=<ID=APP,Number=2,Type=Float,Description="Phred-scaled allelic posterior probability, P(Allele=1|Haplotype)">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	samp1	samp2	samp3
+20	101905	.	T	C	100	PASS	.	GT:GP:APP	0|1:380,0,380:380,0	1|1:380,380,0:0,0	0|1:7.96,1.67,7.96:6.99,0.969
+20	102181	.	T	C	100	PASS	.	GT:GP:APP	1|1:380,380,0:0,0	1|0:380,0,380:380,0	1|0:380,0,380:0,380

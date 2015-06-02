@@ -8,6 +8,7 @@ std::pair<std::vector<float>, Bio::snp_storage_ordered> GLReader::GetGLs() {
   LoadGLs();
   return make_pair(move(m_gls), move(m_sites));
 }
+
 void GLReader::LoadGLs() {
   if (m_sites.empty() || m_gls.empty()) {
     switch (m_init.glType) {

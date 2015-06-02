@@ -4,15 +4,23 @@ using namespace std;
 namespace Bio {
 
 Region::Region(const string &region) {
-  regex rgx("(\\S+):(\\d+)-(\\d+)");
+  if (region.empty())
+    return;
+  regex rgx("(\\S+):(\\d*)-(\\d*)");
   smatch sm;
   regex_match(region, sm, rgx);
   if (sm.empty())
     throw runtime_error("Could not parse region: [" + region + "]");
   assert(sm.size() == 4);
   m_chrom = sm[1].str();
-  m_startBP = stoul(sm[2].str());
-  m_endBP = stoul(sm[3].str());
+
+  // allow character sequence to be empty
+  if (sm[2].length() != 0)
+    m_startBP = stoul(sm[2].str());
+  if (m_startBP == 0)
+    throw std::range_error("0 is not a valid genomic coordinate");
+  if (sm[3].length() != 0)
+    m_endBP = stoul(sm[3].str());
 }
 
 // this returns a vector filled with the first n_max_tokens

@@ -73,6 +73,9 @@ public:
     m_init.size_limit = limit;
     clear();
   }
+  void SetRegion(Bio::Region targetRegion) {
+    m_init.targetRegion = std::move(targetRegion);
+  }
 
   // Getters
   std::pair<std::vector<float>, Bio::snp_storage_ordered> GetGLs();

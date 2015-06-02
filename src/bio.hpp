@@ -32,13 +32,32 @@ public:
 
   // returns region as tabix compatible region specifier of the form
   // chr:start-end
+  // start and end may be omitted
   std::string AsString() const {
-    return m_chrom + ":" + std::to_string(m_startBP) + "-" +
-           std::to_string(m_endBP);
+    std::string out = m_chrom + ":";
+    if (m_startBP)
+      out += std::to_string(m_startBP);
+    out += "-";
+    if (m_endBP)
+      out += std::to_string(m_endBP);
+    return out;
   }
+
   std::string Chrom() const { return m_chrom; }
-  unsigned startBP() const { return m_startBP; }
-  unsigned endBP() const { return m_endBP; }
+
+  // return sensible values if the BPs are 0 (i.e. undefined)
+  unsigned startBP() const {
+    if (m_startBP)
+      return m_startBP;
+    else
+      return 1;
+  }
+  unsigned endBP() const {
+    if (m_endBP)
+      return m_endBP;
+    else
+      return std::numeric_limits<unsigned>::max();
+  }
   bool empty() const { return m_chrom.empty(); }
   void clear() {
     m_chrom = "";
