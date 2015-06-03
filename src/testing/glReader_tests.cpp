@@ -166,6 +166,7 @@ TEST(GLReader, loadsBCF) {
 
     Bio::GLReader reader(init);
 
+    SCOPED_TRACE(file);
     test::sampleBinTests(reader);
   }
 }

@@ -34,6 +34,8 @@ public:
   // chr:start-end
   // start and end may be omitted
   std::string AsString() const {
+    if (empty())
+      return "";
     std::string out = m_chrom + ":";
     if (m_startBP)
       out += std::to_string(m_startBP);
