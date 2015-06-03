@@ -119,10 +119,13 @@ void GLReader::LoadBCFGLs() {
   bcf_srs sr;
   sr.add_reader(m_init.glFile);
   if (!m_init.targetRegion.empty()) {
-    if (sr.all_indexed())
+    if (sr.all_indexed()) {
+      cout << "Accessing BCF by index" << endl;
       sr.set_region(m_init.targetRegion.AsString());
-    else
+    } else {
+      cout << "Streaming BCF" << endl;
       sr.set_target(m_init.targetRegion.AsString());
+    }
   }
   //  bcfFile_cpp bcf(m_init.glFile, "r");
 
