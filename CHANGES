@@ -1,3 +1,9 @@
+1.6.6   Wed Jun 03 12:07:14 BST 2015
+        Added subsetting by region
+        Added subsetting by sample list
+        Moved to boost::program_options
+        Added dropping of extra sites (past 1024)
+
 1.6.2   Fri May 08 15:38:42 BST 2015
         Adds more tests for multiallelic sites
         Genetic distances are calculated correctly from genetic map
