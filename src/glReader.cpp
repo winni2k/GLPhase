@@ -180,26 +180,21 @@ void GLReader::LoadBCFGLs() {
         }
       }
     } else if (tag == "PL") {
-      auto gls = rec.get_format_int32(*hdr, tag);
-      if (gls.second != m_names.size() * numVals)
-        throw std::runtime_error("Returned number of values is not correct: " +
-                                 to_string(gls.second));
-      int32_t *glFirst = gls.first.get();
-      for (size_t idx : m_filteredNameIDXs) {
-        int32_t *p = glFirst + 3 * idx;
-        float homR = phred2prob<float, int32_t>(*p);
-        float het = phred2prob<float, int32_t>(*(p + 1));
-        float homA = phred2prob<float, int32_t>(*(p + 2));
 
-        if (m_init.glRetType != GLHelper::gl_ret_t::ST_DROP_FIRST) {
-          m_gls.push_back(homR);
-          m_gls.push_back(het);
-          m_gls.push_back(homA);
-        } else {
-          float sum = homR + het + homA;
-          m_gls.push_back(het / sum);
-          m_gls.push_back(homA / sum);
-        }
+      bcf_fmt_t *format = rec.get_fmt(*hdr, tag.c_str());
+      switch (format->type) {
+      case BCF_BT_INT32:
+        m_gls = convert_int_to_float<int32_t>(*hdr, tag, rec);
+        break;
+      case BCF_BT_INT16:
+        m_gls = convert_int_to_float<int16_t>(*hdr, tag, rec);
+        break;
+      case BCF_BT_INT8:
+        m_gls = convert_int_to_float<int8_t>(*hdr, tag, rec);
+        break;
+      default:
+        throw std::runtime_error(tag +
+                                 " format field does not contain integers");
       }
     }
   }

@@ -56,6 +56,38 @@ private:
 
   std::string chooseTag(bcf_hdr_t &hdr);
 
+  // utility functions
+  template <typename INT_T>
+  std::vector<float> convert_int_to_float(bcf_hdr_t &hdr,
+                                          const std::string &tag,
+                                          bcf1_extended<false> &rec) {
+
+    const int numVals = 3;
+    auto gls = rec.get_format_int<INT_T>(hdr, tag);
+    if (gls.second != m_names.size() * numVals)
+      throw std::runtime_error("Returned number of values is not correct: " +
+                               std::to_string(gls.second));
+    INT_T *glFirst = gls.first.get();
+    std::vector<float> out_gls;
+    for (size_t idx : m_filteredNameIDXs) {
+      INT_T *p = glFirst + 3 * idx;
+      float homR = phred2prob<float, INT_T>(*p);
+      float het = phred2prob<float, INT_T>(*(p + 1));
+      float homA = phred2prob<float, INT_T>(*(p + 2));
+
+      if (m_init.glRetType != GLHelper::gl_ret_t::ST_DROP_FIRST) {
+        out_gls.push_back(homR);
+        out_gls.push_back(het);
+        out_gls.push_back(homA);
+      } else {
+        float sum = homR + het + homA;
+        out_gls.push_back(het / sum);
+        out_gls.push_back(homA / sum);
+      }
+    }
+    return out_gls;
+  }
+
 public:
   GLReader(){};
   GLReader(GLHelper::init init) : m_init(std::move(init)){};
