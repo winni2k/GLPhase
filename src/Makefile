@@ -1,6 +1,6 @@
 
 #targets
-.PHONY: clean test all debug static release disttest
+.PHONY: clean test all debug static release disttest regressiontest
 
 
 BDIR := ../bin
@@ -73,7 +73,7 @@ test: $(INSTILIB) $(BIN).debug $(HEADER_FILES)
 
 disttest: test debug regressiontest
 
-regressiontest:
+regressiontest: $(BIN).debug
 	../t/regression_tests.pl $(BIN).debug
 
 # define CXXFLAGS
