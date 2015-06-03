@@ -43,7 +43,7 @@ $gls = "$glBase.gls.vcf.gz";
 copy( "$srcDir/ex.gls.vcf.gz", $gls ) or die "could not copy";
 copy( "$srcDir/ex.gls.vcf.gz.csi", "$gls.csi" ) or die "could not copy";
 
-ok( system("$insti -g $gMap -C100 -m 20 -B5 -i5 -o $gls -Ib $gls") == 0, "ran insti" );
+ok( system("$insti -g $gMap -C100 -m 20 -B5 -i5 -o $gls -Fbcf $gls") == 0, "ran insti" );
 BGZIPandIndexSTVCFGZ("$gls.vcf.gz");
 
 $nrd = VCFNRD( "$gls.vcf.gz", "$srcDir/ex.vcf.gz", $resDir );

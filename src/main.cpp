@@ -63,8 +63,12 @@ int main(int ac, char **av) {
         "help", "Print help messages")(
 
         "gls", po::value<string>(&inputFile)->required(),
-        "Genotype likelihoods file ('bin','VCF','BCF' format)")(
+        "Genotype likelihoods file (SNPTools .bin or VCF/BCF format)")(
 
+        "gls-file-type,F",
+        po::value<string>(&inputFileType)->default_value("bin"),
+        "--gls file type, one of 'bin' or 'bcf'")(
+            
         "fold,n", po::value<unsigned>(&Impute::nn)->default_value(2),
         "Fold: Number of iterations of nested MH sampler = sample size*fold")(
 
@@ -79,10 +83,6 @@ int main(int ac, char **av) {
 
         "sex,x", po::value<string>(&sexFile),
         "Sex file. Impute x chromosome data")(
-
-        "input-file-type,I",
-        po::value<string>(&inputFileType)->default_value("bin"),
-        "--gls file type")(
 
         "log-file,e", po::value<string>(&sLogFile), "Write to log file")(
 
@@ -448,7 +448,7 @@ int main(int ac, char **av) {
              << e.what() << endl;
         exit(1);
       }
-    } else if (inputFileType == "b") {
+    } else if (inputFileType == "bcf") {
       try {
         lp.load_bcf(inputFile);
       } catch (exception &e) {

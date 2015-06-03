@@ -32,7 +32,7 @@ my $gls = "$glBase.gls.multi.vcf.gz";
 copy( "$srcDir/ex.gls.multi.vcf.gz", $gls ) or die "could not copy";
 copy( "$srcDir/ex.gls.multi.vcf.gz.csi", "$gls.csi" ) or die "could not copy";
 
-ok( system("$insti -C100 -m 20 -B5 -i5 -o $gls -Ib $gls") == 0, "ran insti on multiallelics" );
+ok( system("$insti -C100 -m 20 -B5 -i5 -o $gls -Fbcf $gls") == 0, "ran insti on multiallelics" );
 BGZIPandIndexSTVCFGZ("$gls.vcf.gz");
 
 my $nrd = VCFNRD( "$gls.vcf.gz", "$srcDir/ex.multi.vcf.gz", $resDir );
@@ -44,7 +44,7 @@ $gls = "$glBase.gls.almost_multi.vcf.gz";
 copy( "$srcDir/ex.gls.almost_multi.vcf.gz", $gls ) or die "could not copy";
 copy( "$srcDir/ex.gls.almost_multi.vcf.gz.csi", "$gls.csi" ) or die "could not copy";
 
-ok( system("$insti -C100 -m 20 -B5 -i5 -o $gls -Ib $gls") == 0, "ran insti on almost_multiallelics" );
+ok( system("$insti -C100 -m 20 -B5 -i5 -o $gls -Fbcf $gls") == 0, "ran insti on almost_multiallelics" );
 BGZIPandIndexSTVCFGZ("$gls.vcf.gz");
 
 $nrd = VCFNRD( "$gls.vcf.gz", "$srcDir/ex.almost_multi.vcf.gz", $resDir );
