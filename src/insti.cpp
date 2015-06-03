@@ -219,7 +219,7 @@ void Insti::load_gls(GLReader reader) {
   reader.SetRetGLType(GLHelper::gl_ret_t::ST_DROP_FIRST);
   reader.SetSiteReadLimit(NUMSITES);
   reader.SetRegion(Bio::Region(m_init.glSubsetRegion));
-  //  reader.Set
+  reader.SetSamplesFile(m_init.glSubsetSamplesFile);
   auto gls = reader.GetGLs();
 
   auto nNotRead = reader.GetNumNotRead();
@@ -236,6 +236,9 @@ void Insti::load_gls(GLReader reader) {
   m_sites = move(gls.second);
   name = move(reader.GetNames());
 
+  if(name.size() < 2)
+      throw std::runtime_error("Input GLs need to include at least two samples");
+  
   in = name.size();
   mn = m_sites.size();
   cout << "GLs\n"
@@ -1186,7 +1189,7 @@ bool Insti::LoadHapLegSamp(const string &legendFile, const string &hapFile,
 */
 
 void Insti::initialize() {
-
+    
   // copied from SNPTools Impute
   // all haplotypes are saved in 64 bit unsigned ints (a word), where each bit
   // represents a position

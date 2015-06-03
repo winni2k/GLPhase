@@ -5,6 +5,7 @@
 #define _GLREADER_HPP 1
 
 #include <algorithm>
+#include <unordered_set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -23,6 +24,7 @@ enum class gl_ret_t { STANDARD, ST_DROP_FIRST };
 struct init {
   std::string glFile;
   std::string nameFile;
+  std::string sampleSubsetFile;
   unsigned size_limit = 0; // 0 = no limit on number of sites to read
   gl_t glType = gl_t::STBIN;
   gl_ret_t glRetType = gl_ret_t::ST_DROP_FIRST;
@@ -36,11 +38,15 @@ private:
   GLHelper::init m_init;
   Bio::snp_storage_ordered m_sites;
   std::vector<std::string> m_names;
+  std::vector<size_t> m_filteredNameIDXs;
+  std::unordered_set<std::string> m_keepNames;
   std::vector<float> m_gls;
   size_t m_numNotRead = 0;
   const std::vector<std::string> knownGLTags = {"GL", "PL"};
 
   void LoadNames();
+  void LoadFilteredNameIDXs();
+  void LoadKeepNames();
   void LoadGLs();
   void LoadSTBinNames();
   void LoadBCFNames();
@@ -56,6 +62,8 @@ public:
   void clear() {
     m_sites.clear();
     m_names.clear();
+    m_filteredNameIDXs.clear();
+    m_keepNames.clear();
     m_gls.clear();
     m_numNotRead = 0;
   };
@@ -75,6 +83,11 @@ public:
   }
   void SetRegion(Bio::Region targetRegion) {
     m_init.targetRegion = std::move(targetRegion);
+    clear();
+  }
+  void SetSamplesFile(std::string samplesFile) {
+    m_init.sampleSubsetFile = std::move(samplesFile);
+    clear();
   }
 
   // Getters

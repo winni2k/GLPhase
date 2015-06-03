@@ -33,6 +33,32 @@ void GLReader::LoadNames() {
     LoadBCFNames();
     break;
   }
+  LoadFilteredNameIDXs();
+}
+
+void GLReader::LoadFilteredNameIDXs() {
+  if (!m_filteredNameIDXs.empty())
+    return;
+  LoadKeepNames();
+  m_filteredNameIDXs.reserve(m_names.size());
+
+  // store indices of names that are in the keep set
+  // or store all indices if the keep set is empty
+  for (size_t idx = 0; idx != m_names.size(); ++idx)
+    if (m_keepNames.empty() || m_keepNames.count(m_names[idx]) != 0)
+      m_filteredNameIDXs.push_back(idx);
+}
+
+void GLReader::LoadKeepNames() {
+  if (!m_keepNames.empty() || m_init.sampleSubsetFile.empty())
+    return;
+  ifile samplesFD(m_init.sampleSubsetFile);
+  string buffer;
+  if (!samplesFD.isGood())
+    throw std::runtime_error("Error opening 'subset name file' file [" +
+                             m_init.sampleSubsetFile + "]");
+  while (getline(samplesFD, buffer))
+    m_keepNames.insert(std::move(buffer));
 }
 
 void GLReader::LoadSTBinNames() {
@@ -65,7 +91,11 @@ void GLReader::LoadBCFNames() {
 
 vector<string> GLReader::GetNames() {
   LoadNames();
-  return std::move(m_names);
+  std::vector<std::string> outNames;
+  outNames.reserve(m_filteredNameIDXs.size());
+  for (size_t idx : m_filteredNameIDXs)
+    outNames.push_back(m_names[idx]);
+  return outNames;
 }
 
 std::string GLReader::chooseTag(bcf_hdr_t &hdr) {
@@ -81,7 +111,7 @@ std::string GLReader::chooseTag(bcf_hdr_t &hdr) {
 
 void GLReader::LoadBCFGLs() {
   if (m_names.empty())
-    LoadBCFNames();
+    LoadNames();
   m_sites.clear();
   m_gls.clear();
   m_numNotRead = 0; // reset num not read counter
@@ -132,8 +162,9 @@ void GLReader::LoadBCFGLs() {
       if (gls.second != m_names.size() * numVals)
         throw std::runtime_error("Returned number of values is not correct: " +
                                  to_string(gls.second));
-      float *p = gls.first.get();
-      for (size_t sampNum = 0; sampNum < m_names.size(); ++sampNum, p += 3) {
+      float *glFirst = gls.first.get();
+      for (size_t idx : m_filteredNameIDXs) {
+        float *p = glFirst + 3 * idx;
         float homR = gl2prob(*p);
         float het = gl2prob(*(p + 1));
         float homA = gl2prob(*(p + 2));
@@ -153,8 +184,9 @@ void GLReader::LoadBCFGLs() {
       if (gls.second != m_names.size() * numVals)
         throw std::runtime_error("Returned number of values is not correct: " +
                                  to_string(gls.second));
-      int32_t *p = gls.first.get();
-      for (size_t sampNum = 0; sampNum < m_names.size(); ++sampNum, p += 3) {
+      int32_t *glFirst = gls.first.get();
+      for (size_t idx : m_filteredNameIDXs) {
+        int32_t *p = glFirst + 3 * idx;
         float homR = phred2prob<float, int32_t>(*p);
         float het = phred2prob<float, int32_t>(*(p + 1));
         float homA = phred2prob<float, int32_t>(*(p + 2));
@@ -175,7 +207,7 @@ void GLReader::LoadBCFGLs() {
 
 void GLReader::LoadSTBinGLs() {
   if (m_names.empty())
-    LoadSTBinNames();
+    LoadNames();
   m_sites.clear();
   m_gls.clear();
   m_numNotRead = 0; // reset not read counter
@@ -234,7 +266,7 @@ void GLReader::LoadSTBinGLs() {
 
     // parse two likelihoods in each column
     size_t idx = 0;
-    for (size_t sampNum = 0; sampNum != m_names.size(); ++sampNum) {
+    for (size_t sampNum : m_filteredNameIDXs) {
       float hetProb = stof(tokens[3 + sampNum], &idx);
       float homAltProb = stof(tokens[3 + sampNum].substr(idx));
       assert(hetProb + homAltProb <= 1);

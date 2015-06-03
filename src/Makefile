@@ -71,7 +71,9 @@ test: debug
 test: $(INSTILIB) $(BIN).debug $(HEADER_FILES)
 	$(MAKE) -C testing
 
-disttest: test debug
+disttest: test debug regressiontest
+
+regressiontest:
 	../t/regression_tests.pl $(BIN).debug
 
 # define CXXFLAGS

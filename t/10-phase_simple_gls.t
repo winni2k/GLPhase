@@ -72,16 +72,16 @@ ok( $code eq 0, "simple haps v1 ngmap exit code OK" ) or diag($code);
 # test --samples-file option
 {
     my $base = "$simpleGLBase.samplesFile";
-    write_file( "$base.samples", "samp2\n" );
+    write_file( "$base.samples", "samp2\nsamp3\n" );
     ok(
         system(
             "$insti -C100 -m 5 -B0 -i5 -S $base.samples -o $base $simpleGLs")
           == 0,
-        "ran insti only on samp2"
+        "ran insti on no samp1"
     );
     BGZIPandIndexSTVCFGZ("$base.vcf.gz");
 
     $code = VCFHapMatch( "$base.vcf.gz",
-        "$simpleDir/simple.gls.v1.samp2.expected.bin.vcf", $resDir );
+        "$simpleDir/simple.gls.v1.noSamp1.expected.bin.vcf", $resDir );
     ok( $code eq 0, "simple haps v1 only samp2 exit code OK" ) or diag($code);
 }
