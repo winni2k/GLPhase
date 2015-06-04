@@ -119,7 +119,8 @@ void GLReader::LoadBCFGLs() {
   bcf_srs_helper::init srInit;
   srInit.region = m_init.targetRegion.AsString();
   if (!srInit.region.empty()) {
-    if (tbx_index_load(m_init.glFile.c_str()) == nullptr) {
+    if (tbx_index_load(m_init.glFile.c_str()) == nullptr &&
+        bcf_index_load(m_init.glFile.c_str()) == nullptr) {
       cout << "Streaming BCF" << endl;
       srInit.useIndex = false;
     } else {
