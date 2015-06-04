@@ -206,7 +206,7 @@ void GLReader::LoadBCFGLs() {
       }
 
       // insert new site gls into gl storage
-      m_gls.reserve(m_gls.size() + newGLs.size());
+//      m_gls.reserve(m_gls.size() + newGLs.size());
       for(auto gl : newGLs)
           m_gls.push_back(gl);
     }
