@@ -236,9 +236,9 @@ void Insti::load_gls(GLReader reader) {
   m_sites = move(gls.second);
   name = move(reader.GetNames());
 
-  if(name.size() < 2)
-      throw std::runtime_error("Input GLs need to include at least two samples");
-  
+  if (name.size() < 2)
+    throw std::runtime_error("Input GLs need to include at least two samples");
+
   in = name.size();
   mn = m_sites.size();
   cout << "GLs\n"
@@ -344,7 +344,8 @@ void Insti::OpenTabHaps(const string &hapsFile, vector<vector<char>> &loadHaps,
   unsigned matchSites = 0;
   unsigned glSiteIdx =
       0; // used for checking sites against already loaded glSites
-  while (tabix.getNextLine(buffer) && glSiteIdx != m_sites.size()) {
+  bool first = true;
+  while (tabix.getNextLine(buffer)) {
 
     // split on tab
     vector<string> tokens;
@@ -374,10 +375,11 @@ void Insti::OpenTabHaps(const string &hapsFile, vector<vector<char>> &loadHaps,
 
     size_t prevGlSiteIdx = glSiteIdx;
     glSiteIdx = m_sites.index(newSite);
-    if (glSiteIdx <= prevGlSiteIdx)
+    if (glSiteIdx <= prevGlSiteIdx && first == false)
       throw std::runtime_error("[insti] Variants in haplotypes are out of "
                                "order with GL variants: [" +
                                m_sites.at(glSiteIdx)->to_string() + "]");
+    first = false;
 
     ++matchSites;
 
@@ -1189,7 +1191,7 @@ bool Insti::LoadHapLegSamp(const string &legendFile, const string &hapFile,
 */
 
 void Insti::initialize() {
-    
+
   // copied from SNPTools Impute
   // all haplotypes are saved in 64 bit unsigned ints (a word), where each bit
   // represents a position
