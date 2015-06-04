@@ -189,20 +189,26 @@ void GLReader::LoadBCFGLs() {
     } else if (tag == "PL") {
 
       bcf_fmt_t *format = rec.get_fmt(*hdr, tag.c_str());
+      vector<float> newGLs;
       switch (format->type) {
       case BCF_BT_INT32:
-        m_gls = convert_int_to_float<int32_t>(*hdr, tag, rec);
+          newGLs = convert_int_to_float<int32_t>(*hdr, tag, rec);
         break;
       case BCF_BT_INT16:
-        m_gls = convert_int_to_float<int16_t>(*hdr, tag, rec);
+        newGLs = convert_int_to_float<int16_t>(*hdr, tag, rec);
         break;
       case BCF_BT_INT8:
-        m_gls = convert_int_to_float<int8_t>(*hdr, tag, rec);
+        newGLs = convert_int_to_float<int8_t>(*hdr, tag, rec);
         break;
       default:
         throw std::runtime_error(tag +
                                  " format field does not contain integers");
       }
+
+      // insert new site gls into gl storage
+      m_gls.reserve(m_gls.size() + newGLs.size());
+      for(auto gl : newGLs)
+          m_gls.push_back(gl);
     }
   }
 }
