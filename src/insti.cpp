@@ -228,9 +228,11 @@ void Insti::load_gls(GLReader reader) {
                 "] sites off end of GL chunk" << endl;
 
   if (static_cast<double>(nNotRead) / NUMSITES > m_init.fracSiteDropOK)
-    throw std::runtime_error(
-        "[Insti] Number of sites not read from GL file [" + to_string(nNotRead) +
-        "] is more than 5% of max: [" + to_string(NUMSITES) + "]");
+    throw std::runtime_error("[Insti] Number of sites not read from GL file [" +
+                             to_string(nNotRead) + "] is more than " +
+                             to_string(m_init.fracSiteDropOK * 100) +
+                             "% (--fraction-site-drop-ok) of max: [" +
+                             to_string(NUMSITES) + "]");
 
   prob = move(gls.first);
   m_sites = move(gls.second);
