@@ -76,6 +76,7 @@ struct Init {
 
   // GL subsetting based on region
   std::string glSubsetRegion;
+  double fracSiteDropOK = 0.05;
 
   // GL subsetting based on sample
   std::string glSubsetSamplesFile;

@@ -68,7 +68,7 @@ int main(int ac, char **av) {
         "gls-file-type,F",
         po::value<string>(&inputFileType)->default_value("bin"),
         "--gls file type, one of 'bin' or 'bcf'")(
-            
+
         "fold,n", po::value<unsigned>(&Impute::nn)->default_value(2),
         "Fold: Number of iterations of nested MH sampler = sample size*fold")(
 
@@ -97,8 +97,13 @@ int main(int ac, char **av) {
                "first " +
                to_string(NUMSITES) +
                " sites are used.  A fatal error is thrown "
-               "if more than 5% of sites in a region are "
+               "if more than --fraction-site-drop-ok of sites in a region are "
                "thrown out in this way.").c_str())(
+
+        "fraction-site-drop-ok", po::value<double>(&init.fracSiteDropOK),
+        string("Fraction of sites that it is ok to drop off the end of a "
+               "region to conform to the limit of " +
+               to_string(NUMSITES) + " sites that may be loaded.").c_str())(
 
         "samples-file,S", po::value<string>(&init.glSubsetSamplesFile),
         "File with samples to subset to (1 name per line)");
