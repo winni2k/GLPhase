@@ -17,6 +17,14 @@
         Accepts input GLs in BCF format
         Accepts input GLs with multiple sites at the same position
 
+1.4.13  Tue Nov 25 14:40:51 2014 +0000
+        Added makefile
+        Added genetic map to replace ad-hoc estimation of recombination
+        rate using Waterson's estimator
+
+1.4.12  Tue Jul 8 21:23:43 2014 +0100
+        Added more filtering options for clustering
+
 1.4.11  Tue Jul 08 21:17:06 BST 2014
         glVQ: increased training set size to entire set
         added more omp parallelization
@@ -148,8 +156,8 @@
         bugs in my code at RelationshipGraph::init()
 
 1.1.22  Tue Oct 15 15:34:13 BST 2013
-        1) insti now prints '999' instead of 'inf' in GP field of VCF output
-        2) insti now checks to make sure probabilities are between 0 and 1 (inclusive)
+        1) glphase now prints '999' instead of 'inf' in GP field of VCF output
+        2) glphase now checks to make sure probabilities are between 0 and 1 (inclusive)
 
 1.1.21  Wed Oct 09 18:33:53 BST 2013
         caught bug where main does not exit with error of file could not be loaded

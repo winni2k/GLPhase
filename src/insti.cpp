@@ -2102,7 +2102,7 @@ void Insti::save_vcf(const string &base, const string &commandLine) {
   ofile vcfFD(base + ".vcf.gz");
   vcfFD << std::setprecision(3);
   vcfFD << "##fileformat=VCFv4.2\n";
-  vcfFD << "##source=WTCHG:INSTIv" << VERSION_MAJOR << "." << VERSION_MINOR
+  vcfFD << "##source=WTCHG:GLPhasev" << VERSION_MAJOR << "." << VERSION_MINOR
         << "." << VERSION_XSTR(VERSION_REVISION) << "\n";
 
   vcfFD << "##phaseAndImputeCall=" << commandLine << "\n";

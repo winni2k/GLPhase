@@ -19,13 +19,13 @@ namespace po = boost::program_options;
 
 int main(int ac, char **av) {
 
-  cout << "INSTI -- v" << VERSION_MAJOR << "." << VERSION_MINOR << "."
+  cerr << "GLPhase -- v" << VERSION_MAJOR << "." << VERSION_MINOR << "."
        << VERSION_XSTR(VERSION_REVISION) << endl;
 
   string header =
       "Author: Warren W. Kretzschmar @ Marchini Group @ Universiy of "
       "Oxford - Statistics"
-      "\n\nThis code is based on SNPTools impute:"
+      "\n\nThis code is based on SNPTools::impute.cpp:"
       "\nhaplotype imputation by cFDSL distribution"
       "\nAuthor: Yi Wang @ Fuli Yu Group @ BCM-HGSC"
       "\n\nUsage: insti [options] <input.bin|input.bcf>\n";
@@ -431,6 +431,19 @@ int main(int ac, char **av) {
       if (Insti::s_sRefLegendFile.size() == 0)
         throw runtime_error(
             "ERROR: Need to specify ref panel if kickstarting.");
+
+    // read in files
+    for (int i = optind; i < ac; i++)
+      file.push_back(av[i]);
+    sort(file.begin(), file.end());
+    uint fn = unique(file.begin(), file.end()) - file.begin();
+    if (!fn)
+      cerr << "input files are not unique";
+
+    // Die if more than one file was specified on command line
+    if (fn != 1) {
+        throw runtime_error("GLPhase only accepts one input .bin file");
+    }
 
     // keep track of time - these things are important!
     timeval sta, end;
