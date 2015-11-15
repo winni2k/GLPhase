@@ -22,5 +22,11 @@
 // this always needs to be a power of 2!!!!
 #define BITSPERCODE 4
 
+// chromosome X par region coordinates
+// the PAR2 has no end
+#define PAR1_FIRST 60001
+#define PAR1_LAST 2699520
+#define PAR2_FIRST 154931044
+
 #endif /* _GLOBALS_H */
 

@@ -1232,12 +1232,10 @@ void Insti::initialize() {
   // move away from vector of bools to vector of chars
   vector<bool> is_par(mn);
 
-  if (m_sites.size() == mn) {
-    for (unsigned m = 0; m < mn; m++) {
-      auto pos = m_sites.at(m)->pos;
-      is_par[m] = (pos >= 60001 && pos <= 2699520) ||
-                  (pos >= 154931044 && pos <= 155270560);
-    }
+  if (posi.size() == mn) {
+    for (unsigned m = 0; m < mn; m++)
+      is_par[m] = (posi[m] >= PAR1_FIRST && posi[m] <= PAR1_LAST) ||
+                  posi[m] >= PAR2_FIRST;
   }
 
   if (m_sites.size() != mn) {
