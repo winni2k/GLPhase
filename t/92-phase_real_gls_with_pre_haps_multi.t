@@ -6,7 +6,7 @@
 
 use Test::More;
 
-BEGIN { plan tests => 2; }
+BEGIN { plan tests => 6; }
 
 use warnings;
 use strict;
@@ -25,49 +25,92 @@ my $insti = shift @ARGV;
 my $insti_version = qx($insti 2>/dev/null | head -1);
 $insti_version =~ m/(v\d+\S+)/;
 $insti_version = qv($1);
-SKIP: {
-    skip "Multiallelics are not supported by insti $insti_version", 2
-      unless $insti_version >= qv("v1.6.6");
 
-    my $sampDir = "$Bin/../samples";
-    my $srcDir  = "$sampDir/multi_gls";
-    my $resDir  = "$Bin/results/" . basename( $0, '.t' );
+my $sampDir = "$Bin/../samples";
+my $srcDir  = "$sampDir/multi_gls";
+my $resDir  = "$Bin/results/" . basename( $0, '.t' );
 
-    make_path($resDir);
+make_path($resDir);
 
-    # copy gls to res dir
-    my $gls = "$resDir/gls.bcf.gz";
-    my $srcGLs =
+# copy gls to res dir
+my $gls = "$resDir/gls.bcf.gz";
+my $srcGLs =
 "$srcDir/chr20.5335724-5861377.1024_site_subset.HRC.r1.AC5.TGPP3_samples.likelihoods.winniFilter.bcf.gz";
-    copy( $srcGLs,       $gls );
-    copy( "$srcGLs.csi", "$gls.csi" );
+copy( $srcGLs,       $gls );
+copy( "$srcGLs.csi", "$gls.csi" );
 
-    my $phBase =
+my $phBase =
 "20.5335724-5861377.1024_site_subset.union.filteredAC5.onlyPhased.NM_HOMMAJORv3.inGLSamples.winni_filt_subset.with_multi.ordered";
-    my $pre_haps  = "$srcDir/$phBase.bcf.gz";
-    my $phTabHaps = "$srcDir/$phBase.tabhaps.gz";
-    my $phSamp    = "$srcDir/$phBase.sample";
+my $pre_haps  = "$srcDir/$phBase.bcf.gz";
+my $phTabHaps = "$srcDir/$phBase.tabhaps.gz";
+my $phSamp    = "$srcDir/$phBase.sample";
 
-    my $phLoadCommand = "-h $phTabHaps -s $phSamp";
+my $phLoadCommand = "-h $phTabHaps -s $phSamp";
 
-    #    $phLoadCommand = "" if $insti_version >= qv("v1.6.7");
+#    $phLoadCommand = "" if $insti_version >= qv("v1.6.7");
 
-    my $gMap = "$sampDir/geneticMap/genetic_map_chr20_combined_b37.txt.gz";
+my $gMap = "$sampDir/geneticMap/genetic_map_chr20_combined_b37.txt.gz";
+my $omniSamples =
+"$srcDir/20.5335724-5861377.chip.omni_broad_sanger_combined.20140818.snps.genotypes.samples";
+my $omniGenotypes =
+"$srcDir/20.5335724-5861377.chip.omni_broad_sanger_combined.20140818.snps.genotypes.vcf.gz";
 
+{
     ok(
         system(
-"$insti -R20:5335724-5861377 -g $gMap -C100 -m 2 -B0 -i3 $phLoadCommand --gls $gls -Fbcf -o $gls"
+"$insti -R20:5335724-5861377 -g $gMap -C100 -m 1 -B0 -i0 $phLoadCommand --gls $gls -Fbcf -o $gls"
           ) == 0,
         "ran insti"
     );
     BGZIPandIndexSTVCFGZ("$gls.vcf.gz");
-
-    # calculate discordance
-    my $omniSamples =
-"$srcDir/20.5335724-5861377.chip.omni_broad_sanger_combined.20140818.snps.genotypes.samples";
-    my $omniGenotypes =
-"$srcDir/20.5335724-5861377.chip.omni_broad_sanger_combined.20140818.snps.genotypes.vcf.gz";
     my $nrd = VCFNRD( "$gls.vcf.gz", $omniGenotypes, $resDir );
-    cmp_ok( $nrd, '<', 5, "NRD is sufficiently small" );
+    cmp_ok( $nrd, '<', 10, "NRD is sufficiently small" );
+}
 
+# let's try not using pre-haps
+my $outBase = "$gls.no_pre_haps";
+{
+    ok(
+        system(
+"$insti -R20:5335724-5861377 -g $gMap -C100 -m 1 -B0 -i0 --gls $gls -Fbcf -o $outBase"
+          ) == 0,
+        "ran insti"
+    );
+    BGZIPandIndexSTVCFGZ("$outBase.vcf.gz");
+    my $nrd = VCFNRD( "$outBase.vcf.gz", $omniGenotypes, $resDir );
+    cmp_ok( $nrd, '<', 10, "NRD is sufficiently small" );
+}
+
+# let's try only using biallelics
+$outBase = "$gls.no_pre_haps.no_multi";
+$gls     = "$resDir/gls.no_multi.bcf.gz";
+$srcGLs =
+"$srcDir/chr20.5335724-5861377.1024_site_subset.HRC.r1.AC5.TGPP3_samples.likelihoods.winniFilter.no_multi.bcf.gz";
+copy( $srcGLs,       $gls );
+copy( "$srcGLs.csi", "$gls.csi" );
+
+{
+    ok(
+        system(
+"$insti -R20:5335724-5861377 -g $gMap -C100 -m 2 -B0 -i3 --gls $gls -Fbcf $phLoadCommand -o $outBase"
+          ) == 0,
+        "ran insti"
+    );
+    BGZIPandIndexSTVCFGZ("$outBase.vcf.gz");
+    my $nrd = VCFNRD( "$outBase.vcf.gz", $omniGenotypes, $resDir );
+    cmp_ok( $nrd, '<', 10, "NRD is sufficiently small" );
+
+}
+
+# let's try running a known stable version of insti
+{
+    ok(
+        system(
+"$Bin/../bin/insti.1.4.13.ncuda -g $gMap -C100 -m 2 -B0 -i3 $phLoadCommand $gls"
+          ) == 0,
+        "ran insti"
+    );
+    BGZIPandIndexSTVCFGZ("$outBase.vcf.gz");
+    my $nrd = VCFNRD( "$outBase.vcf.gz", $omniGenotypes, $resDir );
+    cmp_ok( $nrd, '<', 10, "NRD is sufficiently small" );
 }

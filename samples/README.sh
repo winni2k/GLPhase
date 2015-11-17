@@ -135,10 +135,25 @@ bt view -G -H  chr20.5335724-5861377.1024_site_subset.HRC.r1.AC5.TGPP3_samples.l
 # get pre-existing haps
 bt isec -w1 -n=2 ../../2014-09-01_GL_hap_intersect/unionMAC5.winni_filt_subset.with_multi/20.union.filteredAC5.onlyPhased.NM_HOMMAJORv3.inGLSamples.winni_filt_subset.with_multi.bcf.gz chr20.5335724-5861377.1024_site_subset.HRC.r1.AC5.TGPP3_samples.likelihoods.winniFilter.bcf.gz -Ou | bt view -S MSTMv3.TGPP3_ISEC.samples -Ob -o 20.5335724-5861377.1024_site_subset.union.filteredAC5.onlyPhased.NM_HOMMAJORv3.inGLSamples.winni_filt_subset.with_multi.bcf.gz
 
-# generate tabhaps for older versions
-bt convert --hapsample 20.5335724-5861377.1024_site_subset.union.filteredAC5.onlyPhased.NM_HOMMAJORv3.inGLSamples.winni_filt_subset.with_multi 20.5335724-5861377.1024_site_subset.union.filteredAC5.onlyPhased.NM_HOMMAJORv3.inGLSamples.winni_filt_subset.with_multi.bcf.gz
+# create GL site list
+bt view chr20.5335724-5861377.1024_site_subset.HRC.r1.AC5.TGPP3_samples.likelihoods.winniFilter.bcf.gz -G -Oz -o chr20.5335724-5861377.1024_site_subset.HRC.r1.AC5.TGPP3_samples.likelihoods.winniFilter.sites.vcf.gz
 
-zcat 20.5335724-5861377.1024_site_subset.union.filteredAC5.onlyPhased.NM_HOMMAJORv3.inGLSamples.winni_filt_subset.with_multi.hap.gz | tr ' ' '\t' | bgzip -c> 20.5335724-5861377.1024_site_subset.union.filteredAC5.onlyPhased.NM_HOMMAJORv3.inGLSamples.winni_filt_subset.with_multi.tabhaps.gz
+# order haps by site list
+bt view 20.5335724-5861377.1024_site_subset.union.filteredAC5.onlyPhased.NM_HOMMAJORv3.inGLSamples.winni_filt_subset.with_multi.bcf.gz | ../../scripts/reorder_multi.pl -r chr20.5335724-5861377.1024_site_subset.HRC.r1.AC5.TGPP3_samples.likelihoods.winniFilter.sites.vcf.gz  | bt view -Ob -o 20.5335724-5861377.1024_site_subset.union.filteredAC5.onlyPhased.NM_HOMMAJORv3.inGLSamples.winni_filt_subset.with_multi.ordered.bcf.gz
+
+# generate tabhaps for older versions
+PHBASE=20.5335724-5861377.1024_site_subset.union.filteredAC5.onlyPhased.NM_HOMMAJORv3.inGLSamples.winni_filt_subset.with_multi.ordered
+bt convert --hapsample $PHBASE $PHBASE.bcf.gz
+
+zcat $PHBASE.hap.gz | tr ' ' '\t' | bgzip -c> $PHBASE.tabhaps.gz
 
 # tabix tabhaps
-tabix -s 1 -b 3 -e 3 20.5335724-5861377.1024_site_subset.union.filteredAC5.onlyPhased.NM_HOMMAJORv3.inGLSamples.winni_filt_subset.with_multi.tabhaps.gz 
+tabix -s 1 -b 3 -e 3 $PHBASE.tabhaps.gz 
+
+
+###########
+# Tue Nov 17 14:57:24 GMT 2015
+# remove multiallelics
+bt view chr20.5335724-5861377.1024_site_subset.HRC.r1.AC5.TGPP3_samples.likelihoods.winniFilter.bcf.gz -G -H |cut -f1,2 | sort |uniq -d > duplicate.sites
+
+bt view -T^duplicate.sites chr20.5335724-5861377.1024_site_subset.HRC.r1.AC5.TGPP3_samples.likelihoods.winniFilter.bcf.gz -Ob -o chr20.5335724-5861377.1024_site_subset.HRC.r1.AC5.TGPP3_samples.likelihoods.winniFilter.no_multi.bcf.gz
