@@ -5,8 +5,8 @@
 #########################
 
 use Test::More;
-my $planned_tests = 4;
-BEGIN { plan tests => 1 }
+
+BEGIN { plan tests => 2; }
 
 use warnings;
 use strict;
@@ -26,8 +26,7 @@ my $insti_version = qx($insti 2>/dev/null | head -1);
 $insti_version =~ m/(v\d+\S+)/;
 $insti_version = qv($1);
 SKIP: {
-    skip "Multiallelics are not supported by insti $insti_version",
-      $planned_tests
+    skip "Multiallelics are not supported by insti $insti_version", 2
       unless $insti_version >= qv("v1.6.6");
 
     my $sampDir = "$Bin/../samples";
@@ -62,32 +61,13 @@ SKIP: {
         "ran insti"
     );
     BGZIPandIndexSTVCFGZ("$gls.vcf.gz");
-    
+
     # calculate discordance
     my $omniSamples =
 "$srcDir/20.5335724-5861377.chip.omni_broad_sanger_combined.20140818.snps.genotypes.samples";
     my $omniGenotypes =
-      "$srcDir/20.5335724-5861377.chip.omni_broad_sanger_combined.20140818.snps.genotypes.vcf.gz";
-    my $nrd = VCFNRD("$gls.vcf.gz", $omniGenotypes, $resDir);
-    cmp_ok($nrd, '<', 5, "NRD is sufficiently small");
-
-    #     my $nrd = VCFNRD( "$gls.vcf.gz", "$srcDir/ex.vcf.gz", $resDir );
-    #     cmp_ok( $nrd, '<', 5, "simulated hap gen NRD ($nrd) < 5" );
-
-  #     # let's also run on the vcf version of the bin file
-  #     $gls = "$glBase.gls.vcf.gz";
-  #     copy( "$srcDir/ex.gls.vcf.gz",     $gls )       or die "could not copy";
-  #     copy( "$srcDir/ex.gls.vcf.gz.csi", "$gls.csi" ) or die "could not copy";
-
-#     ok(
-#         system(
-# "$insti -g $gMap -C100 -m 10 -B0 -i3 -o $gls -Fbcf -H $i2Hap -L $i2Leg -k $gls"
-#           ) == 0,
-#         "ran insti"
-#     );
-#     BGZIPandIndexSTVCFGZ("$gls.vcf.gz");
-
-    #     $nrd = VCFNRD( "$gls.vcf.gz", "$srcDir/ex.vcf.gz", $resDir );
-    #     cmp_ok( $nrd, '<', 5, "simulated hap gen NRD ($nrd) < 5" );
+"$srcDir/20.5335724-5861377.chip.omni_broad_sanger_combined.20140818.snps.genotypes.vcf.gz";
+    my $nrd = VCFNRD( "$gls.vcf.gz", $omniGenotypes, $resDir );
+    cmp_ok( $nrd, '<', 5, "NRD is sufficiently small" );
 
 }
