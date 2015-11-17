@@ -125,6 +125,8 @@ sub VCFNRD {
     my @lines = read_file("$wd/$tBase.stats");
     @lines = grep { m/^NRDs/ } @lines;
     my @line = split /\t/, $lines[0];
+
+    $line[2] =~ m/^\d*\.?\d+$/ or die "NRD ($line[2]) is not a float";
     return $line[2];
 }
 

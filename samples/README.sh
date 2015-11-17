@@ -84,3 +84,61 @@ zcat ex.gls.vcf.gz |  grep -v '^#' | awk 'BEGIN{FS="\t"; OFS="\t"}{if(NR %2){$3=
 zcat ex.vcf.gz |  grep -v '^#' | awk 'BEGIN{FS="\t"; OFS="\t"}{if(NR %2){$3="CT"} else{$3 = "CA"} $2=99999 + NR; print}'  > tmp
 (zcat ex.vcf.gz | grep '^#'; cat tmp) | bgzip -c > ex.almost_multi.vcf.gz
 
+###########
+# Tue Nov 17 09:39:53 GMT 2015
+# need to create a test file for multiallelics
+mkdir samples/multi_gls
+cd samples/multi_gls
+
+# create known genotypes
+bt view -r20 /gpfs1/well/marchini/winni/proj/marchini/haplotypeConsortium/data/2014-10-14_1kg_omni_sites/ALL.chip.omni_broad_sanger_combined.20140818.snps.genotypes.vcf.gz -Ou | bt view -T ../../2014-10-19_concordance_analysis/hrc_pilot_ISEC_hrc_r1.positions -Ou | bt view -t20:5335724-5861377 -Ou | bt view -S../../2014-10-19_concordance_analysis/omni_ISEC_hrc_pilot_ISEC_hrc_r1.sample.list -Oz -o 20.5335724-5861377.chip.omni_broad_sanger_combined.20140818.snps.genotypes.vcf.gz
+
+# create list of multiallelic GLs
+bt view -r20:5335724-5861377 ../../../../data/2014-08-27_sanger_release1_GLs/merged-likelihoods-20140904-winniFilt/chr20.HRC.r1.AC5.32920_samples.likelihoods.winniFilter.bcf.gz -G  -H | cut -f2 | uniq -d | head -n 256 > multi.sites
+
+# subset out multi sites (52 total)
+bt view -Rmulti.sites ../../../../data/2014-08-27_sanger_release1_GLs/merged-likelihoods-20140904-winniFilt/chr20.HRC.r1.AC5.32920_samples.likelihoods.winniFilter.bcf.gz -Ob -o chr20.5335724-5861377.only_multi.HRC.r1.AC5.32920_samples.likelihoods.winniFilter.bcf.gz
+
+# create site list of genotyped sites
+bt view -H 20.5335724-5861377.chip.omni_broad_sanger_combined.20140818.snps.genotypes.vcf.gz | cut -f1,2 > genotyped.sites
+
+# extract genotyped sites
+bt view -r20:5335724-5861377 ../../../../data/2014-08-27_sanger_release1_GLs/merged-likelihoods-20140904-winniFilt/chr20.HRC.r1.AC5.32920_samples.likelihoods.winniFilter.bcf.gz -Ou | bt view -T genotyped.sites -Ob -o chr20.5335724-5861377.genotyped.HRC.r1.AC5.32920_samples.likelihoods.winniFilter.bcf.gz
+
+### now fill up remaining sites
+cat multi.sites genotyped.sites | sort | uniq | cut -f2 > exclude.pos
+
+# sample another 468 sites
+bt view -r20:5335724-5861377 ../../../../data/2014-08-27_sanger_release1_GLs/merged-likelihoods-20140904-winniFilt/chr20.HRC.r1.AC5.32920_samples.likelihoods.winniFilter.bcf.gz -G -H | cut -f1,2 | grepLarge.pl -v -fexclude.pos -c2 | shuf | head -n 479 > extra.sites
+
+# extract extra site GLs
+bt view -r20:5335724-5861377 ../../../../data/2014-08-27_sanger_release1_GLs/merged-likelihoods-20140904-winniFilt/chr20.HRC.r1.AC5.32920_samples.likelihoods.winniFilter.bcf.gz -Ou | bt view -Textra.sites -Ob -o chr20.5335724-5861377.extra.HRC.r1.AC5.32920_samples.likelihoods.winniFilter.bcf.gz
+bt index chr20.5335724-5861377.extra.HRC.r1.AC5.32920_samples.likelihoods.winniFilter.bcf.gz
+
+
+# create MSTMv3 sample intersect file
+comm -12 <(bt query -l ../../2014-09-01_GL_hap_intersect/unionMAC5.winni_filt_subset.with_multi/20.union.filteredAC5.onlyPhased.NM_HOMMAJORv3.inGLSamples.winni_filt_subset.with_multi.bcf.gz) ../../2014-09-01_GL_hap_intersect/GL_haplotype_intersect.noCG9.TGPP3_ISEC.samples > MSTMv3.TGPP3_ISEC.samples
+
+# concatenate files
+bt concat -D -a \
+   chr20.5335724-5861377.only_multi.HRC.r1.AC5.32920_samples.likelihoods.winniFilter.bcf.gz\
+   chr20.5335724-5861377.extra.HRC.r1.AC5.32920_samples.likelihoods.winniFilter.bcf.gz\
+   chr20.5335724-5861377.genotyped.HRC.r1.AC5.32920_samples.likelihoods.winniFilter.bcf.gz\
+   -Ou |\
+    bt view -S MSTMv3.TGPP3_ISEC.samples\
+       -Ob -o chr20.5335724-5861377.1024_site_subset.HRC.r1.AC5.TGPP3_samples.likelihoods.winniFilter.bcf.gz
+
+bt index chr20.5335724-5861377.1024_site_subset.HRC.r1.AC5.TGPP3_samples.likelihoods.winniFilter.bcf.gz 
+bt view -G -H  chr20.5335724-5861377.1024_site_subset.HRC.r1.AC5.TGPP3_samples.likelihoods.winniFilter.bcf.gz | wc -l
+
+
+# get pre-existing haps
+bt isec -w1 -n=2 ../../2014-09-01_GL_hap_intersect/unionMAC5.winni_filt_subset.with_multi/20.union.filteredAC5.onlyPhased.NM_HOMMAJORv3.inGLSamples.winni_filt_subset.with_multi.bcf.gz chr20.5335724-5861377.1024_site_subset.HRC.r1.AC5.TGPP3_samples.likelihoods.winniFilter.bcf.gz -Ou | bt view -S MSTMv3.TGPP3_ISEC.samples -Ob -o 20.5335724-5861377.1024_site_subset.union.filteredAC5.onlyPhased.NM_HOMMAJORv3.inGLSamples.winni_filt_subset.with_multi.bcf.gz
+
+# generate tabhaps for older versions
+bt convert --hapsample 20.5335724-5861377.1024_site_subset.union.filteredAC5.onlyPhased.NM_HOMMAJORv3.inGLSamples.winni_filt_subset.with_multi 20.5335724-5861377.1024_site_subset.union.filteredAC5.onlyPhased.NM_HOMMAJORv3.inGLSamples.winni_filt_subset.with_multi.bcf.gz
+
+zcat 20.5335724-5861377.1024_site_subset.union.filteredAC5.onlyPhased.NM_HOMMAJORv3.inGLSamples.winni_filt_subset.with_multi.hap.gz | tr ' ' '\t' | bgzip -c> 20.5335724-5861377.1024_site_subset.union.filteredAC5.onlyPhased.NM_HOMMAJORv3.inGLSamples.winni_filt_subset.with_multi.tabhaps.gz
+
+# tabix tabhaps
+tabix -s 1 -b 3 -e 3 20.5335724-5861377.1024_site_subset.union.filteredAC5.onlyPhased.NM_HOMMAJORv3.inGLSamples.winni_filt_subset.with_multi.tabhaps.gz 
