@@ -1,3 +1,7 @@
+1.6.8   Thu Nov 19 14:42:58 GMT 2015
+        Adds support for indexed BCF/VCF reading of input haplotypes
+        Adds genotype calling accuracy test based on 1000GP3 GLs
+
 1.6.6   Wed Jun 03 12:07:14 BST 2015
         Added subsetting by region
         Added subsetting by sample list

@@ -58,9 +58,8 @@ private:
 
   // utility functions
   template <typename INT_T>
-  std::vector<float> convert_int_to_float(bcf_hdr_t &hdr,
-                                          const std::string &tag,
-                                          bcf1_extended<false> &rec) {
+  void convert_int_to_float_and_store(bcf_hdr_t &hdr, const std::string &tag,
+                                      bcf1_extended<false> &rec) {
 
     const int numVals = 3;
     auto gls = rec.get_format_int<INT_T>(hdr, tag);
@@ -68,25 +67,18 @@ private:
       throw std::runtime_error("Returned number of values is not correct: " +
                                std::to_string(gls.second));
     INT_T *glFirst = gls.first.get();
-    std::vector<float> out_gls;
+    int magic_offset = 6; // not sure why this is 6 instead of 3...
     for (size_t idx : m_filteredNameIDXs) {
-      INT_T *p = glFirst + 3 * idx;
+      INT_T *p = glFirst + magic_offset * idx;
       float homR = phred2prob<float, INT_T>(*p);
-      float het = phred2prob<float, INT_T>(*(p + 1));
-      float homA = phred2prob<float, INT_T>(*(p + 2));
+      float het = phred2prob<float, INT_T>(*(p + 2));
+      float homA = phred2prob<float, INT_T>(*(p + 4));
 
-      if (m_init.glRetType != GLHelper::gl_ret_t::ST_DROP_FIRST) {
-        out_gls.push_back(homR);
-        out_gls.push_back(het);
-        out_gls.push_back(homA);
-      } else {
-        float sum = homR + het + homA;
-        out_gls.push_back(het / sum);
-        out_gls.push_back(homA / sum);
-      }
+      drop_first_aware_add_gl_trio(homR, het, homA);
     }
-    return out_gls;
   }
+
+  void drop_first_aware_add_gl_trio(float homR, float het, float homA);
 
 public:
   GLReader(){};

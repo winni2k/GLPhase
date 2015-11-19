@@ -176,40 +176,39 @@ void GLReader::LoadBCFGLs() {
         float het = gl2prob(*(p + 1));
         float homA = gl2prob(*(p + 2));
 
-        if (m_init.glRetType != GLHelper::gl_ret_t::ST_DROP_FIRST) {
-          m_gls.push_back(homR);
-          m_gls.push_back(het);
-          m_gls.push_back(homA);
-        } else {
-          float sum = homR + het + homA;
-          m_gls.push_back(het / sum);
-          m_gls.push_back(homA / sum);
-        }
+        drop_first_aware_add_gl_trio(homR, het, homA);
       }
     } else if (tag == "PL") {
 
       bcf_fmt_t *format = rec.get_fmt(*hdr, tag.c_str());
-      vector<float> newGLs;
       switch (format->type) {
       case BCF_BT_INT32:
-          newGLs = convert_int_to_float<int32_t>(*hdr, tag, rec);
+        convert_int_to_float_and_store<int32_t>(*hdr, tag, rec);
         break;
       case BCF_BT_INT16:
-        newGLs = convert_int_to_float<int16_t>(*hdr, tag, rec);
+        convert_int_to_float_and_store<int16_t>(*hdr, tag, rec);
         break;
       case BCF_BT_INT8:
-        newGLs = convert_int_to_float<int8_t>(*hdr, tag, rec);
+        convert_int_to_float_and_store<int8_t>(*hdr, tag, rec);
         break;
       default:
         throw std::runtime_error(tag +
                                  " format field does not contain integers");
       }
-
-      // insert new site gls into gl storage
-//      m_gls.reserve(m_gls.size() + newGLs.size());
-      for(auto gl : newGLs)
-          m_gls.push_back(gl);
     }
+  }
+}
+
+void GLReader::drop_first_aware_add_gl_trio(float homR, float het, float homA) {
+
+  if (m_init.glRetType != GLHelper::gl_ret_t::ST_DROP_FIRST) {
+    m_gls.push_back(homR);
+    m_gls.push_back(het);
+    m_gls.push_back(homA);
+  } else {
+    float sum = homR + het + homA;
+    m_gls.push_back(het / sum);
+    m_gls.push_back(homA / sum);
   }
 }
 
@@ -278,10 +277,9 @@ void GLReader::LoadSTBinGLs() {
       float hetProb = stof(tokens[3 + sampNum], &idx);
       float homAltProb = stof(tokens[3 + sampNum].substr(idx));
       assert(hetProb + homAltProb <= 1);
-      if (m_init.glRetType != GLHelper::gl_ret_t::ST_DROP_FIRST)
-        m_gls.push_back(max(0.0f, 1 - hetProb - homAltProb));
-      m_gls.push_back(hetProb);
-      m_gls.push_back(homAltProb);
+
+      drop_first_aware_add_gl_trio(max(0.0f, 1 - hetProb - homAltProb), hetProb,
+                                   homAltProb);
     }
   }
 }

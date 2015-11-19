@@ -13,6 +13,8 @@ string sampleLegend =
     sampleDir + "/20_011976121_012173018.bin.onlyThree.legend";
 string sampleHap = sampleDir + "/20_011976121_012173018.bin.onlyThree.hap";
 string sampleBin = sampleDir + "/20_011976121_012173018.bin.onlyThree.bin";
+string sampleVCFGZ = sampleDir + "/20_011976121_012173018.bin.onlyThree.vcf.gz";
+string sampleBCFGZ = sampleDir + "/20_011976121_012173018.bin.onlyThree.bcf.gz";
 string sampleBinWithMulti =
     sampleDir + "/20_011976121_012173018.bin.onlyThree.withMultiall.bin";
 string bigSampleMultiBin = sampleDir + "/hapGen/ex.multi.bin";
@@ -66,53 +68,21 @@ string unsortedRefHaps =
 string geneticMap =
     sampleDir + "/geneticMap/genetic_map_chr20_combined_b37.txt.gz";
 
+string tgp3GLsBCF = sampleDir + "/multi_gls/"
+                                "chr20.5335724-5861377.1024_site_subset.HRC.r1."
+                                "AC5.TGPP3_samples.likelihoods.winniFilter.bcf."
+                                "gz";
+string tgp3GLsBin = sampleDir + "/multi_gls/"
+                                "chr20.5335724-5861377.1024_site_subset.HRC.r1."
+                                "AC5.TGPP3_samples.likelihoods.winniFilter.bin";
+string tgp3GLsVCF = sampleDir +
+                    "/multi_gls/"
+                    "chr20.5335724-5861377.1024_site_subset.HRC.r1."
+                    "AC5.TGPP3_samples.likelihoods.winniFilter.vcf.gz";
+
 gsl_rng *rng = gsl_rng_alloc(gsl_rng_default);
 
-void sampleBinPreInitProbCheck(Insti &lp) {
-
-  // making sure prob size is correct
-  EXPECT_EQ(1024 * 2 * lp.in, lp.prob.size());
-
-  EXPECT_EQ(0, lp.prob[0]);
-  EXPECT_EQ(1, lp.prob[1]);
-  EXPECT_EQ(0.2f, lp.prob[2]);
-  EXPECT_EQ(0, lp.prob[3]);
-  EXPECT_EQ(0, lp.prob[4]);
-  EXPECT_EQ(0, lp.prob[5]);
-  EXPECT_EQ(0, lp.prob[6]);
-  EXPECT_EQ(1, lp.prob[7]);
-  EXPECT_EQ(1, lp.prob[lp.in * 6 - 4]);
-  EXPECT_EQ(1, lp.prob[lp.in * 2 + 1]);
-  EXPECT_EQ(0, lp.prob[lp.in * 2 + 3]);
-}
-
-void sampleBinPostInitProbCheck(Insti &lp) {
-
-  EXPECT_EQ(1024 * 3 * lp.in, lp.prob.size());
-  EXPECT_EQ(0, lp.prob[0]);
-  EXPECT_EQ(0, lp.prob[1]);
-  EXPECT_EQ(1, lp.prob[2]);
-
-  // 3 = lp.pn
-  EXPECT_EQ(0.8f, lp.prob[0 + lp.mn * 3]);
-  EXPECT_EQ(0.2f, lp.prob[1 + lp.mn * 3]);
-  EXPECT_EQ(0, lp.prob[2 + lp.mn * 3]);
-
-  EXPECT_EQ(1, lp.prob[0 + lp.mn * 2 * 3]);
-  EXPECT_EQ(0, lp.prob[1 + lp.mn * 2 * 3]);
-  EXPECT_EQ(0, lp.prob[2 + lp.mn * 2 * 3]);
-
-  EXPECT_EQ(0, lp.prob[4]);
-  EXPECT_EQ(1, lp.prob[5]);
-}
-
-TEST(Insti, loadBin) {
-
-  InstiHelper::Init init;
-  init.geneticMap = geneticMap;
-  Insti lp(init);
-  lp.load_bin(sampleBin);
-
+void sampleBinSiteChecks(Insti &lp) {
   ASSERT_EQ(3, lp.in);
 
   // testing sites
@@ -137,36 +107,156 @@ TEST(Insti, loadBin) {
   EXPECT_EQ("G", lp.m_sites.at(5)->alt);
   EXPECT_EQ("G", lp.m_sites.at(1023)->ref);
   EXPECT_EQ("T", lp.m_sites.at(1023)->alt);
+}
 
-  // prob
-  sampleBinPreInitProbCheck(lp);
+void sampleBinPreInitProbCheck(Insti &lp) {
 
-  //    cerr << "BLOINC1\n";
-  // now initialize lp and see if probs still make sense
-  lp.initialize();
+  // making sure prob size is correct
+  EXPECT_EQ(1024 * 2 * lp.in, lp.prob.size());
 
-  sampleBinPostInitProbCheck(lp);
+  EXPECT_EQ(0, lp.prob[0]);
+  EXPECT_EQ(1, lp.prob[1]);
+  EXPECT_FLOAT_EQ(0.2f, lp.prob[2]);
+  EXPECT_EQ(0, lp.prob[3]);
+  EXPECT_EQ(0, lp.prob[4]);
+  EXPECT_EQ(0, lp.prob[5]);
+  EXPECT_EQ(0, lp.prob[6]);
+  EXPECT_EQ(1, lp.prob[7]);
+  EXPECT_EQ(1, lp.prob[lp.in * 6 - 4]);
+  EXPECT_EQ(1, lp.prob[lp.in * 2 + 1]);
+  EXPECT_EQ(0, lp.prob[lp.in * 2 + 3]);
+}
 
-  //  cerr << "BLOINC2\n";
-  // now test refpanel loading
-  lp.LoadHapLegSamp(refLegend, refHap, "", InstiPanelType::REFERENCE);
+void sampleBinPostInitProbCheck(Insti &lp) {
 
-  for (unsigned i = 0; i != 601; i++) {
-    EXPECT_EQ(0, lp.TestRefHap(0, i));
-    EXPECT_EQ(0, lp.TestRefHap(2, i));
-    EXPECT_EQ(1, lp.TestRefHap(3, i));
+  EXPECT_EQ(1024 * 3 * lp.in, lp.prob.size());
+  EXPECT_EQ(0, lp.prob[0]);
+  EXPECT_EQ(0, lp.prob[1]);
+  EXPECT_EQ(1, lp.prob[2]);
+
+  // 3 = lp.pn
+  EXPECT_FLOAT_EQ(0.8f, lp.prob[0 + lp.mn * 3]);
+  EXPECT_FLOAT_EQ(0.2f, lp.prob[1 + lp.mn * 3]);
+  EXPECT_EQ(0, lp.prob[2 + lp.mn * 3]);
+
+  EXPECT_EQ(1, lp.prob[0 + lp.mn * 2 * 3]);
+  EXPECT_EQ(0, lp.prob[1 + lp.mn * 2 * 3]);
+  EXPECT_EQ(0, lp.prob[2 + lp.mn * 2 * 3]);
+
+  EXPECT_EQ(0, lp.prob[4]);
+  EXPECT_EQ(1, lp.prob[5]);
+}
+
+TEST(Insti, loadGLs) {
+
+  InstiHelper::Init init;
+  init.geneticMap = geneticMap;
+
+  vector<string> glFiles = {sampleBin, sampleVCFGZ, sampleBCFGZ};
+  for (int i = 0; i < glFiles.size(); ++i) {
+
+    Insti lp(init);
+    if (i == 0)
+      lp.load_bin(glFiles.at(i));
+    else
+      lp.load_bcf(glFiles.at(i));
+
+    sampleBinSiteChecks(lp);
+
+    // prob
+    sampleBinPreInitProbCheck(lp);
+
+    //    cerr << "BLOINC1\n";
+    // now initialize lp and see if probs still make sense
+    lp.initialize();
+
+    sampleBinPostInitProbCheck(lp);
+
+    if (i == 0) {
+      //  cerr << "BLOINC2\n";
+      // now test refpanel loading
+      lp.LoadHapLegSamp(refLegend, refHap, "", InstiPanelType::REFERENCE);
+
+      for (unsigned i = 0; i != 601; i++) {
+        EXPECT_EQ(0, lp.TestRefHap(0, i));
+        EXPECT_EQ(0, lp.TestRefHap(2, i));
+        EXPECT_EQ(1, lp.TestRefHap(3, i));
+      }
+
+      for (unsigned i = 601; i != 1024; i++) {
+        EXPECT_EQ(1, lp.TestRefHap(0, i));
+        EXPECT_EQ(0, lp.TestRefHap(1, i));
+        EXPECT_EQ(0, lp.TestRefHap(2, i));
+        EXPECT_EQ(1, lp.TestRefHap(3, i));
+      }
+    }
   }
+}
 
-  for (unsigned i = 601; i != 1024; i++) {
-    EXPECT_EQ(1, lp.TestRefHap(0, i));
-    EXPECT_EQ(0, lp.TestRefHap(1, i));
-    EXPECT_EQ(0, lp.TestRefHap(2, i));
-    EXPECT_EQ(1, lp.TestRefHap(3, i));
+void compEqGLs(Insti &truth, Insti &lp) {
+
+  // compare individuals
+  const size_t numInd = truth.in;
+  ASSERT_EQ(numInd, lp.in);
+
+  // testing sites
+  const unsigned numSites = truth.m_sites.size();
+  ASSERT_EQ(numSites, lp.m_sites.size());
+
+  // chr
+  EXPECT_EQ("20", lp.m_sites.chrom());
+  for (size_t site = 0; site < numSites; ++site) {
+
+    // check chroms
+    EXPECT_EQ("20", lp.m_sites.at(site)->chr);
+
+    // positions
+    EXPECT_EQ(truth.m_sites.at(site)->pos, lp.m_sites.at(site)->pos);
+
+    // all
+    EXPECT_EQ(truth.m_sites.at(site)->ref, lp.m_sites.at(site)->ref);
+    EXPECT_EQ(truth.m_sites.at(site)->alt, lp.m_sites.at(site)->alt);
   }
+  // compare all probs
+  for (size_t probNum = 0; probNum < truth.prob.size(); ++probNum){
+      SCOPED_TRACE("prob number: " + to_string(probNum));
+      ASSERT_NEAR(truth.prob.at(probNum), lp.prob.at(probNum), 0.0001);
+  }
+}
 
-  // test the scaffold loading not implemented yet
-  //    lp.LoadHapLegSamp(refLegend, refHap, scaffHapLegSampSample,
-  // InstiPanelType::SCAFFOLD);
+// Let's try a more complicate GLs file and make sure
+// that the BCF/VCF result in the same probs as the bin
+TEST(Insti, compareGLs) {
+
+  InstiHelper::Init init;
+  init.geneticMap = geneticMap;
+
+  Insti truth(init);
+  truth.load_bin(tgp3GLsBin);
+
+  // post initialize truth set
+  Insti truthPost(init);
+  truthPost.load_bin(tgp3GLsBin);
+  truthPost.initialize();
+
+  vector<string> glFiles = {tgp3GLsVCF,tgp3GLsBCF};
+  for (auto file : glFiles) {
+
+    Insti lp(init);
+    lp.load_bcf(file);
+
+    {
+        SCOPED_TRACE("Before init");
+        compEqGLs(truth, lp);
+    }
+
+    // now initialize lp and see if probs still make sense
+    lp.initialize();
+    {
+        SCOPED_TRACE("After init");
+        compEqGLs(truthPost, lp);
+    }
+  }
 }
 
 void testStandardScaffold(Insti &lp) {

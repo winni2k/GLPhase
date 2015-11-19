@@ -6,7 +6,7 @@
 
 use Test::More;
 
-BEGIN { plan tests => 6; }
+BEGIN { plan tests => 8; }
 
 use warnings;
 use strict;
@@ -36,7 +36,11 @@ make_path($resDir);
 my $gls = "$resDir/gls.bcf.gz";
 my $srcGLs =
 "$srcDir/chr20.5335724-5861377.1024_site_subset.HRC.r1.AC5.TGPP3_samples.likelihoods.winniFilter.bcf.gz";
+my $glsBin = "$resDir/gls.bin";
+my $srcGLsBin =
+"$srcDir/chr20.5335724-5861377.1024_site_subset.HRC.r1.AC5.TGPP3_samples.likelihoods.winniFilter.bin";
 copy( $srcGLs,       $gls );
+copy( $srcGLsBin,    $glsBin );
 copy( "$srcGLs.csi", "$gls.csi" );
 
 my $phBase =
@@ -58,13 +62,28 @@ my $omniGenotypes =
 {
     ok(
         system(
-"$insti -R20:5335724-5861377 -g $gMap -C100 -m 1 -B0 -i0 $phLoadCommand --gls $gls -Fbcf -o $gls"
+"$insti -R20:5335724-5861377 -g $gMap -C100 -m 10 -B0 -i5 $phLoadCommand --gls $gls -Fbcf -o $gls"
           ) == 0,
         "ran insti"
     );
     BGZIPandIndexSTVCFGZ("$gls.vcf.gz");
     my $nrd = VCFNRD( "$gls.vcf.gz", $omniGenotypes, $resDir );
-    cmp_ok( $nrd, '<', 10, "NRD is sufficiently small" );
+    cmp_ok( $nrd, '<', 15, "NRD is sufficiently small" );
+}
+
+# how about gls in bin format
+{
+
+    ok(
+        system(
+"$insti -R20:5335724-5861377 -g $gMap -C100 -m 10 -B0 -i5 $phLoadCommand --gls $glsBin -Fbin -o $glsBin"
+          ) == 0,
+        "ran insti"
+    );
+    BGZIPandIndexSTVCFGZ("$glsBin.vcf.gz");
+    my $nrd = VCFNRD( "$glsBin.vcf.gz", $omniGenotypes, $resDir );
+    cmp_ok( $nrd, '<', 15, "NRD is sufficiently small" );
+
 }
 
 # let's try not using pre-haps
@@ -72,13 +91,13 @@ my $outBase = "$gls.no_pre_haps";
 {
     ok(
         system(
-"$insti -R20:5335724-5861377 -g $gMap -C100 -m 1 -B0 -i0 --gls $gls -Fbcf -o $outBase"
+"$insti -R20:5335724-5861377 -g $gMap -C100 -m 10 -B0 -i5 --gls $gls -Fbcf -o $outBase"
           ) == 0,
         "ran insti"
     );
     BGZIPandIndexSTVCFGZ("$outBase.vcf.gz");
     my $nrd = VCFNRD( "$outBase.vcf.gz", $omniGenotypes, $resDir );
-    cmp_ok( $nrd, '<', 10, "NRD is sufficiently small" );
+    cmp_ok( $nrd, '<', 15, "NRD is sufficiently small" );
 }
 
 # let's try only using biallelics
@@ -92,25 +111,13 @@ copy( "$srcGLs.csi", "$gls.csi" );
 {
     ok(
         system(
-"$insti -R20:5335724-5861377 -g $gMap -C100 -m 2 -B0 -i3 --gls $gls -Fbcf $phLoadCommand -o $outBase"
+"$insti -R20:5335724-5861377 -g $gMap -C100 -m 10 -B0 -i5 --gls $gls -Fbcf $phLoadCommand -o $outBase"
           ) == 0,
         "ran insti"
     );
     BGZIPandIndexSTVCFGZ("$outBase.vcf.gz");
     my $nrd = VCFNRD( "$outBase.vcf.gz", $omniGenotypes, $resDir );
-    cmp_ok( $nrd, '<', 10, "NRD is sufficiently small" );
+    cmp_ok( $nrd, '<', 15, "NRD is sufficiently small" );
 
 }
 
-# let's try running a known stable version of insti
-{
-    ok(
-        system(
-"$Bin/../bin/insti.1.4.13.ncuda -g $gMap -C100 -m 2 -B0 -i3 $phLoadCommand $gls"
-          ) == 0,
-        "ran insti"
-    );
-    BGZIPandIndexSTVCFGZ("$outBase.vcf.gz");
-    my $nrd = VCFNRD( "$outBase.vcf.gz", $omniGenotypes, $resDir );
-    cmp_ok( $nrd, '<', 10, "NRD is sufficiently small" );
-}

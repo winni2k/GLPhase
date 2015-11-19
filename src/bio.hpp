@@ -163,7 +163,7 @@ template <class F> F gl2prob(F val) {
 template <class F, class I> F phred2prob(I phred) {
   if (phred > std::numeric_limits<F>::min_exponent10 * -10)
     return static_cast<F>(0);
-  F ret = static_cast<F>(pow(10, -phred / 10));
+  F ret = static_cast<F>(pow(10, - static_cast<F>(phred) / 10));
   assert(ret <= 1);
   assert(ret >= 0);
   return ret;

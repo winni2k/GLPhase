@@ -157,3 +157,35 @@ tabix -s 1 -b 3 -e 3 $PHBASE.tabhaps.gz
 bt view chr20.5335724-5861377.1024_site_subset.HRC.r1.AC5.TGPP3_samples.likelihoods.winniFilter.bcf.gz -G -H |cut -f1,2 | sort |uniq -d > duplicate.sites
 
 bt view -T^duplicate.sites chr20.5335724-5861377.1024_site_subset.HRC.r1.AC5.TGPP3_samples.likelihoods.winniFilter.bcf.gz -Ob -o chr20.5335724-5861377.1024_site_subset.HRC.r1.AC5.TGPP3_samples.likelihoods.winniFilter.no_multi.bcf.gz
+
+###########
+# Tue Nov 17 15:59:34 GMT 2015
+# let's find real error
+/data/fenghuang/not-backed-up/kretzsch/dev/insti/t/../bin/insti.1.4.13b.ncuda -g /data/fenghuang/not-backed-up/kretzsch/dev/insti/t/../samples/geneticMap/genetic_map_chr20_combined_b37.txt.gz -C100 -m 10 -B0 -i5 -h /data/fenghuang/not-backed-up/kretzsch/dev/insti/t/../samples/multi_gls/20.5335724-5861377.1024_site_subset.union.filteredAC5.onlyPhased.NM_HOMMAJORv3.inGLSamples.winni_filt_subset.with_multi.ordered.tabhaps.gz -s /data/fenghuang/not-backed-up/kretzsch/dev/insti/t/../samples/multi_gls/20.5335724-5861377.1024_site_subset.union.filteredAC5.onlyPhased.NM_HOMMAJORv3.inGLSamples.winni_filt_subset.with_multi.ordered.sample gls.bin
+
+zcat gls.bin.vcf.gz | bgzip -c> tmp && mv -f tmp gls.bin.vcf.gz
+bt index gls.bin.vcf.gz
+
+OSAMP=../samples/multi_gls/20.5335724-5861377.chip.omni_broad_sanger_combined.20140818.snps.genotypes.samples
+OGT=../samples/multi_gls/20.5335724-5861377.chip.omni_broad_sanger_combined.20140818.snps.genotypes.vcf.gz
+bt stats $OGT gls.bin.vcf.gz -S $OSAMP > gls.bin.vcf.gz.stats
+grep NRD gls.bin.vcf.gz.stats
+
+# ok, it looks like the expected error is below 15 %
+
+###########
+# Wed Nov 18 09:26:19 GMT 2015
+# Let's see if this error is just due to faulty bcf reading
+bt view chr20.5335724-5861377.1024_site_subset.HRC.r1.AC5.TGPP3_samples.likelihoods.winniFilter.bcf.gz -Oz -o chr20.5335724-5861377.1024_site_subset.HRC.r1.AC5.TGPP3_samples.likelihoods.winniFilter.vcf.gz
+
+vcf2STbin.pl chr20.5335724-5861377.1024_site_subset.HRC.r1.AC5.TGPP3_samples.likelihoods.winniFilter.vcf.gz
+
+# yes it is!
+
+###########
+# Wed Nov 18 10:32:52 GMT 2015
+# convert known bin to VCF so we can try it
+zcat 20_011976121_012173018.bin.onlyThree.bin | perl ../scripts/bin2vcf.pl | bgzip -c > 20_011976121_012173018.bin.onlyThree.vcf.gz
+bt index 20_011976121_012173018.bin.onlyThree.vcf.gz
+bt view 20_011976121_012173018.bin.onlyThree.vcf.gz -Ob -o 20_011976121_012173018.bin.onlyThree.bcf.gz
+bt index 20_011976121_012173018.bin.onlyThree.bcf.gz
