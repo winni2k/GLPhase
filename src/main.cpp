@@ -106,7 +106,10 @@ int main(int ac, char **av) {
                to_string(NUMSITES) + " sites that may be loaded.").c_str())(
 
         "samples-file,S", po::value<string>(&init.glSubsetSamplesFile),
-        "File with samples to subset to (1 name per line)");
+        "File with samples to subset to (1 name per line)")(
+
+            "device,d", po::value<int>(&init.deviceID)->default_value(0),
+        "Device: GPU device number to use");
 
     po::options_description generation("Generation options");
     generation.add_options()(
@@ -406,6 +409,8 @@ int main(int ac, char **av) {
         break;
       case 'R':
         init.geneticMapInflationFactor = std::stoul(optarg);
+      case 'd':
+        init.deviceID = stoi(optarg);
         break;
       default:
         Insti::document();

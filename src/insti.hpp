@@ -84,6 +84,9 @@ struct Init {
   // genetic map file name
   std::string geneticMap;
   double geneticMapInflationFactor = 1;
+
+  // cuda device number to use
+  int deviceID = 0;
 };
 }
 // require c++11

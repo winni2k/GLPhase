@@ -22,6 +22,7 @@
 // these functions are implemented in HMMLike.cu
 namespace HMMLikeCUDA {
 extern void CheckDevice();
+extern void SetDevice(int devID);
 extern void CopyTranToDevice(const std::vector<float> &tran);
 extern void CopyMutationMatToDevice(const float (*mutMat)[4][4]);
 extern void CopyPackedGLsToDevice(const std::vector<uint32_t> &packedGLs);

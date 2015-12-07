@@ -225,6 +225,28 @@ __global__ void setup_generators(curandStateXORWOW_t *state, size_t stateSize,
     curand_init(seed, idx, 0, &state[idx]);
 }
 
+void SetDevice(int devID) {
+
+  assert(devID >= 0);
+
+  cudaError_t err;
+  err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    cerr << "Error before starting: " << cudaGetErrorString(err) << "\n";
+
+    exit(EXIT_FAILURE);
+  }
+
+  cout << "Setting to device ID [" << devID << "]" << endl;
+  err = cudaSetDevice(devID);
+    if (err != cudaSuccess) {
+    cout << "cudaSetDevice returned " << err << "\n";
+    cout << "Result = FAIL\n";
+    exit(EXIT_FAILURE); //
+  }
+
+}
+
 void CheckDevice() {
 
   cudaError_t err;

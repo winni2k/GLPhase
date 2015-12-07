@@ -1643,7 +1643,7 @@ void Insti::estimate() {
 
   // create hap sampler object
   HMMLike cudaHapSampler(haps, hn + m_uNumRefHaps, glPack, m_uCycles, tran, &pc,
-                         iterationSampler, *rng);
+                         iterationSampler, *rng, m_init.deviceID);
 #endif
 
   timeval startTime, currentTime;
@@ -2209,3 +2209,4 @@ void Insti::SetHapsAccordingToScaffold() {
     }
   }
 }
+
