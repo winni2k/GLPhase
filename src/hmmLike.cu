@@ -384,6 +384,9 @@ void Cleanup() {
     delete gd_codeBook;
     gd_codeBook = NULL;
   }
+
+  // being a good citizen and flushing device
+  cudaDeviceReset();
 }
 
 void RunHMMOnDevice(const vector<uint64_t> &hapPanel,
