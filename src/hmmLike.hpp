@@ -25,7 +25,6 @@
 
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
-
 static_assert(NUMSITES % WORDSIZE == 0,
               "Numsites is not evenly divisible by wordsize");
 
@@ -64,6 +63,7 @@ private:
     Pulls out GLs for next run and repackages them ready to call cuda code
   */
   void CheckDevice() const { HMMLikeCUDA::CheckDevice(); }
+  void SetDevice(int devID) const { HMMLikeCUDA::SetDevice(devID); }
   void CopyTranToDevice() const;
   void CopyMutationMatToDevice() const;
 
@@ -75,7 +75,7 @@ public:
   HMMLike(const std::vector<uint64_t> &hapPanel, unsigned numHaps,
           GLPack &glPack, unsigned numCycles, const std::vector<float> &tran,
           const float (*mutationMat)[4][4], std::shared_ptr<Sampler> &sampler,
-          gsl_rng &rng);
+          gsl_rng &rng, int devID);
 
   ~HMMLike() { HMMLikeCUDA::Cleanup(); }
   /*

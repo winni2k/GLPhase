@@ -270,13 +270,13 @@ void Insti::OpenSample(const string &sampleFile,
   }
 }
 
-void Insti::OpenTabHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
+void Insti::OpenTabHaps(const string &hapsFile, vector<vector<char>> &loadHaps,
                         vector<snp> &loadSites) {
   cout << m_tag << ": [insti] Loading tabixed haps file: " << hapsFile << endl;
 
   // clear all the containers that are going to be filled up
   vector<snp> fillSites;
-  vector<vector<char> > fillHaps;
+  vector<vector<char>> fillHaps;
   fillSites.reserve(site.size());
   fillHaps.reserve(site.size());
 
@@ -377,7 +377,7 @@ void Insti::OpenTabHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
 
 // read in the haps file
 // store haps and sites
-void Insti::OpenHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
+void Insti::OpenHaps(const string &hapsFile, vector<vector<char>> &loadHaps,
                      vector<snp> &sites) {
 
   cout << m_tag << ": [insti] Loading haps file: " << hapsFile << endl;
@@ -519,7 +519,7 @@ void Insti::OpenHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
 }
 
 void Insti::OpenVCFGZ(const string &vcf, const string &region,
-                      vector<vector<char> > &loadHaps, vector<snp> &loadSites,
+                      vector<vector<char>> &loadHaps, vector<snp> &loadSites,
                       vector<string> &ids) {
   loadHaps.clear();
   loadSites.clear();
@@ -640,7 +640,7 @@ void Insti::LoadVCFGZ(const string &vcf, InstiPanelType panel_t,
   // load haps file
   CheckPanelPrereqs(panel_t);
 
-  vector<vector<char> > loadHaps;
+  vector<vector<char>> loadHaps;
   vector<snp> loadSites;
   vector<string> scaffoldSampleIDs;
 
@@ -660,7 +660,7 @@ void Insti::LoadVCFGZ(const string &vcf, InstiPanelType panel_t,
   }
 
   assert(!loadHaps.empty());
-  vector<vector<char> > filtHaps;
+  vector<vector<char>> filtHaps;
   vector<snp> filtSites;
 
   FilterSites(loadHaps, loadSites, filtHaps, filtSites, panel_t);
@@ -683,7 +683,7 @@ void Insti::LoadHapsSamp(const string &hapsFile, const string &sampleFile,
   // load haps file
   CheckPanelPrereqs(panelType);
 
-  vector<vector<char> > loadHaps;
+  vector<vector<char>> loadHaps;
   vector<snp> loadSites;
 
   // read the haps and sites from a haps file
@@ -708,7 +708,7 @@ void Insti::LoadHapsSamp(const string &hapsFile, const string &sampleFile,
   }
 
   assert(!loadHaps.empty());
-  vector<vector<char> > filtHaps;
+  vector<vector<char>> filtHaps;
   vector<snp> filtSites;
 
   FilterSites(loadHaps, loadSites, filtHaps, filtSites, panelType);
@@ -718,7 +718,7 @@ void Insti::LoadHapsSamp(const string &hapsFile, const string &sampleFile,
 }
 
 void Insti::OrderSamples(vector<string> &loadIDs,
-                         vector<vector<char> > &loadHaps) {
+                         vector<vector<char>> &loadHaps) {
 
   assert(loadIDs.size() == m_namesUnordered.size());
 
@@ -770,7 +770,7 @@ void Insti::OrderSamples(vector<string> &loadIDs,
     assert(loadIDs.size() * 2 == loadHaps[0].size());
 }
 void Insti::SubsetSamples(vector<string> &loadIDs,
-                          vector<vector<char> > &loadHaps) {
+                          vector<vector<char>> &loadHaps) {
 
   assert(loadIDs.size() >= m_namesUnordered.size());
 
@@ -823,8 +823,8 @@ void Insti::SubsetSamples(vector<string> &loadIDs,
 }
 
 // only keep sites in main gl set
-void Insti::FilterSites(vector<vector<char> > &loadHaps, vector<snp> &loadSites,
-                        vector<vector<char> > &filtHaps, vector<snp> &filtSites,
+void Insti::FilterSites(vector<vector<char>> &loadHaps, vector<snp> &loadSites,
+                        vector<vector<char>> &filtHaps, vector<snp> &filtSites,
                         InstiPanelType panelType) {
 
   assert(loadSites.size() > 0);
@@ -954,7 +954,7 @@ void Insti::MatchSamples(const vector<std::string> &IDs, unsigned numHaps) {
 }
 
 // put the haplotypes in the right place in the program structure
-void Insti::LoadHaps(vector<vector<char> > &inHaps, vector<snp> &inSites,
+void Insti::LoadHaps(vector<vector<char>> &inHaps, vector<snp> &inSites,
                      vector<string> &inSampleIDs, InstiPanelType panelType) {
 
   assert(inHaps.size() == inSites.size());
@@ -984,8 +984,7 @@ void Insti::LoadHaps(vector<vector<char> > &inHaps, vector<snp> &inSites,
         throw myException(
             "Error while reading scaffold: Scaffold needs to have two "
             "haplotypes for every input sample");
-    }
-    catch (exception &e) {
+    } catch (exception &e) {
       cout << e.what() << endl;
       exit(1);
     };
@@ -1063,7 +1062,7 @@ vector<snp> Insti::OpenLegend(string legendFile) {
   return loadLeg;
 }
 
-vector<vector<char> > Insti::OpenHap(string hapFile) {
+vector<vector<char>> Insti::OpenHap(string hapFile) {
 
   // read in the hap file
   ifile hapFD(hapFile);
@@ -1074,7 +1073,7 @@ vector<vector<char> > Insti::OpenHap(string hapFile) {
   string buffer;
   int lineNum = -1;
   unsigned uNumHaps = 0;
-  vector<vector<char> > loadHaps;
+  vector<vector<char>> loadHaps;
 
   while (getline(hapFD, buffer, '\n')) {
     lineNum++;
@@ -1166,13 +1165,12 @@ bool Insti::LoadHapLegSamp(const string &legendFile, const string &hapFile,
     cout << "Loading hap file: " << hapFile << endl;
     auto loadHaps = OpenHap(hapFile);
 
-    vector<vector<char> > filtHaps;
+    vector<vector<char>> filtHaps;
     vector<snp> filtSites;
     FilterSites(loadHaps, legend, filtHaps, filtSites, panelType);
 
     LoadHaps(filtHaps, filtSites, sampleIDs, panelType);
-  }
-  catch (exception &e) {
+  } catch (exception &e) {
     cerr << "Error loading haplotypes file " << hapFile << ": " << e.what()
          << endl;
     exit(2);
@@ -1423,7 +1421,7 @@ fast Insti::cudaSolve(HMMLike &hapSampler, unsigned sampleStride, fast pen) {
   assert(sampleStride == in);
 
   // sample four haps for N samples
-  unsigned firstSampIdx{ 0 }, lastSampIdx{ 0 };
+  unsigned firstSampIdx{0}, lastSampIdx{0};
   vector<unsigned> propHaps =
       hapSampler.RunHMMOnSamples(firstSampIdx, lastSampIdx);
 
@@ -1627,7 +1625,7 @@ void Insti::estimate() {
 
   // create hap sampler object
   HMMLike cudaHapSampler(haps, hn, glPack, m_uCycles, tran, &pc,
-                         iterationSampler, *rng);
+                         iterationSampler, *rng, m_init.deviceID);
 #endif
 
   timeval startTime, currentTime;
@@ -1643,8 +1641,7 @@ void Insti::estimate() {
     assert(!m_sLogFile.empty());
     try {
       m_sampler->Save(m_sLogFile, name);
-    }
-    catch (exception &e) {
+    } catch (exception &e) {
       cerr << e.what() << endl;
     }
   }
@@ -1741,7 +1738,7 @@ fast Insti::solve_EMC(unsigned I, unsigned N, fast S) {
   // initialize emc chains with increasing temperatures
   vector<EMCChain> vcChains;
   vector<uint>
-  vuChainTempHierarchy; // index of Chains sorted by temperature, ascending
+      vuChainTempHierarchy; // index of Chains sorted by temperature, ascending
 
   for (unsigned i = 0; i < Insti::s_uParallelChains; i++) {
     vcChains.push_back(EMCChain((i + 1) * fMaxTemp / Insti::s_uParallelChains,
@@ -2125,7 +2122,7 @@ void Insti::save_vcf(const char *F, string commandLine) {
         vcfFD << "\t1|1";
 
       // test for any p being zero
-      vector<fast> vfProb = { prr, pra, paa, p[0], p[1] };
+      vector<fast> vfProb = {prr, pra, paa, p[0], p[1]};
 
       for (auto &phred : vfProb) {
         if (phred == 0)
@@ -2206,7 +2203,8 @@ void Insti::document() {
   cerr << "\nhaplotype imputation by cFDSL distribution";
   cerr << "\nAuthor\tYi Wang @ Fuli Yu' Group @ BCM-HGSC";
   cerr << "\n\nusage\timpute [options] 1.bin 2.bin ...";
-//  cerr << "\n\t-d <density>    relative SNP density to Sanger sequencing (1)";
+  //  cerr << "\n\t-d <density>    relative SNP density to Sanger sequencing
+  //  (1)";
 
   //    cerr << "\n\t-b <burn>       burn-in generations (56)";
   cerr << "\n\t-l <file>       list of input files";
@@ -2220,7 +2218,7 @@ void Insti::document() {
   cerr << "\n\t-x <gender>     impute x chromosome data";
   cerr << "\n\t-e <file>       write log to file";
   cerr << "\n\t-g <file>       genetic map (required)";
-  
+
   cerr << "\n\n    GENERATION OPTIONS";
   cerr << "\n\t-m <mcmc>       sampling generations (200)";
   cerr << "\n\t-C <integer>    number of cycles to estimate an individual's "

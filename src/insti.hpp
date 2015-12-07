@@ -66,6 +66,9 @@ struct Init {
 
   // genetic map file name
   std::string geneticMap;
+
+  // cuda device number to use
+  int deviceID = 0;
 };
 }
 // require c++11
@@ -139,24 +142,24 @@ private:
                      unsigned m_uNumRefHaps);
 
   // data loading
-  std::vector<std::vector<char> > OpenHap(std::string hapFile);
+  std::vector<std::vector<char>> OpenHap(std::string hapFile);
   std::vector<Bio::snp> OpenLegend(std::string legendFile);
   void OpenVCFGZ(const std::string &vcf, const std::string &region,
-                 std::vector<std::vector<char> > &haps,
+                 std::vector<std::vector<char>> &haps,
                  std::vector<Bio::snp> &sites, std::vector<std::string> &ids);
   void OpenHaps(const std::string &hapFile,
-                std::vector<std::vector<char> > &loadHaps,
+                std::vector<std::vector<char>> &loadHaps,
                 std::vector<Bio::snp> &sites);
   void OpenTabHaps(const std::string &hapFile,
-                   std::vector<std::vector<char> > &loadHaps,
+                   std::vector<std::vector<char>> &loadHaps,
                    std::vector<Bio::snp> &sites);
   void OpenSample(const std::string &sampleFile,
                   std::vector<std::string> &fillSampleIDs);
   void MatchSamples(const std::vector<std::string> &IDs, unsigned numHaps);
   void SubsetSamples(std::vector<std::string> &loadIDs,
-                     std::vector<std::vector<char> > &loadHaps);
+                     std::vector<std::vector<char>> &loadHaps);
   void OrderSamples(std::vector<std::string> &loadIDs,
-                    std::vector<std::vector<char> > &loadHaps);
+                    std::vector<std::vector<char>> &loadHaps);
   bool SwapMatch(const Bio::snp &loadSite, const Site &existSite,
                  std::vector<char> &loadHap, std::vector<char> &existHap);
 
@@ -198,15 +201,15 @@ public:
                  const std::string &region);
 
   // filter out sites that aren't in main gl data
-  void FilterSites(std::vector<std::vector<char> > &loadHaps,
+  void FilterSites(std::vector<std::vector<char>> &loadHaps,
                    std::vector<Bio::snp> &loadSites,
-                   std::vector<std::vector<char> > &filtHaps,
+                   std::vector<std::vector<char>> &filtHaps,
                    std::vector<Bio::snp> &filtSites, InstiPanelType panelType);
 
   // copy haplotypes to space in program where they actually are supposed to
   // go
   // along with list of sites if applicable
-  void LoadHaps(std::vector<std::vector<char> > &inHaps,
+  void LoadHaps(std::vector<std::vector<char>> &inHaps,
                 std::vector<Bio::snp> &inSites,
                 std::vector<std::string> &inSampleIDs,
                 InstiPanelType panelType);
@@ -214,13 +217,13 @@ public:
   void CheckPanelPrereqs(InstiPanelType panelType);
 
   std::vector<uint64_t>
-  Char2BitVec(const std::vector<std::vector<char> > &inHaps, double numWords) {
+  Char2BitVec(const std::vector<std::vector<char>> &inHaps, double numWords) {
     assert(numWords >= 0);
     return Char2BitVec(inHaps, static_cast<unsigned>(numWords));
   }
 
   std::vector<uint64_t>
-  Char2BitVec(const std::vector<std::vector<char> > &inHaps, unsigned numWords);
+  Char2BitVec(const std::vector<std::vector<char>> &inHaps, unsigned numWords);
 
   void CalculateVarAfs();
 
@@ -299,9 +302,7 @@ public:
   void save_relationship_graph(std::string sOutputFile);
   void save_vcf(const char *F, std::string commandLine);
 
-  bool UsingScaffold() {
-    return (m_scaffold.Initialized());
-  };
+  bool UsingScaffold() { return (m_scaffold.Initialized()); };
 };
 
 #endif /* _INSTI_H */

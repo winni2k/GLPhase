@@ -9,7 +9,7 @@ __constant__ float norm;
 __constant__ float transitionMat[NUMSITES * 3];
 __constant__ float mutationMat[4 * 4];
 
-__device__ void UnpackGLsWithCodeBook(uint32_t GLcodes, float (&GLs)[3],
+__device__ void UnpackGLsWithCodeBook(uint32_t GLcodes, float(&GLs)[3],
                                       const float *__restrict__ codeBook,
                                       unsigned char glIdx) {
 
@@ -36,7 +36,7 @@ GLs[2] = max(1 - GLs[0] - GLs[1], 0.0f);
 }
 */
 
-__device__ void FillEmit(const float (&GLs)[3], float (&emit)[4]) {
+__device__ void FillEmit(const float(&GLs)[3], float(&emit)[4]) {
 
   for (unsigned i = 0; i < 4; ++i)
     emit[i] = mutationMat[i] * GLs[0] + mutationMat[i + 4 * 1] * GLs[1] +
@@ -50,7 +50,7 @@ __device__ uint64_t test(const uint64_t *P, unsigned I) {
 
 // this should add up to around 88 registers
 // 1 + 4 + 2 + 1 + 2 = 10 registers, maybe optimized away by compiler?
-__device__ float hmmLike(unsigned idx, const unsigned (&hapIdxs)[4],
+__device__ float hmmLike(unsigned idx, const unsigned(&hapIdxs)[4],
                          const uint32_t *__restrict__ d_packedGLs,
                          unsigned packedGLStride,
                          const uint64_t *__restrict__ d_hapPanel,
@@ -221,6 +221,28 @@ __global__ void setup_generators(curandStateXORWOW_t *state, size_t stateSize,
   int idx = blockDim.x * blockIdx.x + threadIdx.x;
   if (idx < stateSize)
     curand_init(seed, idx, 0, &state[idx]);
+}
+
+void SetDevice(int devID) {
+
+  assert(devID >= 0);
+
+  cudaError_t err;
+  err = cudaGetLastError();
+  if (err != cudaSuccess) {
+    cerr << "Error before starting: " << cudaGetErrorString(err) << "\n";
+
+    exit(EXIT_FAILURE);
+  }
+
+  cout << "Setting to device ID [" << devID << "]" << endl;
+  err = cudaSetDevice(devID);
+    if (err != cudaSuccess) {
+    cout << "cudaSetDevice returned " << err << "\n";
+    cout << "Result = FAIL\n";
+    exit(EXIT_FAILURE); //
+  }
+
 }
 
 void CheckDevice() {

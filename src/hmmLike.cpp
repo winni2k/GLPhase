@@ -32,7 +32,7 @@ vector<unsigned> transposeHapIdxs(const std::vector<unsigned> &hapIdxs) {
 HMMLike::HMMLike(const vector<uint64_t> &hapPanel, unsigned numHaps,
                  GLPack &glPack, unsigned numCycles, const vector<float> &tran,
                  const float (*mutationMat)[4][4], shared_ptr<Sampler> &sampler,
-                 gsl_rng &rng)
+                 gsl_rng &rng, int devID)
     : m_inHapPanel(hapPanel), m_totalNumHaps(numHaps), m_glPack(glPack),
       m_totalNumSamps(m_glPack.GetNumSamps()), m_numCycles(numCycles),
       m_tran(tran), m_mutationMat(mutationMat), m_sampler(sampler), m_rng(rng) {
@@ -47,6 +47,7 @@ HMMLike::HMMLike(const vector<uint64_t> &hapPanel, unsigned numHaps,
   // make sure we have a K20 or better installed
   // also define some constants
   CheckDevice();
+  SetDevice(devID);
 
   // copy the transition matrix to constant memory on device
   HMMLikeCUDA::CopyTranToDevice(m_tran);

@@ -45,10 +45,11 @@ int main(int ac, char **av) {
     string sLogFile;
     int opt;
     bool optMSet = false;
-    while ((opt = getopt(
-                ac, av,
-                "Vl:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:Q:fo:DTr:P:ag:")) >=
-           0) {
+    while (
+        (opt = getopt(
+             ac, av,
+             "Vl:m:n:v:c:x:e:E:p:C:L:H:kK:t:B:i:M:h:s:q:Q:fo:DTr:P:ag:d:")) >=
+        0) {
       switch (opt) {
 
       /*      case 'd':
@@ -166,6 +167,9 @@ int main(int ac, char **av) {
       case 'g':
         init.geneticMap = optarg;
         break;
+      case 'd':
+        init.deviceID = stoi(optarg);
+        break;
       default:
         Insti::document();
       }
@@ -225,8 +229,7 @@ int main(int ac, char **av) {
       // add a reserve of space
       try {
         lp.load_bin(file[i]);
-      }
-      catch (std::exception &e) {
+      } catch (std::exception &e) {
         cerr << "[main] While loading .bin file: " << file[i] << endl
              << e.what() << endl;
         exit(1);
@@ -250,8 +253,7 @@ int main(int ac, char **av) {
       lp.save_vcf(outBase.c_str(), commandLine.str());
       try {
         lp.save_relationship_graph(outBase);
-      }
-      catch (exception &e) {
+      } catch (exception &e) {
         cerr << e.what() << endl;
       }
 
@@ -261,8 +263,7 @@ int main(int ac, char **av) {
            << end.tv_sec - sta.tv_sec + 1e-6 * (end.tv_usec - sta.tv_usec)
            << endl << endl;
     }
-  }
-  catch (exception &e) {
+  } catch (exception &e) {
     cerr << e.what() << endl;
     exit(1);
   }
