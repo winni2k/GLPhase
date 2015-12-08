@@ -223,6 +223,22 @@ __global__ void setup_generators(curandStateXORWOW_t *state, size_t stateSize,
     curand_init(seed, idx, 0, &state[idx]);
 }
 
+void InitializeConstants() {
+
+  cudaError_t err;
+
+  // also, this looks like as good of a place as any to define some constants
+  float localNorm = powf(FLT_MIN, 2.0f / 3.0f);
+  err = cudaMemcpyToSymbol(norm, &localNorm, sizeof(float), 0,
+                           cudaMemcpyHostToDevice);
+  if (err != cudaSuccess) {
+    cerr << "Error copying value to symbol: " << cudaGetErrorString(err)
+         << "\n";
+
+    exit(EXIT_FAILURE);
+  }
+}
+
 void SetDevice(int devID) {
 
   assert(devID >= 0);
@@ -237,12 +253,12 @@ void SetDevice(int devID) {
 
   cout << "Setting to device ID [" << devID << "]" << endl;
   err = cudaSetDevice(devID);
-    if (err != cudaSuccess) {
+  if (err != cudaSuccess) {
     cout << "cudaSetDevice returned " << err << "\n";
     cout << "Result = FAIL\n";
     exit(EXIT_FAILURE); //
   }
-
+  InitializeConstants();
 }
 
 void CheckDevice() {
@@ -296,17 +312,6 @@ void CheckDevice() {
       cout << "Device caching preference is set to prefer L1" << endl;
     else
       cout << "Device caching preference is not set to prefer L1" << endl;
-  }
-
-  // also, this looks like as good of a place as any to define some constants
-  float localNorm = powf(FLT_MIN, 2.0f / 3.0f);
-  err = cudaMemcpyToSymbol(norm, &localNorm, sizeof(float), 0,
-                           cudaMemcpyHostToDevice);
-  if (err != cudaSuccess) {
-    cerr << "Error copying value to symbol: " << cudaGetErrorString(err)
-         << "\n";
-
-    exit(EXIT_FAILURE);
   }
 
   return;
