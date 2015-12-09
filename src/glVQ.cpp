@@ -76,7 +76,7 @@ void GLVQ::BuildCodeBook(unsigned codeBookSize, const vector<float> &inGLs) {
   double previousVar = numeric_limits<double>::max();
   double currentVar = AssignPoints(trainingSet);
   size_t iter = 0;
-  const size_t maxIter = 100;
+  const size_t maxIter = 1000;
   while (abs(currentVar - previousVar) > currentVar / 100) {
     if (++iter > maxIter)
       throw std::runtime_error("[GLVQ] Clustering failed to converge within " +
