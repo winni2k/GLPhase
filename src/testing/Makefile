@@ -15,6 +15,7 @@ GTEST_DIR = $(SRC_DIR)/gtest-1.7.0
 # google test throwing warnings, workaround is to mark the dir as a system header dir
 export CXXFLAGS += -isystem $(GTEST_DIR)
 export CXXFLAGS += -I$(SRC_DIR) -I$(SRC_DIR)/olivier -I$(GTEST_DIR)/src -I$(SRC_DIR)/vcfPhasedBreakMulti/src -I$(SRC_DIR)/htslibpp -I$(GTEST_DIR)/include -I$(GTEST_DIR)
+export CXXFLAGS += -DDEBUG
 export CPATH += :
 AR= ar
 LIBS += -lpthread -L$(SRC_DIR)/htslibpp
@@ -95,7 +96,7 @@ ifndef NCUDA
 # see: http://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#using-separate-compilation-in-cuda
 # order of nvcc options is important! options should always go last!
 
-NVCCFLAGS += -L $(GTEST_DIR) -I$(SRC_DIR)
+NVCCFLAGS += -L $(GTEST_DIR) -I$(SRC_DIR) -DDEBUG
 
 cuda_tests.cu.o: cuda_tests.cu
 	$(NVCC) $< $(NVCCFLAGS) -dc -o $@ 
@@ -108,7 +109,7 @@ cuda_tests.o: cuda_tests.cpp $(GTEST_HEADERS) $(SRC_DIR)/*.hpp.gch
 cuda_tests.link.o: cuda_tests.cu.o $(SRC_DIR)/hmmLike.cu.o 
 	$(NVCC) $^ $(NVCCFLAGS) -dlink -o $@
 
-cuda_tests.bin: cuda_tests.link.o gtest_main.a cuda_tests.o cuda_tests.cu.o $(SRC_DIR)/hmmLike.cu.o $(SRC_DIR)/hmmLike.o $(CUDA_O_FILES)
+cuda_tests.bin: cuda_tests.link.o gtest_main.a cuda_tests.o cuda_tests.cu.o $(SRC_DIR)/hmmLike.cu.o $(SRC_DIR)/hmmLike.o $(INSTILIB)
 	$(CXX) $^ $(CXXFLAGS) -o $@ $(LIBS)
 
 run_cuda_tests:cuda_tests

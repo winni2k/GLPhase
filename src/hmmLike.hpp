@@ -75,7 +75,7 @@ public:
   HMMLike(const std::vector<uint64_t> &hapPanel, unsigned numHaps,
           GLPack &glPack, unsigned numCycles, const std::vector<float> &tran,
           const float (*mutationMat)[4][4], std::shared_ptr<Sampler> &sampler,
-          gsl_rng &rng, int devID);
+          gsl_rng &rng, int devID = 0);
 
   ~HMMLike() { HMMLikeCUDA::Cleanup(); }
   /*

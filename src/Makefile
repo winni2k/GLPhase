@@ -81,7 +81,7 @@ all: CXXFLAGS += -O3
 release: CXXFLAGS += -O3 -DNDEBUG
 static: CXXFLAGS += -O3 -DNDEBUG
 debug: CXXFLAGS += -O0 -ggdb
-test: CXXFLAGS += -O0 -ggdb
+test: CXXFLAGS += -O0 -ggdb -DDEBUG
 
 # gcc
 CXX := g++
@@ -100,7 +100,7 @@ NVCCFLAGS += -arch=sm_35 -m64 #--ptxas-options=-v
 NVCC := nvcc
 CUDALIBS := -lcudart
 LIBS += $(CUDALIBS)
-test: NVCCFLAGS += -g -G
+test: NVCCFLAGS += -g -G -DDEBUG
 endif
 
 # path variables

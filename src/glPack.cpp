@@ -40,8 +40,14 @@ vector<uint32_t> GLPack::GetPackedGLs() {
 
   // pull out the GLs we are about to work on and repackage them in uint32s
   vector<uint32_t> packedGLs;
-  packedGLs.reserve(max(numSamps, numSamps * m_numSites / m_numGLsPeruint32_t));
-  for (unsigned siteIdx = 0; siteIdx < m_numSites; siteIdx += m_numGLsPeruint32_t) {
+
+  // our scheme for packing in chunks of 8 gls per sample should give this many
+  // uint32_t's
+  const unsigned expectedNumUint32_ts =
+      numSamps * ceil(static_cast<double>(m_numSites) / m_numGLsPeruint32_t);
+  packedGLs.reserve(expectedNumUint32_ts);
+  for (unsigned siteIdx = 0; siteIdx < m_numSites;
+       siteIdx += m_numGLsPeruint32_t) {
     unsigned sampIdx = m_nextSampIdx;
     for (unsigned packSampIdx = 0; packSampIdx < numSamps;
          ++sampIdx, ++packSampIdx) {
@@ -50,7 +56,7 @@ vector<uint32_t> GLPack::GetPackedGLs() {
         We are rearranging the order of GLs here.
         inGLs, which GLTrio2Char extracts from, has its GLs ordered by sample:
         samp1site1, samp1site2, samp1site3, samp2site1, etc.
-        packegGLs has its GLs ordered by site:
+        packedGLs has its GLs ordered by site:
         samp1site1, samp2site1, samp3site1, samp1site2, etc.
         however, we are doing this in chunks of sites at a time as well...
       */
@@ -74,8 +80,7 @@ vector<uint32_t> GLPack::GetPackedGLs() {
   m_nextSampIdx =
       m_lastSampIdx == m_numSamps - 1 ? 0 : m_nextSampIdx + m_sampleStride;
 
-  assert(packedGLs.size() ==
-         max(numSamps, numSamps * m_numSites / m_numGLsPeruint32_t));
+  assert(packedGLs.size() == expectedNumUint32_ts);
   return packedGLs;
 }
 
@@ -125,7 +130,7 @@ unsigned char GLPack::GLs2VQChar(const vector<unsigned> &glIdxs, size_t glIdx,
     float sum = GLRR + GLHet + m_inGLs[glIdxs[glIdx + glNum] + 2];
     GLRR /= sum;
     GLHet /= sum;
-    
+
     // find the code for those two GLs
     unsigned char glCode = m_VQ.FindGLCode(GLRR, GLHet);
     gls ^= glCode;

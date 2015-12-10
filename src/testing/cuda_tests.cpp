@@ -19,6 +19,7 @@ extern cudaError_t CopyMutMatToHost(vector<float> &mutMat);
 extern float CallHMMLike(unsigned idx, const unsigned (*hapIdxs)[4],
                          unsigned packedGLStride,
                          const vector<uint64_t> &h_hapPanel, unsigned numSites);
+
 extern void UnpackGLsWithCodeBook(uint32_t GLcodes, vector<float> &GLs,
                                   unsigned char glIdx);
 }
@@ -67,7 +68,7 @@ TEST(UnpackGLsWithCodeBook, UnpackOk) {
   // testing silly values
   uint32_t num = 1;
   vector<pair<float, float>> codeBook(exp2(BITSPERCODE));
-  for (int i = 0; i < codeBook.size(); ++i) {
+  for (size_t i = 0; i < codeBook.size(); ++i) {
     codeBook[i].first = static_cast<float>(i) / 10;
     codeBook[i].second = static_cast<float>(i) * 2 / 100;
   }
@@ -399,13 +400,17 @@ TEST(HMMLike, createsOK) {
 
       // let's test the hmmLike function first
       GLPack glPack4(init);
-      auto packedGLs = glPack4.GetPackedGLs();
-      unsigned sampIdx = 0;
+      const unsigned numCycles3 = 100;
+
+      // using object to set and tear down context
+      HMMLike hmmLike3(hapPanel, bigNumHaps, glPack4, numCycles3, tran, &mutMat,
+                       sampler2, *rng);
       unsigned fixedHapIdxs[4];
       for (int i = 0; i < 4; ++i)
         fixedHapIdxs[i] = 2;
       HMMLikeCUDA::CopyPackedGLsToDevice(packedGLs);
       HMMLikeCUDA::CopyCodeBookToDevice(glPack4.GetCodeBook());
+      const unsigned sampIdx = 0;
       float badLike = HMMLikeCUDATest::CallHMMLike(sampIdx, &fixedHapIdxs,
                                                    glPack4.GetSampleStride(),
                                                    hapPanel, numSites);
