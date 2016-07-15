@@ -7,7 +7,7 @@ the number of CUDA cores (shaders) on the GPU being used.
 
 [Release 1.4.13](https://github.com/wkretzsch/GLPhase/releases/tag/v1.4.13) was used 
 to impute genotypes for the first release of the 
-[Haplotype Reference Consortium](http://www.haplotype-reference-consortium.org/)
+[Haplotype Reference Consortium](http://www.haplotype-reference-consortium.org/).
 
 ## Installation
 
