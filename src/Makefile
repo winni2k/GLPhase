@@ -25,7 +25,7 @@ ifndef NCUDA
 HEADER_FILES += hmmLike.hpp.gch
 endif
 
-BINBASE := insti.$(VERSION)
+BINBASE := glphase.$(VERSION)
 ifdef NCUDA
 BINBASE := $(BINBASE).ncuda
 CXXFLAGS += -DNCUDA
@@ -217,10 +217,10 @@ $(HTSLIBPP):
 ## need to include --whole-archive option for static member variables
 $(BIN): $(INSTILIB) main.o
 	$(CXX) $(CXXFLAGS) $(SYSLINKFLAGS_START) $^ $(SYSLINKFLAGS_END) -o $@ $(LIBS) -Lhtslibpp
-	cd $(BDIR) && rm -f insti && ln -s $@ insti
+	cd $(BDIR) && rm -f glphase && ln -s $@ glphase
 
 static: $(INSTILIB) main.o
-	$(CXX) $(CXXFLAGS) $^ -o $(BDIR)/insti.$(VERSION).static-$(KERNEL) $(SLIBS)
+	$(CXX) $(CXXFLAGS) $^ -o $(BDIR)/glphase.$(VERSION).static-$(KERNEL) $(SLIBS)
 
 $(BIN).debug: $(INSTILIB) main.o
 	$(CXX) $(CXXFLAGS) $(SYSLINKFLAGS_START) $^ $(SYSLINKFLAGS_END) -o $@ $(LIBS)  -Lhtslibpp 
@@ -228,7 +228,7 @@ $(BIN).debug: $(INSTILIB) main.o
 
 ## installation
 oxford: all
-	cd $(BDIR) && cp insti.$(VERSION) ~/bin/
-	cd ~/bin && rm -f insti && ln -s insti.$(VERSION) insti
+	cd $(BDIR) && cp glphase.$(VERSION) ~/bin/
+	cd ~/bin && rm -f glphase && ln -s glphase.$(VERSION) glphase
 
 .SUFFIXES:
