@@ -86,7 +86,7 @@ glphase -B0 -i5 -m95 -q0 -Q1 -t2 -C100 -K200 \
 ```
 
 The pre-existing haplotypes should be in
-[WTCCCformat](https://mathgen.stats.ox.ac.uk/genetics_software/shapeit/shapeit.html#hapsample), 
+[WTCCC format](https://mathgen.stats.ox.ac.uk/genetics_software/shapeit/shapeit.html#hapsample), 
 and a genetic map can be obtained from the [Impute2 website](https://mathgen.stats.ox.ac.uk/impute/impute_v2.html#reference).
 
 ## Ligating haplotypes
