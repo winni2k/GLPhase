@@ -432,19 +432,6 @@ int main(int ac, char **av) {
         throw runtime_error(
             "ERROR: Need to specify ref panel if kickstarting.");
 
-    // read in files
-    for (int i = optind; i < ac; i++)
-      file.push_back(av[i]);
-    sort(file.begin(), file.end());
-    uint fn = unique(file.begin(), file.end()) - file.begin();
-    if (!fn)
-      cerr << "input files are not unique";
-
-    // Die if more than one file was specified on command line
-    if (fn != 1) {
-        throw runtime_error("GLPhase only accepts one input .bin file");
-    }
-
     // keep track of time - these things are important!
     timeval sta, end;
     gettimeofday(&sta, NULL);
