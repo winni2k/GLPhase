@@ -16,7 +16,7 @@ to impute genotypes for the first release of the
 
 ### Dependencies
 
-GLphase depends on [libgsl](https://www.gnu.org/software/gsl/),
+GLPhase depends on [libgsl](https://www.gnu.org/software/gsl/),
 [boost](http://www.boost.org/), and [libz](http://www.zlib.net/).
 
 ### Compilation
