@@ -4,6 +4,7 @@
 #ifndef _IMPUTE_H
 #define _IMPUTE_H 1
 
+#include <cassert>
 #include	<gsl/gsl_rng.h>
 #include	<sys/time.h>
 #include	<algorithm>

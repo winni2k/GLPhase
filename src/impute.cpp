@@ -446,33 +446,37 @@ void Impute::hmm_work(unsigned I, unsigned *P, fast S) {
     l11 *= sum;
 
     // p00 is P(phase 0|0 | l, b)
-    fast p00 = l00 * b[0], p01 = l01 * b[1], p10 = l10 * b[2], p11 = l11 * b[3];
-
+    // fast p00 = l00 * b[0], p01 = l01 * b[1], p10 = l10 * b[2], p11 = l11 * b[3];
+    const vector<fast> p = {
+        l00 * b[0],
+        l01 * b[1],
+        l10 * b[2],
+        l11 * b[3]
+    };
+    const vector<unsigned> s = { s00, s01, s10, s00 };
+    vector<fast> c;
     // c00 is P(phase 0|0 | emit, l, b, GL) at site m penalized by S
     // powf effectively inflates the importance of small numbers
     // while S is < 1 (first bn/2 iterations)
-    fast c00 = powf(p[0] * (p00 * pc[s00][0] + p01 * pc[s01][0] +
-                            p10 * pc[s10][0] + p11 * pc[s11][0]),
-                    S);
-    fast c01 = powf(p[1] * (p00 * pc[s00][1] + p01 * pc[s01][1] +
-                            p10 * pc[s10][1] + p11 * pc[s11][1]),
-                    S);
-    fast c10 = powf(p[1] * (p00 * pc[s00][2] + p01 * pc[s01][2] +
-                            p10 * pc[s10][2] + p11 * pc[s11][2]),
-                    S);
-    fast c11 = powf(p[2] * (p00 * pc[s00][3] + p01 * pc[s01][3] +
-                            p10 * pc[s10][3] + p11 * pc[s11][3]),
-                    S);
+
+    for(int j = 0; j < 4; ++j){
+        sum = 0;
+        for(int i = 0; i < 4; ++i){
+            sum += p[i] * pc[s[i]][j] / e[s[i]];
+        }
+        c.push_back(powf(p[j] * sum, S));
+    }
+    assert(c.size() == 4);
 
     // randomly choose new haplotypes at this site weighted by c
-    sum = gsl_rng_uniform(rng) * (c00 + c01 + c10 + c11);
-    if (sum < c00) {
+    sum = gsl_rng_uniform(rng) * accumulate(c.begin(), c.end(), 0);
+    if (sum < c[0]) {
       set0(ha, m);
       set0(hb, m);
-    } else if (sum < c00 + c01) {
+    } else if (sum < c[0] + c[1]) {
       set0(ha, m);
       set1(hb, m);
-    } else if (sum < c00 + c01 + c10) {
+    } else if (sum < c[0] + c[1] + c[2]) {
       set1(ha, m);
       set0(hb, m);
     } else {
