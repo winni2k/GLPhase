@@ -462,9 +462,9 @@ void Impute::hmm_work(unsigned I, unsigned *P, fast S) {
     for(int j = 0; j < 4; ++j){
         sum = 0;
         for(int i = 0; i < 4; ++i){
-            sum += p[i] * pc[s[i]][j] / e[s[i]];
+            sum += p[ImputeHelper::to_gt(i)] * pc[s[i]][j] / e[s[i]];
         }
-        c.push_back(powf(p[j] * sum, S));
+        c.push_back(powf(p[ImputeHelper::to_gt(j)] * sum, S));
     }
     assert(c.size() == 4);
 
