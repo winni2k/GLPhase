@@ -414,12 +414,12 @@ void Impute::hmm_work(unsigned I, unsigned *P, fast S) {
   //	forward sampling
   // walk through b
   uint64_t *ha = &hnew[I * 2 * wn], *hb = ha + wn;
-  fast *p = &prob[I * pn];
+  fast *prob_pointer = &prob[I * pn];
   e = &emit[I * en];
   t = &tran[0];
   b = &beta[0];
   unsigned s00, s01, s10, s11;
-  for (unsigned m = 0; m < mn; m++, e += 4, t += 3, p += 3, b += 4) {
+  for (unsigned m = 0; m < mn; m++, e += 4, t += 3, prob_pointer += 3, b += 4) {
     s00 = (test(f0, m) << 1) | test(m0, m);
     s01 = (test(f0, m) << 1) | test(m1, m);
     s10 = (test(f1, m) << 1) | test(m0, m);
@@ -447,7 +447,7 @@ void Impute::hmm_work(unsigned I, unsigned *P, fast S) {
 
     // p00 is P(phase 0|0 | l, b)
     // fast p00 = l00 * b[0], p01 = l01 * b[1], p10 = l10 * b[2], p11 = l11 * b[3];
-    const vector<fast> p = {
+    const vector<fast> alpha_beta = {
         l00 * b[0],
         l01 * b[1],
         l10 * b[2],
@@ -459,12 +459,15 @@ void Impute::hmm_work(unsigned I, unsigned *P, fast S) {
     // powf effectively inflates the importance of small numbers
     // while S is < 1 (first bn/2 iterations)
 
+    // e[s[i]] = P(R_l|Z_l = u_i, \Lambda)
+    // prob_pointer[to_gt(j)] = P(R_l | Y_l = u_j)
+
     for(int j = 0; j < 4; ++j){
-        sum = 0;
+        fast sum = 0;
         for(int i = 0; i < 4; ++i){
-            sum += p[ImputeHelper::to_gt(i)] * pc[s[i]][j] / e[s[i]];
+            sum += alpha_beta[i] * pc[s[i]][j] / e[s[i]];
         }
-        c.push_back(powf(p[ImputeHelper::to_gt(j)] * sum, S));
+        c.push_back(powf(prob_pointer[ImputeHelper::to_gt(j)] * sum, S));
     }
     assert(c.size() == 4);
 
