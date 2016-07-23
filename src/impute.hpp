@@ -37,6 +37,24 @@ struct Site {
 
 namespace ImputeHelper {
 inline int to_gt(int hap_idx) { return hap_idx > 1 ? hap_idx - 1 : hap_idx; }
+
+// *P is pointer to haplotype (in bits, i.e. each uint64_t contains 64 sites)
+// set1() sets the Ith bit in P to 1
+inline void set1(uint64_t *P, unsigned I) {
+  // I >> Uint64_TShift is moving along the array according to which uint64_t
+  // I is in
+  // e.g. I <= 63 is first uint64_t, and so forth in blocks of 64 bits
+  P[I >> WORDSHIFT] |= static_cast<uint64_t>(1) << (I & WORDMOD);
+}
+
+inline void set0(uint64_t *P, unsigned I) {
+  P[I >> WORDSHIFT] &= ~(static_cast<uint64_t>(1) << (I & WORDMOD));
+}
+
+// test if bit I is 1
+inline const uint64_t test(uint64_t *P, unsigned I) {
+  return (P[I >> WORDSHIFT] >> (I & WORDMOD)) & static_cast<uint64_t>(1);
+}
 }
 
 class Impute {
@@ -52,24 +70,6 @@ protected:
   std::vector<fast> tran, emit;
 
   fast pc[4][4]; // mutation matrix
-
-  // *P is pointer to haplotype (in bits, i.e. each uint64_t contains 64 sites)
-  // set1() sets the Ith bit in P to 1
-  void set1(uint64_t *P, unsigned I) {
-    // I >> Uint64_TShift is moving along the array according to which uint64_t
-    // I is in
-    // e.g. I <= 63 is first uint64_t, and so forth in blocks of 64 bits
-    P[I >> WORDSHIFT] |= static_cast<uint64_t>(1) << (I & WORDMOD);
-  }
-
-  void set0(uint64_t *P, unsigned I) {
-    P[I >> WORDSHIFT] &= ~(static_cast<uint64_t>(1) << (I & WORDMOD));
-  }
-
-  // test if bit I is 1
-  uint64_t test(uint64_t *P, unsigned I) {
-    return (P[I >> WORDSHIFT] >> (I & WORDMOD)) & static_cast<uint64_t>(1);
-  }
 
   fast hmm(unsigned I, unsigned *P, fast S);
 

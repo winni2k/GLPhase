@@ -9,12 +9,15 @@
   #include <fstream>
   #include <iostream>
 */
+#include <cassert>
+#include <cfloat>
+#include <gsl/gsl_rng.h>
+#include <omp.h>
 #include <memory>
 #include <limits>
-#include <cassert>
 #include <stdint.h>
-#include <utility>
 #include <unordered_map>
+#include <utility>
 #include "impute.hpp"
 #include "emcchain.hpp"
 #include "utils.hpp"
@@ -29,13 +32,12 @@
 #include <boost/uuid/uuid_generators.hpp> // generators
 #include <boost/uuid/uuid_io.hpp>         // streaming operators etc.
 #include <boost/algorithm/string.hpp>
-#include <cfloat>
 #include "tabix.hpp"
 #include "vcf_parser.hpp"
 #include "bio.hpp"
 #include "globals.h"
-#include <omp.h>
 #include "geneticMap.hpp"
+#include "hmm.hpp"
 
 #ifndef NCUDA
 #include "hmmLike.hpp"
@@ -166,7 +168,7 @@ private:
   void SetHapsAccordingToScaffold();
 
   // calculate number of recombinations necessary for state transition
-  inline int Insti::num_recombinations(unsigned from, unsigned to) {
+  inline int NumRecombinations(unsigned from, unsigned to) {
     unsigned mismatches = from ^ to;
     return (mismatches & 1) + ((mismatches >> 1) & 1);
   }

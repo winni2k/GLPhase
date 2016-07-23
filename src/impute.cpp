@@ -8,6 +8,8 @@
 #include "impute.hpp"
 
 using namespace std;
+using namespace ImputeHelper;
+
 const fast norm =
     powf(FLT_MIN,
          2.0f / 3.0f); // basically avoid singularity or floating point error
