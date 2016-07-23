@@ -121,3 +121,5 @@ size_t HMM::sample_z(std::vector<fast>::iterator alpha_begin,
 
   return HMMHelper::roulette_wheel_sample(probs, m_init.rng);
 }
+
+size_t HMM:sample_y(size_t sampled_z, 
