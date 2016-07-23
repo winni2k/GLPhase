@@ -453,7 +453,7 @@ void Impute::hmm_work(unsigned I, unsigned *P, fast S) {
         l10 * b[2],
         l11 * b[3]
     };
-    const vector<unsigned> s = { s00, s01, s10, s00 };
+    const vector<unsigned> s = { s00, s01, s10, s11 };
     vector<fast> c;
     // c00 is P(phase 0|0 | emit, l, b, GL) at site m penalized by S
     // powf effectively inflates the importance of small numbers
