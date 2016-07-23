@@ -90,6 +90,27 @@ Insti::Insti(InstiHelper::Init &init)
 // call Impute::hmm_like and print out result
 fast Insti::hmm_like(unsigned I, uint *P) { return Impute::hmm_like(I, P); }
 
+void Insti::hmm_work(unsigned I, unsigned *P, fast S) {
+  auto init = HMMHelper::Init;
+  init.rng = rng;
+  init.num_sites = mn;
+  init.hap_size_in_blocks = wn;
+  init.transitions = &tran;
+  init.emissions = &emit;
+  init.haps = &haps;
+  HMM hmm = HMM(init);
+
+  auto alphas = hmm.alphas(I, P);
+  assert(alphas.size() == mn * 4);
+  int previous_z = -1;
+  for (int site = mn - 1; site != -1; --site) {
+    size_t sampled_z =
+        hmm.sample_z(alphas.begin() + site * 4, alphas.begin() + site * 4 + 4,
+                     mn * 3 - 3, previous_z);
+    int sampled_y = hmm.sample_y(sampled_z, );
+  }
+}
+
 void Insti::SetLog(const string &sLogFile) {
 
   s_bIsLogging = true;
@@ -270,13 +291,13 @@ void Insti::OpenSample(const string &sampleFile,
   }
 }
 
-void Insti::OpenTabHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
+void Insti::OpenTabHaps(const string &hapsFile, vector<vector<char>> &loadHaps,
                         vector<snp> &loadSites) {
   cout << m_tag << ": [insti] Loading tabixed haps file: " << hapsFile << endl;
 
   // clear all the containers that are going to be filled up
   vector<snp> fillSites;
-  vector<vector<char> > fillHaps;
+  vector<vector<char>> fillHaps;
   fillSites.reserve(site.size());
   fillHaps.reserve(site.size());
 
@@ -377,7 +398,7 @@ void Insti::OpenTabHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
 
 // read in the haps file
 // store haps and sites
-void Insti::OpenHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
+void Insti::OpenHaps(const string &hapsFile, vector<vector<char>> &loadHaps,
                      vector<snp> &sites) {
 
   cout << m_tag << ": [insti] Loading haps file: " << hapsFile << endl;
@@ -519,7 +540,7 @@ void Insti::OpenHaps(const string &hapsFile, vector<vector<char> > &loadHaps,
 }
 
 void Insti::OpenVCFGZ(const string &vcf, const string &region,
-                      vector<vector<char> > &loadHaps, vector<snp> &loadSites,
+                      vector<vector<char>> &loadHaps, vector<snp> &loadSites,
                       vector<string> &ids) {
   loadHaps.clear();
   loadSites.clear();
@@ -581,22 +602,22 @@ void Insti::OpenVCFGZ(const string &vcf, const string &region,
               firstCols[5], firstCols[6], firstCols[7], genotypes);
 
     /*
-        phrase_parse(
-            first, line.end(),
+      phrase_parse(
+      first, line.end(),
 
-            //  Begin grammar
-            (as_string[+(char_ - lit("\t"))][ref(chr) = _1] > int_[ref(pos) =
-       _1] >
-             omit[+(char_ - lit("\t"))] >
-             as_string[+(char_ - lit("\t"))][ref(ref) = _1] >
-             as_string[+(char_ - lit("\t"))][ref(alt) = _1] >
-             omit[repeat(4)[+(char_ - lit("\t"))]] >
-             *(char_('0', '1')[push_back(phoenix::ref(site), atoi(_1))] >
-       lit('|') >
-               char_('0', '1')[push_back(phoenix::ref(site), atoi(_1))]) >
-             lit("\n")),
-            //  End grammar
-            lit("\t"));
+      //  Begin grammar
+      (as_string[+(char_ - lit("\t"))][ref(chr) = _1] > int_[ref(pos) =
+      _1] >
+      omit[+(char_ - lit("\t"))] >
+      as_string[+(char_ - lit("\t"))][ref(ref) = _1] >
+      as_string[+(char_ - lit("\t"))][ref(alt) = _1] >
+      omit[repeat(4)[+(char_ - lit("\t"))]] >
+      *(char_('0', '1')[push_back(phoenix::ref(site), atoi(_1))] >
+      lit('|') >
+      char_('0', '1')[push_back(phoenix::ref(site), atoi(_1))]) >
+      lit("\n")),
+      //  End grammar
+      lit("\t"));
     */
 
     // make sure parser parsed everything
@@ -606,9 +627,9 @@ void Insti::OpenVCFGZ(const string &vcf, const string &region,
           " of VCF body in file: " + vcf + "\nLine: " + line);
     /*    if (first != line.end())
           throw std::runtime_error("VCF line was not completely parsed at line "
-       +
-                                   to_string(siteNum + 1) +
-                                   " of VCF body in file: " + vcf);
+          +
+          to_string(siteNum + 1) +
+          " of VCF body in file: " + vcf);
     */
     // make sure the correct number of haps were found
     if (genotypes.size() != ids.size())
@@ -640,7 +661,7 @@ void Insti::LoadVCFGZ(const string &vcf, InstiPanelType panel_t,
   // load haps file
   CheckPanelPrereqs(panel_t);
 
-  vector<vector<char> > loadHaps;
+  vector<vector<char>> loadHaps;
   vector<snp> loadSites;
   vector<string> scaffoldSampleIDs;
 
@@ -660,7 +681,7 @@ void Insti::LoadVCFGZ(const string &vcf, InstiPanelType panel_t,
   }
 
   assert(!loadHaps.empty());
-  vector<vector<char> > filtHaps;
+  vector<vector<char>> filtHaps;
   vector<snp> filtSites;
 
   FilterSites(loadHaps, loadSites, filtHaps, filtSites, panel_t);
@@ -683,7 +704,7 @@ void Insti::LoadHapsSamp(const string &hapsFile, const string &sampleFile,
   // load haps file
   CheckPanelPrereqs(panelType);
 
-  vector<vector<char> > loadHaps;
+  vector<vector<char>> loadHaps;
   vector<snp> loadSites;
 
   // read the haps and sites from a haps file
@@ -708,7 +729,7 @@ void Insti::LoadHapsSamp(const string &hapsFile, const string &sampleFile,
   }
 
   assert(!loadHaps.empty());
-  vector<vector<char> > filtHaps;
+  vector<vector<char>> filtHaps;
   vector<snp> filtSites;
 
   FilterSites(loadHaps, loadSites, filtHaps, filtSites, panelType);
@@ -718,7 +739,7 @@ void Insti::LoadHapsSamp(const string &hapsFile, const string &sampleFile,
 }
 
 void Insti::OrderSamples(vector<string> &loadIDs,
-                         vector<vector<char> > &loadHaps) {
+                         vector<vector<char>> &loadHaps) {
 
   assert(loadIDs.size() == m_namesUnordered.size());
 
@@ -770,7 +791,7 @@ void Insti::OrderSamples(vector<string> &loadIDs,
     assert(loadIDs.size() * 2 == loadHaps[0].size());
 }
 void Insti::SubsetSamples(vector<string> &loadIDs,
-                          vector<vector<char> > &loadHaps) {
+                          vector<vector<char>> &loadHaps) {
 
   assert(loadIDs.size() >= m_namesUnordered.size());
 
@@ -823,8 +844,8 @@ void Insti::SubsetSamples(vector<string> &loadIDs,
 }
 
 // only keep sites in main gl set
-void Insti::FilterSites(vector<vector<char> > &loadHaps, vector<snp> &loadSites,
-                        vector<vector<char> > &filtHaps, vector<snp> &filtSites,
+void Insti::FilterSites(vector<vector<char>> &loadHaps, vector<snp> &loadSites,
+                        vector<vector<char>> &filtHaps, vector<snp> &filtSites,
                         InstiPanelType panelType) {
 
   assert(loadSites.size() > 0);
@@ -954,7 +975,7 @@ void Insti::MatchSamples(const vector<std::string> &IDs, unsigned numHaps) {
 }
 
 // put the haplotypes in the right place in the program structure
-void Insti::LoadHaps(vector<vector<char> > &inHaps, vector<snp> &inSites,
+void Insti::LoadHaps(vector<vector<char>> &inHaps, vector<snp> &inSites,
                      vector<string> &inSampleIDs, InstiPanelType panelType) {
 
   assert(inHaps.size() == inSites.size());
@@ -984,8 +1005,7 @@ void Insti::LoadHaps(vector<vector<char> > &inHaps, vector<snp> &inSites,
         throw myException(
             "Error while reading scaffold: Scaffold needs to have two "
             "haplotypes for every input sample");
-    }
-    catch (exception &e) {
+    } catch (exception &e) {
       cout << e.what() << endl;
       exit(1);
     };
@@ -1063,7 +1083,7 @@ vector<snp> Insti::OpenLegend(string legendFile) {
   return loadLeg;
 }
 
-vector<vector<char> > Insti::OpenHap(string hapFile) {
+vector<vector<char>> Insti::OpenHap(string hapFile) {
 
   // read in the hap file
   ifile hapFD(hapFile);
@@ -1074,7 +1094,7 @@ vector<vector<char> > Insti::OpenHap(string hapFile) {
   string buffer;
   int lineNum = -1;
   unsigned uNumHaps = 0;
-  vector<vector<char> > loadHaps;
+  vector<vector<char>> loadHaps;
 
   while (getline(hapFD, buffer, '\n')) {
     lineNum++;
@@ -1159,20 +1179,19 @@ bool Insti::LoadHapLegSamp(const string &legendFile, const string &hapFile,
     auto legend = OpenLegend(legendFile);
 
     /*catch (exception& e) {
-        cout << e.what() << " in legend file " << legendFile << endl;
-        exit(1);
-        }*/
+      cout << e.what() << " in legend file " << legendFile << endl;
+      exit(1);
+      }*/
 
     cout << "Loading hap file: " << hapFile << endl;
     auto loadHaps = OpenHap(hapFile);
 
-    vector<vector<char> > filtHaps;
+    vector<vector<char>> filtHaps;
     vector<snp> filtSites;
     FilterSites(loadHaps, legend, filtHaps, filtSites, panelType);
 
     LoadHaps(filtHaps, filtSites, sampleIDs, panelType);
-  }
-  catch (exception &e) {
+  } catch (exception &e) {
     cerr << "Error loading haplotypes file " << hapFile << ": " << e.what()
          << endl;
     exit(2);
@@ -1195,12 +1214,12 @@ void Insti::initialize() {
   // shifter to right....
   // we define a minimum block size of 64.
   wn = (mn & WORDMOD) ? (mn >> WORDSHIFT) + 1 : (mn >> WORDSHIFT);
-  hn = in * 2;             // number of haps
-  haps.resize(hn * wn);    // space to store all haplotypes
-  hnew.resize(hn * wn);    // number of haplotypes = 2 * number of samples  ...
-                           // haps mn is # of sites,
+  hn = in * 2;          // number of haps
+  haps.resize(hn * wn); // space to store all haplotypes
+  hnew.resize(hn * wn); // number of haplotypes = 2 * number of samples  ...
+  // haps mn is # of sites,
   hsum.assign(hn * mn, 0); // one unsigned for every hap's site - what for?  To
-                           // estimate allele probs
+  // estimate allele probs
 
   //    pare.assign(in * in, 0);  // in x in matrix, one uint16 for every pair
   // of individuals
@@ -1276,6 +1295,8 @@ void Insti::initialize() {
     tran[m * 3 + 1] = r * (1 - r);
     tran[m * 3 + 2] = r * r;
   }
+
+  // fill matrix of recombinations
 
   // initialize site mutation probability matrix
   // diagonal is chance of no mutation
@@ -1426,7 +1447,7 @@ fast Insti::cudaSolve(HMMLike &hapSampler, unsigned sampleStride, fast pen) {
   assert(sampleStride == in);
 
   // sample four haps for N samples
-  unsigned firstSampIdx{ 0 }, lastSampIdx{ 0 };
+  unsigned firstSampIdx{0}, lastSampIdx{0};
   vector<unsigned> propHaps =
       hapSampler.RunHMMOnSamples(firstSampIdx, lastSampIdx);
 
@@ -1530,10 +1551,10 @@ fast Insti::solve(unsigned I, unsigned N, fast pen,
   // if we have passed the burnin cycles (n >= bn)
   // start sampling the haplotypes for output
   /*
-  if (P) {
-      uint16_t *pa = &pare[I * in];
-      for (unsigned i = 0; i < 4; i++) pa[p[i] / 2]++;
-  }
+    if (P) {
+    uint16_t *pa = &pare[I * in];
+    for (unsigned i = 0; i < 4; i++) pa[p[i] / 2]++;
+    }
   */
   hmm_work(I, propHaps.data(), pen);
   return curr;
@@ -1646,8 +1667,7 @@ void Insti::estimate() {
     assert(!m_sLogFile.empty());
     try {
       m_sampler->Save(m_sLogFile, name);
-    }
-    catch (exception &e) {
+    } catch (exception &e) {
       cerr << e.what() << endl;
     }
   }
@@ -1744,7 +1764,7 @@ fast Insti::solve_EMC(unsigned I, unsigned N, fast S) {
   // initialize emc chains with increasing temperatures
   vector<EMCChain> vcChains;
   vector<uint>
-  vuChainTempHierarchy; // index of Chains sorted by temperature, ascending
+      vuChainTempHierarchy; // index of Chains sorted by temperature, ascending
 
   for (unsigned i = 0; i < Insti::s_uParallelChains; i++) {
     vcChains.push_back(EMCChain((i + 1) * fMaxTemp / Insti::s_uParallelChains,
@@ -2128,7 +2148,7 @@ void Insti::save_vcf(const char *F, string commandLine) {
         vcfFD << "\t1|1";
 
       // test for any p being zero
-      vector<fast> vfProb = { prr, pra, paa, p[0], p[1] };
+      vector<fast> vfProb = {prr, pra, paa, p[0], p[1]};
 
       for (auto &phred : vfProb) {
         if (phred == 0)
