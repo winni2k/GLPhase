@@ -6,3 +6,4 @@
 /src/testing/other_unittests
 /src/testing/cuda_tests
 /src/testing/glPack_unittests
+/src/testing/hmm_unittests

@@ -52,9 +52,11 @@ inline void set0(uint64_t *P, unsigned I) {
 }
 
 // test if bit I is 1
-inline const uint64_t test(uint64_t *P, unsigned I) {
+inline uint64_t test(const uint64_t *P, unsigned I) {
   return (P[I >> WORDSHIFT] >> (I & WORDMOD)) & static_cast<uint64_t>(1);
 }
+
+    extern const fast norm;
 }
 
 class Impute {

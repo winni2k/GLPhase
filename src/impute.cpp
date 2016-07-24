@@ -8,11 +8,14 @@
 #include "impute.hpp"
 
 using namespace std;
-using namespace ImputeHelper;
 
+namespace ImputeHelper {
 const fast norm =
     powf(FLT_MIN,
          2.0f / 3.0f); // basically avoid singularity or floating point error
+}
+
+using namespace ImputeHelper;
 
 // initialzing static member variables
 unsigned Impute::bn;
@@ -194,7 +197,7 @@ void Impute::initialize(void) {
   // we define a minimum block size of 64.
   wn = (mn & WORDMOD) ? (mn >> WORDSHIFT) + 1 : (mn >> WORDSHIFT);
 
-  hn = in * 2; // number of haps
+  hn = in * 2;          // number of haps
   haps.resize(hn * wn); // space to store all haplotypes
   hnew.resize(hn * wn); // number of haplotypes = 2 * number of samples  ...
                         // haps mn is # of sites,
@@ -265,13 +268,13 @@ void Impute::initialize(void) {
   // all other entries are chance of just one mutation
   pc[0][0] = pc[1][1] = pc[2][2] = pc[3][3] =
       (1 - mu) * (1 - mu); //	  probability of mutating no positions for each
-                           //parents haplotype
+  // parents haplotype
   pc[0][1] = pc[0][2] = pc[1][0] = pc[1][3] = pc[2][0] = pc[2][3] = pc[3][1] =
       pc[3][2] = mu * (1 - mu); //	  probability of mutating one position
-                                //for each parental haplotype
+  // for each parental haplotype
   pc[0][3] = pc[1][2] = pc[2][1] = pc[3][0] =
       mu * mu; //	  probability of mutating both positions for each
-               //parental haplotype
+  // parental haplotype
 
   // initialize individual haplotypes
   for (unsigned i = 0; i < in; i++) {
@@ -448,14 +451,11 @@ void Impute::hmm_work(unsigned I, unsigned *P, fast S) {
     l11 *= sum;
 
     // p00 is P(phase 0|0 | l, b)
-    // fast p00 = l00 * b[0], p01 = l01 * b[1], p10 = l10 * b[2], p11 = l11 * b[3];
-    const vector<fast> alpha_beta = {
-        l00 * b[0],
-        l01 * b[1],
-        l10 * b[2],
-        l11 * b[3]
-    };
-    const vector<unsigned> s = { s00, s01, s10, s11 };
+    // fast p00 = l00 * b[0], p01 = l01 * b[1], p10 = l10 * b[2], p11 = l11 *
+    // b[3];
+    const vector<fast> alpha_beta = {l00 * b[0], l01 * b[1], l10 * b[2],
+                                     l11 * b[3]};
+    const vector<unsigned> s = {s00, s01, s10, s11};
     vector<fast> c;
     // c00 is P(phase 0|0 | emit, l, b, GL) at site m penalized by S
     // powf effectively inflates the importance of small numbers
@@ -464,12 +464,12 @@ void Impute::hmm_work(unsigned I, unsigned *P, fast S) {
     // e[s[i]] = P(R_l|Z_l = u_i, \Lambda)
     // prob_pointer[to_gt(j)] = P(R_l | Y_l = u_j)
 
-    for(int j = 0; j < 4; ++j){
-        fast sum = 0;
-        for(int i = 0; i < 4; ++i){
-            sum += alpha_beta[i] * pc[s[i]][j] / e[s[i]];
-        }
-        c.push_back(powf(prob_pointer[ImputeHelper::to_gt(j)] * sum, S));
+    for (int j = 0; j < 4; ++j) {
+      fast sum = 0;
+      for (int i = 0; i < 4; ++i) {
+        sum += alpha_beta[i] * pc[s[i]][j] / e[s[i]];
+      }
+      c.push_back(powf(prob_pointer[ImputeHelper::to_gt(j)] * sum, S));
     }
     assert(c.size() == 4);
 
@@ -687,7 +687,8 @@ void Impute::document(void) {
   cerr << "\n	-b <burn>	burn-in generations (56)";
   cerr << "\n	-l <file>	list of input files";
   cerr << "\n	-m <mcmc>	sampling generations (200)";
-  cerr << "\n	-n <fold>	sample size*fold of nested MH sampler iteration "
+  cerr << "\n	-n <fold>	sample size*fold of nested MH sampler "
+          "iteration "
           "(2)";
   cerr << "\n	-t <thread>	number of threads (0=MAX)";
   cerr << "\n	-v <vcf>	integrate known genotype in VCF format";

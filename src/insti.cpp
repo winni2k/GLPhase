@@ -4,6 +4,7 @@
 static_assert(__cplusplus > 199711L, "Program requires C++11 capable compiler");
 
 using namespace std;
+using namespace ImputeHelper;
 #ifndef NCUDA
 using namespace HMMLikeCUDA;
 #endif
@@ -91,42 +92,19 @@ Insti::Insti(InstiHelper::Init &init)
 fast Insti::hmm_like(unsigned I, uint *P) { return Impute::hmm_like(I, P); }
 
 void Insti::hmm_work(unsigned I, unsigned *P, fast S) {
+  assert(S == 1.0);
   HMMHelper::Init init;
   init.rng = rng;
   init.num_sites = mn;
   init.hap_size_in_blocks = wn;
   init.num_possible_emissions = en;
   HMM hmm(init, tran, emit, haps);
-
+  auto y_sequence = hmm.sample_y_sequence(I, P, pc, prob);
+  
   uint64_t *ha = &hnew[I * 2 * wn], *hb = ha + wn;
-
-  // setup the different haplotypes
-  uint64_t *f0 = &haps[P[0] * init.hap_size_in_blocks],
-           *f1 = &haps[P[1] * init.hap_size_in_blocks],
-           *m0 = &haps[P[2] * init.hap_size_in_blocks],
-           *m1 = &haps[P[3] * init.hap_size_in_blocks];
-
-  auto alphas = hmm.alphas(I, P);
-  assert(alphas.size() == mn * 4);
-  int previous_z = -1;
-  for (int site = mn - 1; site != -1; --site) {
-
-    const vector<uint64_t> parents_to_hap_pair = {
-        (test(f0, site) << 1) | test(m0, site),
-        (test(f0, site) << 1) | test(m1, site),
-        (test(f1, site) << 1) | test(m0, site),
-        (test(f1, site) << 1) | test(m1, site)};
-
-    size_t sampled_z =
-        hmm.sample_z(alphas.begin() + site * 4, alphas.begin() + site * 4 + 4,
-                     mn * 3 - 3, previous_z);
-
-    fast *prob_pointer = &prob[I * pn];
-    size_t sampled_y =
-        hmm.sample_y(parents_to_hap_pair.at(sampled_z), prob_pointer);
-
-    (sampled_y & 2) ? set1(ha, site) : set0(ha, site);
-    (sampled_y & 1) ? set1(hb, site) : set0(hb, site);
+  for(unsigned site = 0; site < mn; ++ site){
+    (y_sequence[site] & 2) ? set1(ha, site) : set0(ha, site);
+    (y_sequence[site] & 1) ? set1(hb, site) : set0(hb, site);
   }
 }
 

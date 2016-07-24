@@ -167,12 +167,6 @@ private:
   // expects scaffold to have been initialized
   void SetHapsAccordingToScaffold();
 
-  // calculate number of recombinations necessary for state transition
-  inline int NumRecombinations(unsigned from, unsigned to) {
-    unsigned mismatches = from ^ to;
-    return (mismatches & 1) + ((mismatches >> 1) & 1);
-  }
-
 public:
   // uuid
   const boost::uuids::uuid m_tag;
@@ -188,8 +182,8 @@ public:
     assert(siteNum < m_scaffold.MaxSites());
     std::vector<uint64_t> *scaffoldHaps = m_scaffold.Haplotypes();
     uint64_t *scaffoldHapsPointer = scaffoldHaps->data();
-    return test(&scaffoldHapsPointer[hapNum * m_scaffold.NumWordsPerHap()],
-                siteNum);
+    return ImputeHelper::test(
+        &scaffoldHapsPointer[hapNum * m_scaffold.NumWordsPerHap()], siteNum);
   }
   unsigned GetScaffoldNumHaps() { return m_scaffold.NumHaps(); }
   unsigned GetScaffoldNumSites() { return m_scaffold.NumSites(); }
@@ -268,14 +262,14 @@ public:
 
   // returns allele of hap number hap at sites number site
   bool TestRefHap(uint hap, uint site) {
-    return test(&m_vRefHaps[hap * wn], site) == 1;
+    return ImputeHelper::test(&m_vRefHaps[hap * wn], site) == 1;
   }
 
   // test if bit I is 1 in hap numebr hapNum
   // provided for unit testing only
   uint64_t TestMainHap_(unsigned hapNum, unsigned I) {
     uint64_t *ha = &haps[hapNum * wn];
-    return test(ha, I);
+    return ImputeHelper::test(ha, I);
   }
 
   // are we logging?

@@ -23,7 +23,7 @@ LIBS += -lpthread
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
-TESTS := insti_unittests other_unittests glPack_unittests
+TESTS := insti_unittests other_unittests glPack_unittests hmm_unittests
 ifndef NCUDA
 TESTS += cuda_tests
 endif
@@ -103,6 +103,16 @@ glPack_unittests : glPack_unittests.o gtest_main.a $(SRC_DIR)/glPack.o $(SRC_DIR
 
 run_glPack_unittests: glPack_unittests
 	./$^
+
+hmm_unittests.o : hmm_unittests.cpp $(SRC_DIR)/*.hpp.gch $(GTEST_HEADERS)
+	$(CXX) $(CXXFLAGS) -c $<
+
+hmm_unittests : hmm_unittests.o gtest_main.a $(INSTI_O_FILES)
+	$(CXX) $(CXXFLAGS) $^ -o $@ $(LIBS)
+
+run_hmm_unittests: hmm_unittests
+	./$^
+
 
 ifndef NCUDA
 # compile cuda object file
