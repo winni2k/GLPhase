@@ -21,6 +21,10 @@ GLPhase depends on [libgsl](https://www.gnu.org/software/gsl/),
 
 ### Compilation
 
+    # Clone this repository recursively
+    git clone --recursive https://github.com/winni2k/GLPhase.git
+    cd GLPhase
+
     # to compile all code (with all optimizations turned on)
     make
 
