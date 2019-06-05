@@ -1,3 +1,11 @@
+1.7.1   Wed Jun 05 2019
+        Rebrand INSTI to GLPhase
+	Add documentation
+	Fix some compilation issues
+
+1.7.0   Thu Dec 10 13:11:08 2015
+        Cleans up some CUDA code
+
 1.6.8   Thu Nov 19 14:42:58 GMT 2015
         Adds support for indexed BCF/VCF reading of input haplotypes
         Adds genotype calling accuracy test based on 1000GP3 GLs
