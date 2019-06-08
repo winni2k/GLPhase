@@ -1,5 +1,7 @@
 # GLPhase
 
+[![https://www.singularity-hub.org/static/img/hosted-singularity--hub-%23e32929.svg](https://www.singularity-hub.org/static/img/hosted-singularity--hub-%23e32929.svg)](https://singularity-hub.org/collections/3127)
+
 This is a cuda-enabled fork of
 [SNPTools impute.cpp](http://sourceforge.net/p/snptools/code/ci/master/tree/). This
 code should scale linearly with sample size up to a small multiple of
