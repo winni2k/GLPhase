@@ -1,7 +1,5 @@
 # GLPhase
 
-[![https://www.singularity-hub.org/static/img/hosted-singularity--hub-%23e32929.svg](https://www.singularity-hub.org/static/img/hosted-singularity--hub-%23e32929.svg)](https://singularity-hub.org/collections/3127)
-
 This is a cuda-enabled fork of
 [SNPTools impute.cpp](http://sourceforge.net/p/snptools/code/ci/master/tree/). This
 code should scale linearly with sample size up to a small multiple of
@@ -15,6 +13,8 @@ to impute genotypes for the first release of the
 [Haplotype Reference Consortium](http://www.haplotype-reference-consortium.org/).
 
 ## Installation
+
+If you have [Singularity](https://www.sylabs.io/singularity/) version 3 installed, then you can run the glphase container located [here](https://cloud.sylabs.io/library/wkretzsch/default/glphase).
 
 ### Dependencies
 
