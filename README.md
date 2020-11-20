@@ -95,6 +95,32 @@ The pre-existing haplotypes should be in
 [WTCCC format](https://mathgen.stats.ox.ac.uk/genetics_software/shapeit/shapeit.html#hapsample), 
 and a genetic map can be obtained from the [Impute2 website](https://mathgen.stats.ox.ac.uk/impute/impute_v2.html#reference).
 
+### Using a reference panel
+
+GLPhase can use a reference panel of haplotypes to inform genotype
+imputation of samples for which genotype likelihoods are available.
+In contrast to pre-existing haplotypes, the haplotypes
+in the reference panel do not need to be from the same samples that
+are being imputed. In this mode, when surrogate parent haplotypes 
+are being chosen for a sample, the haplotypes may come from the 
+current estimate of sample haplotypes or the reference panel. `-k` 
+can be specified to restrict the choice of surrogate parent haplotypes
+to the reference panel in the first iteration of haplotype estimation.
+
+```bash
+glphase \
+    input.bin \
+    -g samples/hapGen/ex.map \
+    -H samples/hapGen/ex.haps.gz \
+    -L samples/hapGen/ex.leg \
+    -k \
+    -o output_base_name
+```
+
+The reference haplotypes and legend should be in
+[Impute2 format](https://mathgen.stats.ox.ac.uk/genetics_software/shapeit/shapeit.html#haplegsample), 
+and a genetic map can be obtained from the [Impute2 website](https://mathgen.stats.ox.ac.uk/impute/impute_v2.html#reference).
+
 ## Ligating haplotypes
 
 It is recommended to ligate haplotypes using
